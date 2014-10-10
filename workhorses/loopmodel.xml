@@ -1,0 +1,18 @@
+<ROSETTASCRIPTS>
+
+    <TASKOPERATIONS>
+        <RestrictToLoops name="loop" loops_file="%%loop_file%%"/>
+    </TASKOPERATIONS>
+
+    <MOVERS>
+        <LoopModeler name="modeler"
+            config="kic_with_frags"
+            loops_file="%%loop_file%%"
+            fast="%%fast%%"/>
+    </MOVERS>
+
+    <PROTOCOLS>
+        <Add mover_name=modeler/>
+    </PROTOCOLS>
+
+</ROSETTASCRIPTS>

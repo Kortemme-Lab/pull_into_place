@@ -4,7 +4,7 @@
 Query the user for all the input data needed for a design.  This includes a 
 starting PDB file, the backbone regions that will be remodeled, the residues 
 that will be allowed to design, and more.  A brief description of each field is 
-given below.  This information is used to build a directory for this design 
+given below.  This information is used to build a workspace for this design 
 that will be used by the rest of the scripts in this pipeline.  
 
 Usage: 01_setup_design.py <name>
@@ -14,8 +14,8 @@ keys = (   # (fold)
         'input_pdb',
         'loops_path',
         'resfile_path',
-        'flags_path',
         'restraints_path',
+        'flags_path',
         #'cluster_path',
         'rosetta_path',
 )
@@ -24,8 +24,8 @@ prompts = {   # (fold)
         'input_pdb': "Path to the input PDB file: ",
         'loops_path': "Path to the loops file: ",
         'resfile_path': "Path to resfile: ",
-        'flags_path': "Path to flags file: ",
         'restraints_path': "Path to restraints file: ",
+        'flags_path': "Path to flags file [optional]: ",
         'cluster_path': "Path to project on cluster: ",
         'rosetta_path': "Path to rosetta: ",
 }
@@ -44,15 +44,15 @@ at least 4 residues.""",
 Resfile: A file specifying which positions to design and which positions to 
 repack.  I recommend designing as few residues as possible outside the loops.""",
 
-        'flags_path': """\
-Flags file: A file containing command line flags that should be passed to every 
-invocation of rosetta for this design.  For example, if your design involves a 
-ligand, put flags related to the ligand parameter files in this file.""",
-
         'restraints_path': """\
 Restraints file: A file describing the geometry you're trying to design.  In 
 rosetta parlance, this is more often (inaccurately) called a constraint file.  
 Note that restraints are only used to build the initial set of models.""",
+
+        'flags_path': """\
+Flags file: A file containing command line flags that should be passed to every 
+invocation of rosetta for this design.  For example, if your design involves a 
+ligand, put flags related to the ligand parameter files in this file.""",
 
         'cluster_path': """\
 Cluster checkout: The path to your project files on the cluster.  This setting 
@@ -68,18 +68,18 @@ rosetta in the design directory.""",
 
 if __name__ == '__main__':
     try:
-        import os, readline
+        import os, readline, shutil
         from libraries import docopt
-        from libraries import files
+        from libraries import workspaces
 
         help = __doc__ + '\n' + '\n\n'.join(descriptions[x] for x in keys)
         arguments = docopt.docopt(help)
-        design = files.Design(arguments['<name>'])
+        workspace = workspaces.Workspace(arguments['<name>'])
 
         # Make sure this design doesn't already exist.
 
-        if design.exists():
-            print "Design '{0}' already exists.  Aborting.".format(design.name)
+        if workspace.exists():
+            print "Design '{0}' already exists.  Aborting.".format(workspace.name)
             raise SystemExit
 
         # Get the necessary paths from the user.
@@ -96,28 +96,35 @@ if __name__ == '__main__':
             print
             settings[key] = prompt(key)
             while not os.path.exists(settings[key]):
-                print "'{0}' does not exist.".format(settings[key])
-                print
+                if settings[key] == '':
+                    if 'optional' in prompts[key]:
+                        print "Skipping optional input."
+                        break
+                else:        
+                    print "'{0}' does not exist.".format(settings[key])
+                    print
                 settings[key] = prompt(key)
             print
 
         # Fill in the design directory.
         
-        os.makedirs(design.root_path)
+        os.makedirs(workspace.root_path)
 
-        def make_link(source, target):
-            if not source.startswith('/'):
-                source = os.path.join(design.inverse_path, source)
-            os.symlink(source, target)
+        shutil.copyfile(settings['input_pdb'], workspace.input_pdb_path)
+        shutil.copyfile(settings['loops_path'], workspace.loops_path)
+        shutil.copyfile(settings['resfile_path'], workspace.resfile_path)
+        shutil.copyfile(settings['restraints_path'], workspace.restraints_path)
 
-        make_link(settings['input_pdb'], design.input_pdb_path)
-        make_link(settings['loops_path'], design.loops_path)
-        make_link(settings['resfile_path'], design.resfile_path)
-        make_link(settings['flags_path'], design.flags_path)
-        make_link(settings['restraints_path'], design.restraints_path)
-        make_link(settings['rosetta_path'], design.rosetta_path)
+        if settings['flags_path']:
+            shutil.copyfile(settings['flags_path'], workspace.flags_path)
+        else:
+            with open(workspace.flags_path, 'w'): pass
 
-        print "Setup successful for design '{0}'.".format(design.name)
+        rosetta_path = os.path.abspath(settings['rosetta_path'])
+        print rosetta_path, workspace.rosetta_path
+        os.symlink(rosetta_path, workspace.rosetta_path)
+
+        print "Setup successful for design '{0}'.".format(workspace.name)
 
     except KeyboardInterrupt:
         print
