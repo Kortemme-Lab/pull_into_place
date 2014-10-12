@@ -32,13 +32,12 @@ with open(workspace.fasta_path, 'w') as file:
 
 # Run the fragment generation script.
 
-workspace.change_cwd('tools', 'bio', 'fragments')
+workspace.cd('tools', 'bio', 'fragments')
 
 generate_fragments = [
-        'generate_fragments.py',
+        './generate_fragments.py',
         '--fasta', workspace.fasta_path,
         '--chain', arguments['<chain>'],
         '--outdir', workspace.fragments_dir,
 ]
-
 subprocess.call(generate_fragments)

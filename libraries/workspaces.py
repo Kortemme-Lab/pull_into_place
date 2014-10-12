@@ -63,7 +63,7 @@ class Workspace:
             if not os.path.exists(path):
                 scripting.print_error_and_die("Missing '{}'.", path)
 
-    def change_cwd(self, *subpaths):
+    def cd(self, *subpaths):
         source = os.path.abspath(self._relative_path)
         target = os.path.abspath(os.path.join(*subpaths))
         self._relative_path = os.path.relpath(source, target)
