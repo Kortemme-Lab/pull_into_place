@@ -54,7 +54,7 @@ class Workspace:
                 self.loops_path,
                 self.resfile_path,
                 self.flags_path,
-                self.restraint_path,
+                self.restraints_path,
                 self.rosetta_path,
         ]
 
@@ -144,7 +144,7 @@ class AllRestrainedModels (Workspace, ForCluster, WithFragments):
         scripting.clear_directory(self.stderr_dir)
 
     def required_paths(self):
-        return Workspace.required_paths() + [self.subdir]
+        return Workspace.required_paths(self) + [self.subdir_path]
 
 
 class BestRestrainedModels (Workspace):

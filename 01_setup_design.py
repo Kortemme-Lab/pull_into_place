@@ -66,66 +66,65 @@ rosetta in the design directory.""",
 }
 
 
-if __name__ == '__main__':
-    try:
-        import os, readline, shutil
-        from libraries import docopt
-        from libraries import workspaces
+try:
+    import os, readline, shutil
+    from tools import docopt
+    from libraries import workspaces
 
-        help = __doc__ + '\n' + '\n\n'.join(descriptions[x] for x in keys)
-        arguments = docopt.docopt(help)
-        workspace = workspaces.Workspace(arguments['<name>'])
+    help = __doc__ + '\n' + '\n\n'.join(descriptions[x] for x in keys)
+    arguments = docopt.docopt(help)
+    workspace = workspaces.Workspace(arguments['<name>'])
 
-        # Make sure this design doesn't already exist.
+    # Make sure this design doesn't already exist.
 
-        if workspace.exists():
-            print "Design '{0}' already exists.  Aborting.".format(workspace.name)
-            raise SystemExit
+    if workspace.exists():
+        print "Design '{0}' already exists.  Aborting.".format(workspace.name)
+        raise SystemExit
 
-        # Get the necessary paths from the user.
+    # Get the necessary paths from the user.
 
-        print "Please provide the following pieces of information:"
+    print "Please provide the following pieces of information:"
+    print
+
+    settings = {}
+    readline.parse_and_bind("tab: complete")
+    prompt = lambda key: os.path.expanduser(raw_input(prompts[key]))
+
+    for key in keys:
+        print descriptions[key]
         print
-
-        settings = {}
-        readline.parse_and_bind("tab: complete")
-        prompt = lambda key: os.path.expanduser(raw_input(prompts[key]))
-
-        for key in keys:
-            print descriptions[key]
-            print
+        settings[key] = prompt(key)
+        while not os.path.exists(settings[key]):
+            if settings[key] == '':
+                if 'optional' in prompts[key]:
+                    print "Skipping optional input."
+                    break
+            else:        
+                print "'{0}' does not exist.".format(settings[key])
+                print
             settings[key] = prompt(key)
-            while not os.path.exists(settings[key]):
-                if settings[key] == '':
-                    if 'optional' in prompts[key]:
-                        print "Skipping optional input."
-                        break
-                else:        
-                    print "'{0}' does not exist.".format(settings[key])
-                    print
-                settings[key] = prompt(key)
-            print
-
-        # Fill in the design directory.
-        
-        os.makedirs(workspace.root_path)
-
-        shutil.copyfile(settings['input_pdb'], workspace.input_pdb_path)
-        shutil.copyfile(settings['loops_path'], workspace.loops_path)
-        shutil.copyfile(settings['resfile_path'], workspace.resfile_path)
-        shutil.copyfile(settings['restraints_path'], workspace.restraints_path)
-
-        if settings['flags_path']:
-            shutil.copyfile(settings['flags_path'], workspace.flags_path)
-        else:
-            with open(workspace.flags_path, 'w'): pass
-
-        rosetta_path = os.path.abspath(settings['rosetta_path'])
-        print rosetta_path, workspace.rosetta_path
-        os.symlink(rosetta_path, workspace.rosetta_path)
-
-        print "Setup successful for design '{0}'.".format(workspace.name)
-
-    except KeyboardInterrupt:
         print
+
+    # Fill in the design directory.
+
+    os.makedirs(workspace.root_path)
+
+    shutil.copyfile(settings['input_pdb'], workspace.input_pdb_path)
+    shutil.copyfile(settings['loops_path'], workspace.loops_path)
+    shutil.copyfile(settings['resfile_path'], workspace.resfile_path)
+    shutil.copyfile(settings['restraints_path'], workspace.restraints_path)
+
+    if settings['flags_path']:
+        shutil.copyfile(settings['flags_path'], workspace.flags_path)
+    else:
+        with open(workspace.flags_path, 'w'): pass
+
+    rosetta_path = os.path.abspath(settings['rosetta_path'])
+    print rosetta_path, workspace.rosetta_path
+    os.symlink(rosetta_path, workspace.rosetta_path)
+
+    print "Setup successful for design '{0}'.".format(workspace.name)
+
+except KeyboardInterrupt:
+    print
 

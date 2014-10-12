@@ -25,22 +25,21 @@ Options:
         debugging.
 """
 
-if __name__ == '__main__':
-    from libraries import workspaces, big_job
-    from tools import docopt, scripting, cluster
+from libraries import workspaces, big_job
+from tools import docopt, scripting, cluster
 
-    arguments = docopt.docopt(__doc__)
-    cluster.require_chef()
+arguments = docopt.docopt(__doc__)
+cluster.require_chef()
 
-    workspace = workspaces.AllRestrainedModels(arguments['<name>'])
-    workspace.require_standard_paths()
-    workspace.clear_models()
+workspace = workspaces.AllRestrainedModels(arguments['<name>'])
+workspace.check_paths()
+workspace.clear_models()    # Should be a simple mkdir.
 
-    big_job.submit(
-            'workhorses/kr_build.py', workspace,
-            nstruct=arguments['--nstruct'],
-            max_runtime=arguments['--max-runtime'],
-            test_run=arguments['--test-run']
-    )
+big_job.submit(
+        'workhorses/kr_build.py', workspace,
+        nstruct=arguments['--nstruct'],
+        max_runtime=arguments['--max-runtime'],
+        test_run=arguments['--test-run']
+)
 
 
