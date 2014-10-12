@@ -31,12 +31,13 @@ def get_parameters(workplace_factory):
     import sys
 
     workspace = workplace_factory(*sys.argv[1:])
+    job_id = int(os.environ['JOB_ID'])
     task_id = int(os.environ['SGE_TASK_ID']) - 1
 
     with open(workspace.params_path) as file:
         parameters = json.load(file)
 
-    return workspace, task_id, parameters
+    return workspace, job_id, task_id, parameters
 
     
 
