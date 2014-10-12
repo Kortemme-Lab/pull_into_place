@@ -7,18 +7,20 @@
 #$ -l h_core=0
 #$ -cwd
 
-from libraries import cluster
+from libraries import big_job
 from libraries import workspaces
 
-name, task_id, test_run = cluster.parse_args()
+name, job_id, task_id, test_run = big_job.get_parameters()
 workspace = workspaces.AllRestrainedModels(name)
+output_prefix = '{0}/{1}_{2:06d}_'.format(
+        workspace.output_dir, job_id, task_id)
 
 rosetta_command = [
         workspace.rosetta_scripts_path,
         '-database', workspace.rosetta_database_path,
         '-in:file:s', workspace.input_pdb_path,
         '-in:file:native', workspace.input_pdb_path,
-        '-out:prefix', workspace.subdir_path + '/',
+        '-out:prefix', output_prefix,
         '-out:nstruct', '1',
         '-out:overwrite',
         '-out:pdb_gz', 
