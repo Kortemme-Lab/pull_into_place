@@ -4,25 +4,20 @@
 Copy design files to a remote destination.  A common application is to copy 
 input files onto the cluster before starting big jobs.
 
-Usage: push_to_cluster.py [options] <remote> <directories>...
-
-Options:
-    -r, --recursive
-        Indicate that directories should be recursively synced.
+Usage: push_to_cluster.py <directory>
 """
 
 import os, subprocess
 from tools import docopt
+from libraries import workspaces
 
 arguments = docopt.docopt(__doc__)
-remote = arguments['<remote>']
-directories = arguments['<directories>']
+directory = arguments['<directory>']
+workspace = workspaces.from_directory(directory)
 
-for directory in directories:
-    rsync_command = [
-            'rsync', '-avr' if arguments['--recursive'] else '-av',
-            directory, os.path.join(remote, directory)
-    ]
-    print ' '.join(rsync_command)
-    subprocess.call(rsync_command)
-
+rsync_command = [
+        'rsync', '-avr',
+        '--exclude', 'rosetta',
+        directory + '/', os.path.join(workspace.remote_path, directory),
+]
+subprocess.call(rsync_command)

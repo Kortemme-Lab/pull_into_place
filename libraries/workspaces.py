@@ -48,6 +48,11 @@ class Workspace:
     def flags_path(self):
         return os.path.join(self.root_path, 'flags')
 
+    @property
+    def remote_path(self):
+        with open(os.path.join(self.root_path, 'remote')) as file:
+            return file.read().strip()
+
     def required_paths(self):
         return [
                 self.input_pdb_path,
@@ -218,12 +223,12 @@ class AllFixbbWorkspaces (Workspace, ForCluster):
 def from_directory(directory):
     directory = os.path.abspath(directory)
     if directory == '/':
-        scripting.print_error_and_die("No designs found in any subdirectories of specified path.")
+        scripting.print_error_and_die("No designs found in any subdirectories of given path.")
 
     workspace = Workspace(directory)
     if not workspace.required_paths_exist():
         parent_dir = os.path.join(directory, '..')
-        workspace = Workspace.from_subdir(parent_dir)
+        workspace = from_directory(parent_dir)
 
     return workspace
     
