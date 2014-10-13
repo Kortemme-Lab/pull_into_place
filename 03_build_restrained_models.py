@@ -6,23 +6,22 @@ specified by the loop file are allowed to move and only the residues specified
 in the resfile are allowed to design.  The design goal is embodied by the 
 restraints specified in the restraints file.
 
-Usage: 02_build_restrained_models.py <name> [options]
+Usage: 03_build_restrained_models.py <name> [options]
 
 Options:
-    --nstruct NUM -n NUM
-        The number of jobs to run.  The greater diversity of models generated 
-        Number of jobs to run.  It's very important to get a diversity of 
-        models at this stage in the pipeline, so choose a big number [default: 
-        10000].
+    --nstruct NUM, -n NUM   [default: 10000]
+        The number of jobs to run.  The more backbones are generated here, the 
+        better the rest of the pipeline will work.  With too few backbones, you 
+        can run into a lot of issues with degenerate designs.
+        
+    --max-runtime TIME      [default: 12:00:00]
+        The runtime limit for each model building job.
 
-    --max-runtime TIME
-        The runtime limit for each model building job.  
-        Max runtime.  May ned to increase this for certain inputs [default: 
-        12:00:00].
+    --clear-old-results
+        Clear existing results before submitting new jobs.
         
     --test-run
-        Run on the short queue with a limited number of iterations.  Useful for 
-        debugging.
+        Run on the short queue with a limited number of iterations.
 """
 
 from libraries import workspaces, big_job
@@ -32,8 +31,11 @@ arguments = docopt.docopt(__doc__)
 cluster.require_chef()
 
 workspace = workspaces.AllRestrainedModels(arguments['<name>'])
+workspace.make_dirs()
 workspace.check_paths()
-workspace.clear_models()    # Should be a simple mkdir.
+
+if arguments['--clear-old-results']:
+    workspace.clear_models()
 
 big_job.submit(
         'workhorses/kr_build.py', workspace,

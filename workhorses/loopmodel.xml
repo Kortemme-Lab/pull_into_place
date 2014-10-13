@@ -1,12 +1,13 @@
 <ROSETTASCRIPTS>
 
     <TASKOPERATIONS>
-        <RestrictToLoops name="loop" loops_file="%%loop_file%%"/>
+        <ReadResfile name="resfile"/>
     </TASKOPERATIONS>
 
     <MOVERS>
         <LoopModeler name="modeler"
             config="kic_with_frags"
+            task_operations="resfile"
             loops_file="%%loop_file%%"
             fast="%%fast%%"/>
     </MOVERS>
