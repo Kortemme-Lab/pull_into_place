@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-import os
+import os, glob
 from tools import scripting
 
 class Workspace:
@@ -30,7 +30,7 @@ class Workspace:
 
     @property
     def input_pdb_path(self):
-        return os.path.join(self.root_path, 'input.pdb')
+        return os.path.join(self.root_path, 'input.pdb.gz')
 
     @property
     def loops_path(self):
@@ -61,7 +61,7 @@ class Workspace:
     def check_paths(self):
         for path in self.required_paths():
             if not os.path.exists(path):
-                scripting.print_error_and_die("Missing '{}'.", path)
+                scripting.print_error_and_die("Missing '{0}'.", path)
 
     def cd(self, *subpaths):
         source = os.path.abspath(self._relative_path)
@@ -75,9 +75,17 @@ class Workspace:
 
 class ForCluster:
 
+    def job_params_path(self, job_id):
+        return os.path.join(self.subdir_path, '{0}.json'.format(job_id))
+
     @property
-    def params_path(self):
-        return os.path.join(self.subdir_path, 'parameters.json')
+    def all_job_params_paths(self):
+        return glob.glob(os.path.join(self.subdir_path, '*.json'))
+
+    @property
+    def all_job_params(self):
+        from libraries import big_job
+        return [big_job.read_params(x) for x in self.all_job_params_paths]
 
     @property
     def stdout_dir(self):
@@ -103,18 +111,23 @@ class WithFragments:
         import re
 
         sizes = []
-        pattern = re.compile(r'(\d+)mer\.gz')
+        pattern = re.compile(r'(\d+)mers\.gz')
 
-        for path in self.fragment_paths:
+        for path in self.fragments_paths:
             match = pattern.search(path)
-            if match: sizes.append(int(match.groups(1)))
+            if match: sizes.append(match.group(1))
+            elif path == 'none': sizes.append('1')
 
         return sizes
 
     @property
     def fragments_paths(self):
-        import glob
-        return glob.glob(os.path.join(self.root_path, '*', '*mers.gz'))
+        pattern = os.path.join(self.fragments_dir, '*', '*mers.gz')
+        paths = [x for x in glob.glob(pattern) if 'score' not in x]
+        return sorted(paths, reverse=True) + ['none']
+
+    def clear_fragments(self):
+        scripting.clear_directory(self.fragments_dir)
 
 
 
@@ -128,23 +141,21 @@ class AllRestrainedModels (Workspace, ForCluster, WithFragments):
         return os.path.join(self.root_path, '01_all_restrained_models')
 
     @property
-    def input_path(self):
-        return os.path.join(self.subdir_path, 'input.pdb')
-
-    @property
     def output_dir(self):
         return os.path.join(self.subdir_path, 'outputs')
 
-    def clear_fragments(self):
-        scripting.clear_directory(self.fragments_dir)
+    def make_dirs(self):
+        scripting.mkdir(self.subdir_path)
+        scripting.mkdir(self.output_dir)
+        scripting.mkdir(self.fragments_dir)
 
     def clear_models(self):
         scripting.clear_directory(self.output_dir)
         scripting.clear_directory(self.stdout_dir)
         scripting.clear_directory(self.stderr_dir)
-
-    def required_paths(self):
-        return Workspace.required_paths(self) + [self.subdir_path]
+    
+        for path in self.all_job_params_paths:
+            os.remove(path)
 
 
 class BestRestrainedModels (Workspace):
