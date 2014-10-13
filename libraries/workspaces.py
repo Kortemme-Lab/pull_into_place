@@ -58,10 +58,15 @@ class Workspace:
                 self.rosetta_path,
         ]
 
-    def check_paths(self):
+    def required_paths_exist(self):
         for path in self.required_paths():
             if not os.path.exists(path):
-                scripting.print_error_and_die("Missing '{}'.", path)
+                return False
+        return True
+
+    def check_paths(self):
+        if not self.required_paths_exist():
+            scripting.print_error_and_die("Missing '{}'.", path)
 
     def cd(self, *subpaths):
         source = os.path.abspath(self._relative_path)
@@ -198,3 +203,16 @@ class AllFixbbWorkspaces (Workspace, ForCluster):
             return BestValidatedWorkspaces(self.name, self.round - 1)
 
 
+
+def from_directory(directory):
+    directory = os.path.abspath(directory)
+    if directory == '/':
+        scripting.print_error_and_die("No designs found in any subdirectories of specified path.")
+
+    workspace = Workspace(directory)
+    if not workspace.required_paths_exist():
+        parent_dir = os.path.join(directory, '..')
+        workspace = Workspace.from_subdir(parent_dir)
+
+    return workspace
+    
