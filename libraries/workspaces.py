@@ -65,8 +65,9 @@ class Workspace:
         return True
 
     def check_paths(self):
-        if not self.required_paths_exist():
-            scripting.print_error_and_die("Missing '{0}'.", path)
+        for path in self.required_paths():
+            if not os.path.exists(path):
+                scripting.print_error_and_die("Missing '{0}'.", path)
 
     def cd(self, *subpaths):
         source = os.path.abspath(self._relative_path)
