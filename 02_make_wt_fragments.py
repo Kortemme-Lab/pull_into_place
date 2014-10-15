@@ -20,6 +20,7 @@ arguments = docopt.docopt(__doc__)
 cluster.require_chef()
 
 workspace = workspaces.AllRestrainedModels(arguments['<name>'])
+workspace.make_dirs()
 workspace.clear_fragments()
 
 # Create a FASTA file for the input structure.
