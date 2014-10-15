@@ -55,6 +55,7 @@ def read_and_calculate(pdb_paths, restraints_path):
     for i, path in enumerate(pdb_paths):
         sys.stdout.write("\rReading '{}' [{}/{}]".format(
             os.path.dirname(path), i+1, len(pdb_paths)))
+        sys.stdout.flush()
 
         record = {'path': os.path.basename(path)}
         restraint_distances = []
@@ -68,6 +69,9 @@ def read_and_calculate(pdb_paths, restraints_path):
 
             if line.startswith('loop_backbone_rmsd'):
                 record['loop_dist'] = float(line.split()[1])
+
+            if line.startswith('delta_buried_unsats'):
+                record['delta_unsats'] = float(line.split()[1])
 
             if line.startswith('ATOM'):
                 atom_name = line[13:16].strip()
