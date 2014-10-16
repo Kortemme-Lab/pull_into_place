@@ -18,6 +18,7 @@ workspace = workspaces.from_directory(directory)
 rsync_command = [
         'rsync', '-avr',
         '--exclude', 'rosetta',
+        '--exclude', 'remote',
         directory + '/', os.path.join(workspace.remote_path, directory),
 ]
 subprocess.call(rsync_command)
