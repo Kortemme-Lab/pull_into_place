@@ -38,7 +38,7 @@ if arguments['--clear-old-results']:
     workspace.clear_models()
 
 big_job.submit(
-        'workhorses/kr_build.py', workspace,
+        'kr_build.py', workspace,
         nstruct=arguments['--nstruct'],
         max_runtime=arguments['--max-runtime'],
         test_run=arguments['--test-run']

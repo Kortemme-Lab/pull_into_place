@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # encoding: utf-8
 
-""" 
+"""\
 Plot the position of the Glu38 carboxyl moiety (in terms of distance from the 
 catalytic position) against the score of the model.  I'm looking for designs 
 that have energy funnels focused on the desired Glu38 position.
@@ -1067,8 +1067,8 @@ def find_cooh_distances(model, target, resi):
 def open_in_pymol(design, decoy, config, gui=True):
     import subprocess
 
-    path = design.paths[decoy]
-    paths = path, 'data/original_structures/4UN3.pdb.gz'
+    path = os.path.join(design.directory, design.paths[decoy])
+    paths = path, '../data/original_structures/4UN3.pdb.gz'
 
     wt_name = '4UN3'
     design_name = os.path.basename(path)[:-len('.pdb.gz')]

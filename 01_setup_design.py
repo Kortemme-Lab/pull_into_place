@@ -7,29 +7,48 @@ that will be allowed to design, and more.  A brief description of each field is
 given below.  This information is used to build a workspace for this design 
 that will be used by the rest of the scripts in this pipeline.  
 
-Usage: 01_setup_design.py <name>
+Usage: 01_setup_design.py <name> [--overwrite]
+
+Options:
+    --overwrite, -o
+        If a design with the given name already exists, remove it and replace 
+        it with the new design created by this script.
 """
 
+import os, shutil
+from tools import docopt, scripting
+from libraries import workspaces
+
 keys = (   # (fold)
+        'rosetta_path',
         'input_pdb',
         'loops_path',
         'resfile_path',
         'restraints_path',
+        'loopmodel_path',
+        'fixbb_path',
         'flags_path',
-        #'cluster_path',
-        'rosetta_path',
+        'rsync_url',
 )
 
 prompts = {   # (fold)
+        'rosetta_path': "Path to rosetta: ",
         'input_pdb': "Path to the input PDB file: ",
         'loops_path': "Path to the loops file: ",
         'resfile_path': "Path to resfile: ",
         'restraints_path': "Path to restraints file: ",
+        'loopmodel_path': "Path to loopmodel XML script [optional]: ",
+        'fixbb_path': "Path to fixbb XML script [optional]: ",
         'flags_path': "Path to flags file [optional]: ",
-        'cluster_path': "Path to project on cluster: ",
-        'rosetta_path': "Path to rosetta: ",
+        'rsync_url': "Path to project on cluster [optional]: ",
 }
 descriptions = {   # (fold)
+        'rosetta_path': """\
+Rosetta checkout: Rosetta is used both locally and on the cluster.  Because 
+paths are often different between machines, this setting is not copied to the 
+cluster.  Instead, you must manually specify it by making a symlink called 
+rosetta in the design directory.""",
+
         'input_pdb': """\
 Input PDB file: A structure containing the functional groups to be positioned.  
 This file should already be parse-able by rosetta, which often means it must be 
@@ -49,28 +68,41 @@ Restraints file: A file describing the geometry you're trying to design.  In
 rosetta parlance, this is more often (inaccurately) called a constraint file.  
 Note that restraints are only used to build the initial set of models.""",
 
+        'loopmodel_path': """\
+Loopmodel script: An XML rosetta script describing how to carry out a loopmodel 
+simulation.  Loop modeling is used to build backbones that support the desired 
+geometry and to validate designs.  The default version of this script uses KIC 
+with fragments in "ensemble-generation mode" (i.e. no initial build step).""",
+
+        'fixbb_path': """\
+Fixbb script: An XML rosetta script that performs design (usually on a fixed 
+backbone) to stabilize the desired geometry.  The default version of this 
+script uses fixbb.""",
+
         'flags_path': """\
 Flags file: A file containing command line flags that should be passed to every 
 invocation of rosetta for this design.  For example, if your design involves a 
 ligand, put flags related to the ligand parameter files in this file.""",
 
-        'cluster_path': """\
-Cluster checkout: The path to your project files on the cluster.  This setting 
-is used to keep the two locations in sync.""",
+        'rsync_url': """\
+Rsync path: An rsync path to your project files on a remote host.  This 
+setting is used by scripts that keep the two locations in sync.""",
 
-        'rosetta_path': """\
-Rosetta checkout: Rosetta is used both locally and on the cluster.  Because 
-paths are often different between machines, this setting is not copied to the 
-cluster.  Instead, you must manually specify it by making a symlink called 
-rosetta in the design directory.""",
+}
+
+validators = {   # (fold)
+        'rosetta_path': os.path.exists,
+        'input_pdb': os.path.exists,
+        'loops_path': os.path.exists,
+        'resfile_path': os.path.exists,
+        'restraints_path': os.path.exists,
+        'loopmodel_path': os.path.exists,
+        'fixbb_path': os.path.exists,
+        'flags_path': os.path.exists,
 }
 
 
-try:
-    import os, readline, shutil
-    from tools import docopt
-    from libraries import workspaces
-
+def main():
     help = __doc__ + '\n' + '\n\n'.join(descriptions[x] for x in keys)
     arguments = docopt.docopt(help)
     workspace = workspaces.Workspace(arguments['<name>'])
@@ -78,8 +110,8 @@ try:
     # Make sure this design doesn't already exist.
 
     if workspace.exists():
-        print "Design '{0}' already exists.  Aborting.".format(workspace.name)
-        raise SystemExit
+        if arguments['--overwrite']: shutil.rmtree(workspace.name)
+        else: scripting.print_error_and_die("Design '{0}' already exists.", workspace.name)
 
     # Get the necessary paths from the user.
 
@@ -87,44 +119,59 @@ try:
     print
 
     settings = {}
-    readline.parse_and_bind("tab: complete")
-    prompt = lambda key: os.path.expanduser(raw_input(prompts[key]))
+    scripting.use_path_completion()
 
     for key in keys:
         print descriptions[key]
         print
-        settings[key] = prompt(key)
-        while not os.path.exists(settings[key]):
-            if settings[key] == '':
-                if 'optional' in prompts[key]:
-                    print "Skipping optional input."
-                    break
+
+        while True:
+            settings[key] = raw_input(prompts[key])
+
+            if settings[key] == '' and 'optional' in prompts[key]:
+                print "Skipping optional input."
+                break
+            elif key not in validators or validators[key](settings[key]):
+                break
             else:        
                 print "'{0}' does not exist.".format(settings[key])
                 print
-            settings[key] = prompt(key)
+
         print
 
     # Fill in the design directory.
 
-    os.makedirs(workspace.root_path)
+    workspace.make_dirs()
+
+    rosetta_path = os.path.abspath(settings['rosetta_path'])
+    os.symlink(rosetta_path, workspace.rosetta_dir)
 
     shutil.copyfile(settings['input_pdb'], workspace.input_pdb_path)
     shutil.copyfile(settings['loops_path'], workspace.loops_path)
     shutil.copyfile(settings['resfile_path'], workspace.resfile_path)
     shutil.copyfile(settings['restraints_path'], workspace.restraints_path)
 
+    if settings['loopmodel_path']:
+        shutil.copyfile(settings['loopmodel_path'], workspace.loopmodel_path)
+    else:
+        default_path = workspaces.big_job_path('loopmodel.xml')
+        shutil.copyfile(default_path, workspace.loopmodel_path)
+
+    if settings['fixbb_path']:
+        shutil.copyfile(settings['fixbb_path'], workspace.fixbb_path)
+    else:
+        default_path = workspaces.big_job_path('fixbb.xml')
+        shutil.copyfile(default_path, workspace.fixbb_path)
+
     if settings['flags_path']:
         shutil.copyfile(settings['flags_path'], workspace.flags_path)
     else:
-        with open(workspace.flags_path, 'w'): pass
+        scripting.touch(workspace.flags_path)
 
-    rosetta_path = os.path.abspath(settings['rosetta_path'])
-    print rosetta_path, workspace.rosetta_path
-    os.symlink(rosetta_path, workspace.rosetta_path)
+    if settings['rsync_url']:
+        workspace.rsync_url_path = settings['rsync_url']
 
     print "Setup successful for design '{0}'.".format(workspace.name)
 
-except KeyboardInterrupt:
-    print
+scripting.run_main(locals())
 

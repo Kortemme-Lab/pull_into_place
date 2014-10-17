@@ -4,6 +4,7 @@ import sys, os, re, json, subprocess
 
 def submit(script, workspace, **params):
     from tools import cluster, process
+    from . import workspaces
 
     # Parse some parameters that 
     params = dict((k, v) for k, v in params.items() if v is not None)
@@ -22,7 +23,7 @@ def submit(script, workspace, **params):
     qsub_command += '-o', workspace.stdout_dir, '-e', workspace.stderr_dir,
     qsub_command += '-t', '1-{0}'.format(nstruct),
     qsub_command += '-l', 'h_rt={0}'.format(max_runtime),
-    qsub_command += 'workhorses/kr_build.py', workspace.name,
+    qsub_command += workspaces.big_job_path(script), workspace.name,
 
     status = process.check_output(qsub_command)
     status_pattern = re.compile(r'Your job-array (\d+).[0-9:-]+ \(".*"\) has been submitted')
