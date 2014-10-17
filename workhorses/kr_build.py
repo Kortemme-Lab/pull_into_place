@@ -32,7 +32,7 @@ rosetta_command = [
             'loop_file=' + workspace.loops_path,
             'fast=' + ('yes' if test_run else 'no'),
         '-packing:resfile', workspace.resfile_path,
-        '-constraints:cst_fa_weight', '1.0',
+        '-score:weights', 'talaris2013_cst',
         '-constraints:cst_fa_file', workspace.restraints_path,
         '-loops:frag_sizes'] + workspace.fragments_sizes + [
         '-loops:frag_files'] + workspace.fragments_paths + [
