@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-import sys, os, glob, collections, gzip
+import sys, os, re, glob, collections, gzip
 import numpy as np, scipy as sp, pandas as pd
 from . import workspaces
 
@@ -47,6 +47,8 @@ def read_and_calculate(pdb_paths, restraints_path):
             else:
                 print "Skipping unrecognized restraint: '{}...'".format(line[:46])
 
+    score_table_pattern = re.compile(r'^[A-Z]{3}(?:_[A-Z])?_([1-9]+) ')
+
     # Read distances.
 
     records = []
@@ -58,22 +60,42 @@ def read_and_calculate(pdb_paths, restraints_path):
         sys.stdout.flush()
 
         record = {'path': os.path.basename(path)}
+        dunbrack_index = None
+        dunbrack_scores = []
         restraint_distances = []
 
         with gzip.open(path) as file:
             lines = file.readlines()
 
         for line in lines:
-            if line.startswith('total_score'):
-                record['score'] = float(line.split()[1])
+            score_table_match = \
+                    dunbrack_index and score_table_pattern.match(line)
 
-            if line.startswith('loop_backbone_rmsd'):
+            if line.startswith('total_score'):
+                record['total_score'] = float(line.split()[1])
+
+            elif line.startswith('delta_buried_unsats'):
+                record['buried_unsat_score'] = float(line.split()[1])
+
+            elif line.startswith('label'):
+                fields = line.split()
+                dunbrack_index = fields.index('fa_dun')
+
+            elif score_table_match:
+                residue_id = score_table_match.group(1)
+                for restraint in restraints:
+                    if restraint.residue_id == residue_id:
+                        dunbrack_score = float(line.split()[dunbrack_index])
+                        dunbrack_scores.append(dunbrack_score)
+                        break
+
+            elif line.startswith('delta_buried_unsats'):
+                record['buried_unsat_score'] = float(line.split()[1])
+
+            elif line.startswith('loop_backbone_rmsd'):
                 record['loop_dist'] = float(line.split()[1])
 
-            if line.startswith('delta_buried_unsats'):
-                record['delta_unsats'] = float(line.split()[1])
-
-            if line.startswith('ATOM'):
+            elif line.startswith('ATOM'):
                 atom_name = line[13:16].strip()
                 residue_id = line[22:26].strip()
 
@@ -84,6 +106,7 @@ def read_and_calculate(pdb_paths, restraints_path):
                         distance = euclidean(restraint.position, position)
                         restraint_distances.append(distance)
 
+        record['dunbrack_score'] = np.mean(dunbrack_scores)
         record['restraint_dist'] = np.mean(restraint_distances)
         records.append(record)
 

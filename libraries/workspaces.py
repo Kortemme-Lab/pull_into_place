@@ -83,16 +83,16 @@ class Workspace:
 
     def required_paths(self):
         return [
+                self.rosetta_dir,
                 self.input_pdb_path,
                 self.loops_path,
                 self.resfile_path,
                 self.flags_path,
                 self.restraints_path,
-                self.rosetta_path,
         ]
 
     def check_paths(self):
-        for path in self.required_paths:
+        for path in self.required_paths():
             if not os.path.exists(path):
                 raise PathNotFound(path)
 

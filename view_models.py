@@ -2,17 +2,19 @@
 # encoding: utf-8
 
 """\
-Plot the position of the Glu38 carboxyl moiety (in terms of distance from the 
-catalytic position) against the score of the model.  I'm looking for designs 
-that have energy funnels focused on the desired Glu38 position.
+Display score vs rmsd plots for sets of models generated during the design 
+pipeline.  In particular, this script can be used to visualize results from 
+both the model building and design validation stages of the pipeline.  Often 
+you would use this script to get a big-picture view of your designs before 
+deciding which are worth carrying forward.
 
 Usage:
-    score-vs-rmsd.py [options] <directories>...
+    view_models.py [options] <directories>...
 
 Options:
     -f --force          Force the cache to be regenerated.
     -q --quiet          Build the cache, but don't launch the GUI.
-    -i --interesting    Filter uninteresting designs by default.
+    -i --interesting    Hide uninteresting designs by default.
     -x --xlim XLIM      Set the x-axis limit for all distance metrics.
 """
 
@@ -47,6 +49,7 @@ class Model:
         self.sequence_path = os.path.join(directory, 'sequence.txt')
 
         self.paths = []
+        self.metrics = []
         self.scores = None
         self.loop_rmsds = None
         self.cooh_dists = None
@@ -57,7 +60,6 @@ class Model:
         self._representative = None
 
         self._load_annotations()
-        #self._load_sequence()
         self._load_scores_and_dists(use_cache)
 
     def __str__(self):
@@ -67,100 +69,58 @@ class Model:
         return len(self.paths)
 
 
-    def get_notes(self):
+    @property
+    def notes(self):
         return self._notes
 
+    @notes.setter
     def set_notes(self, notes):
         self._notes = notes
         self._save_notes()
 
-    def get_interest(self):
+    @property
+    def interest(self):
         return self._interest
 
+    @interest.setter
     def set_interest(self, interest):
         self._interest = interest
         self._save_interest()
 
-    def get_representative(self):
+    @property
+    def representative(self):
         if self._representative is None:
             return argmin(self.scores)
         else:
             return self._representative
 
+    @representative.setter
     def set_representative(self, index):
         self._representative = index
         self._save_representative()
 
-    def get_representative_path(self):
+    @property
+    def representative_path(self):
         return self.paths[self.representative]
 
+    def get_scores(self, metric):
+        if metric == 'Total Score':
+            return self.metrics['total_score']
+        elif metric == 'Dunbrack Score':
+            return self.metrics['dunbrack_score']
+        elif metric == 'Buried Unsat Score':
+            return self.metrics['buried_unsat_score']
+        else:
+            raise ValueError, "Unknown score '{}'.".format(metric)
+
     def get_distances(self, metric):
-        if metric == "Loop RMSD":
-            return self.loop_rmsds
-
-        elif metric == "COOH RMSD":
-            return self.cooh_dists
-
-        elif metric == "Max COOH Distance":
-            return self.cooh_dists
-
+        if metric == 'Loop RMSD':
+            return self.metrics['loop_dist']
+        elif metric == 'Restraint Dist':
+            return self.metrics['restraint_dist']
         else:
             raise ValueError, "Unknown distance metric '{}'.".format(metric)
 
-    def get_fancy_path(self, extension=''):
-        return 'glu_{}.delete_{}.round_{}.{}{}'.format(
-                self.glu_position, self.num_deletions, self.round, self.name,
-                extension)
-
-    @property
-    def glu_position(self):
-        job, model = os.path.split(self.directory)
-        match = re.search('glu_(\d+)', job)
-        return int(match.group(1)) if match else 38
-
-    @property
-    def num_deletions(self):
-        job, model = os.path.split(self.directory)
-        match = re.search('delete_(\d+)', job)
-        return int(match.group(1)) if match else 0
-
-    @property
-    def round(self):
-        job, model = os.path.split(self.directory)
-        match = re.search('round_(\d+)', job)
-        return int(match.group(1)) if match else 1
-
-    @property
-    def name(self):
-        job, model = os.path.split(self.directory)
-        name = model
-
-        match_06 = re.match(r'\w+\.(\d+)', model)
-        match_08 = re.match(r'[A-Z]\d+[A-Z]', model)
-
-        if match_06:
-            name = match_06.group(1)
-            if 'bad_pick' in job: name += '*'
-
-        if match_08:
-            name = model
-
-        return name
-
-    def remove_outlier(self, index):
-        self.paths = delete(self.paths, index)
-        self.scores = delete(self.scores, index)
-        self.loop_rmsds = delete(self.loop_rmsds, index)
-        self.cooh_dists = delete(self.cooh_dists, index, 0)
-
-        self._save_scores_and_dists()
-
-
-    notes = property(get_notes, set_notes)
-    interest = property(get_interest, set_interest)
-    rep = representative = property(get_representative, set_representative)
-    representative_path = property(get_representative_path)
-    fancy_path = property(get_fancy_path)
 
     def _load_annotations(self):
         try:
@@ -177,27 +137,11 @@ class Model:
         except IOError:
             pass
 
-    def _load_sequence(self):
-        try:
-            with open(self.sequence_path) as file:
-                self.sequence = file.read().strip()
-
-        except IOError:
-            pdb_files = os.path.join(self.directory, '*.pdb.gz')
-            pdb_file = sorted(glob.glob(pdb_files))[0]
-
-            model = pdb.RosettaModel(pdb_file)
-            self.sequence = model.sequence()
-            self._save_sequence()
-
     def _load_scores_and_dists(self, use_cache):
-        from libraries import distances
+        from libraries import metrics
 
-        records = distances.load(self.directory, use_cache)
-        self.paths = records['path']
-        self.scores = records['score']
-        self.loop_rmsds = records['loop_dist']
-        self.cooh_dists = records['restraint_dist']
+        self.metrics = metrics.load(self.directory, use_cache)
+        self.paths = self.metrics['path']
 
     def _save_notes(self):
         with open(self.notes_path, 'w') as file:
@@ -224,27 +168,19 @@ class Model:
         elif os.path.exists(self.rep_path):
             os.remove(self.rep_path)
 
-    def _save_sequence(self):
-        with open(self.sequence_path, 'w') as file:
-            file.write(self.sequence + '\n')
-
-    def _save_scores_and_dists(self):
-        savez(self.cache_path,
-              paths=self.paths,
-              scores=self.scores,
-              loop_rmsds=self.loop_rmsds,
-              cooh_dists=self.cooh_dists)
-
 
 class ModelView (gtk.Window):
 
     def __init__(self, designs, arguments):
+        
         # Setup the parent class.
+
         gtk.Window.__init__(self)
         self.add_events(gtk.gdk.KEY_PRESS_MASK)
         self.connect('key-press-event', self.on_hotkey_press)
 
         # Setup the data members.
+
         self.designs = designs
         self.keys = list()
         self.filter = 'all' if not arguments['--interesting'] else 'interesting'
@@ -253,15 +189,15 @@ class ModelView (gtk.Window):
         if self.xlim is not None:
             self.xlim = float(self.xlim)
 
-        self.loop_metrics = "Loop RMSD",
-        self.cooh_metrics = "COOH RMSD", "Max COOH Distance"
-        self.distance_metrics = self.loop_metrics + self.cooh_metrics
-        self.metric = "Max COOH Distance"
+        self.distance_metrics = 'Restraint Dist', 'Loop RMSD'
+        self.distance_metric = self.distance_metrics[0]
+        self.score_metrics = 'Total Score', 'Dunbrack Score', 'Buried Unsat Score'
+        self.score_metric = self.score_metrics[0]
 
         # Setup the GUI.
+
         self.connect('destroy', lambda x: gtk.main_quit())
         self.set_default_size(int(1.618 * 529), 529)
-        #self.set_border_width(5)
 
         design_viewer = self.setup_design_viewer()
         design_list = self.setup_design_list()
@@ -377,10 +313,7 @@ class ModelView (gtk.Window):
         #self.view.set_size_request(200, -1)
 
         columns = [
-                ('Glu', 'glu_position'),
-                ('Del', 'num_deletions'),
-                ('Rd', 'round'),
-                ('Name', 'name'),
+                ('Name', 'directory'),
         ]
 
         for index, parameters in enumerate(columns):
@@ -436,19 +369,31 @@ class ModelView (gtk.Window):
         self.canvas.connect('button-press-event', self.on_click_plot_gtk)
         self.canvas.set_size_request(-1, 350)
 
-        self.axis_menu = gtk.Menu()
-        self.axis_menu_items = {
-                x: gtk.CheckMenuItem(x) for x in self.distance_metrics}
-        self.axis_menu_handlers = [
-                (item, item.connect('toggled', self.on_change_metric))
-                for item in self.axis_menu_items.values()]
+        axis_menu = gtk.Menu()
 
-        for item in self.axis_menu_items.values():
-            self.axis_menu.append(item)
-            item.set_draw_as_radio(True)
-            item.show()
+        self.axis_menu_items = {}
+        self.axis_menu_handlers = []
 
-        self.toolbar = ModelToolbar(self.canvas, self, self.axis_menu)
+        for metric in self.score_metrics + self.distance_metrics:
+            menu_item = gtk.CheckMenuItem(metric)
+            menu_item.set_draw_as_radio(True)
+            menu_item.show()
+            handler_id = menu_item.connect('toggled', self.on_change_metric)
+
+            self.axis_menu_items[metric] = menu_item
+            self.axis_menu_handlers.append((menu_item, handler_id))
+
+        for metric in self.score_metrics:
+            axis_menu.append(self.axis_menu_items[metric])
+
+        separator = gtk.SeparatorMenuItem()
+        separator.show()
+        axis_menu.append(separator)
+
+        for metric in self.distance_metrics:
+            axis_menu.append(self.axis_menu_items[metric])
+
+        self.toolbar = ModelToolbar(self.canvas, self, axis_menu)
 
         vbox = gtk.VBox()
         vbox.pack_start(self.canvas)
@@ -490,9 +435,12 @@ class ModelView (gtk.Window):
 
     def on_hotkey_press(self, widget, event):
         key = gtk.gdk.keyval_name(event.keyval).lower()
+        if event.state & gtk.gdk.CONTROL_MASK: key = 'ctrl-' + key
+        if event.state & gtk.gdk.SHIFT_MASK: key = 'shift-' + key
     
         hotkeys = {
-                'tab': self.toggle_metrics,
+                'tab': self.cycle_distance_metric,
+                'shift-iso_left_tab': self.cycle_score_metric,
                 'escape': self.normal_mode,
         }
         
@@ -664,7 +612,11 @@ class ModelView (gtk.Window):
         design.set_notes(notes)
 
     def on_change_metric(self, widget):
-        self.update_metric(widget.get_label())
+        label = widget.get_label()
+        if label in self.score_metrics:
+            self.update_score_metric(label)
+        if label in self.distance_metrics:
+            self.update_distance_metric(label)
 
 
     def normal_mode(self):
@@ -716,11 +668,15 @@ class ModelView (gtk.Window):
         current = self.mark_as_interesting.get_active()
         self.mark_as_interesting.set_active(not current)
 
-    def toggle_metrics(self):
-        if self.metric in self.cooh_metrics:
-            self.update_metric("Loop RMSD")
-        else:
-            self.update_metric("Max COOH Distance")
+    def cycle_score_metric(self):
+        index = self.score_metrics.index(self.score_metric)
+        index = (index + 1) % len(self.score_metrics)
+        self.update_score_metric(self.score_metrics[index])
+
+    def cycle_distance_metric(self):
+        index = self.distance_metrics.index(self.distance_metric)
+        index = (index + 1) % len(self.distance_metrics)
+        self.update_distance_metric(self.distance_metrics[index])
 
     def edit_modes(self):
         import subprocess
@@ -835,40 +791,45 @@ class ModelView (gtk.Window):
         from itertools import count
 
         labels = kwargs.get('labels', None)
-        metric = kwargs.get('metric', self.metric)
         xlim = kwargs.get('xlim', self.xlim)
-        ymin = inf
+        ymin, ymax = inf, -inf
 
         axes.clear()
-        axes.set_xlabel(metric)
-        axes.set_ylabel('Score')
+        axes.set_xlabel(self.distance_metric)
+        axes.set_ylabel(self.score_metric)
         
         for index, design in enumerate(designs):
             rep = design.representative
-            distances = design.get_distances(metric)
-            ymin = min(ymin, min(design.scores))
+            scores = design.get_scores(self.score_metric)
+            distances = design.get_distances(self.distance_metric)
+            ymin = min(ymin, min(scores))
+            ymax = max(ymax, 
+                    percentile(scores, 85)
+                    if self.score_metric == 'Total Score' else
+                    max(scores))
             color = tango.color_from_cycle(index)
             label = labels[index] if labels is not None else ''
 
             # Highlight the representative decoy.
             axes.scatter(
-                    [distances[rep]], [design.scores[rep]],
+                    [distances[rep]], [scores[rep]],
                     s=60, c=tango.yellow[1], marker='o', edgecolor='none')
 
             # Draw the whole score vs distance plot.
             lines = axes.scatter(
-                    distances, design.scores,
+                    distances, scores,
                     s=15, c=color, marker='o', edgecolor='none',
                     label=label, picker=True)
 
             lines.paths = design.paths
             lines.design = design
 
+        ypad = 0.05 * (ymax - ymin)
+        axes.set_ylim(bottom=ymin-ypad, top=ymax+ypad)
         axes.axvline(1, color='gray', linestyle='--')
-        axes.set_ylim(bottom=ymin-2, top=ymin+20)
 
         if xlim is None:
-            axes.set_xlim(0, 10 if metric == "Loop RMSD" else 25)
+            axes.set_xlim(0, 10 if self.distance_metric == 'Loop RMSD' else 25)
         else:
             axes.set_xlim(0, xlim)
 
@@ -879,15 +840,29 @@ class ModelView (gtk.Window):
     def update_everything(self):
         self.update_filter()
         self.update_annotations()
-        self.update_metric(self.metric)
+        self.update_score_metric(self.score_metric)
+        self.update_distance_metric(self.distance_metric)
 
-    def update_metric(self, metric):
+    def update_score_metric(self, score_metric):
         for widget, id in self.axis_menu_handlers:
             widget.handler_block(id)
 
-        self.axis_menu_items[self.metric].set_active(False)
-        self.metric = metric
-        self.axis_menu_items[self.metric].set_active(True)
+        self.axis_menu_items[self.score_metric].set_active(False)
+        self.score_metric = score_metric
+        self.axis_menu_items[self.score_metric].set_active(True)
+
+        for widget, id in self.axis_menu_handlers:
+            widget.handler_unblock(id)
+
+        self.update_plot()
+
+    def update_distance_metric(self, distance_metric):
+        for widget, id in self.axis_menu_handlers:
+            widget.handler_block(id)
+
+        self.axis_menu_items[self.distance_metric].set_active(False)
+        self.distance_metric = distance_metric
+        self.axis_menu_items[self.distance_metric].set_active(True)
 
         for widget, id in self.axis_menu_handlers:
             widget.handler_unblock(id)
@@ -1001,68 +976,12 @@ def parse_designs(directories, use_cache=True):
     from os.path import join, isdir, dirname, basename
 
     designs = collections.OrderedDict()
-    ignore = 'inputs', 'best_decoys', 'single_mutants', 'combined_mutants'
 
     for directory in directories:
-        if isdir(directory) and basename(directory) not in ignore and os.listdir(directory):
-            path = join(dirname(directory), 'inputs', 'labels.yaml')
-
-            try:
-                with open(path) as file:
-                    labels = yaml.load(file)
-
-                label = labels.get(basename(directory), basename(directory))
-                key = os.path.join(dirname(directory), label)
-
-            except IOError:
-                key = directory
-
-            designs[key] = Model(directory, use_cache)
+        if isdir(directory) and os.listdir(directory):
+                    designs[directory] = Model(directory, use_cache)
 
     return designs
-
-def find_cooh_distances(model, target, resi):
-    from scipy.spatial.distance import euclidean
-    
-    residues = [
-            model.select_chain('A').select_residues(resi),
-            target.select_chain('A').select_residues(38)
-    ]
-    coohs = [None, None]
-    oxygens = [None, None]
-    carbons = [None, None]
-
-    for i, residue in enumerate(residues):
-        residue_type = residue.get_atom(0)['residue-name']
-
-        if residue_type == 'glu':
-            oxygens[i] = residue.select_atoms('OE1', 'OE2').coordinates
-            carbons[i] = residue.select_atoms('CG').coordinates
-        elif residue_type == 'asp':
-            oxygens[i] = residue.select_atoms('OD1', 'OD2').coordinates
-            carbons[i] = residue.select_atoms('CB').coordinates
-        elif residue_type == 'asn':
-            oxygens[i] = residue.select_atoms('OD1', 'ND2').coordinates
-            carbons[i] = residue.select_atoms('CB').coordinates
-        else:
-            raise ValueError("Residue {} must be Glu, Asp, or Asn".format(resi))
-
-        coohs[i] = vstack((oxygens[i], carbons[i]))
-        assert coohs[i].shape == (3, 3)
-
-    o1_o1 = euclidean(coohs[0][0], coohs[1][0])
-    o2_o2 = euclidean(coohs[0][1], coohs[1][1])
-    o1_o2 = euclidean(coohs[0][0], coohs[1][1])
-    o2_o1 = euclidean(coohs[0][1], coohs[1][0])
-    c_c   = euclidean(coohs[0][2], coohs[1][2])
-
-    max_matched_dist = max(o1_o1, o2_o2)
-    max_mismatched_dist = max(o1_o2, o2_o1)
-
-    if max_matched_dist < max_mismatched_dist:
-        return array((o1_o1, o2_o2, c_c))
-    else:
-        return array((o1_o2, o2_o1, c_c))
 
 def open_in_pymol(design, decoy, config, gui=True):
     import subprocess

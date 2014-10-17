@@ -11,8 +11,8 @@ Options:
 """
 
 from tools import docopt
-from libraries import distances
+from libraries import metrics
 
 arguments = docopt.docopt(__doc__)
-print distances.load(arguments['<directory>'], not arguments['--recalc'])
+print metrics.load(arguments['<directory>'], not arguments['--recalc'])
 
