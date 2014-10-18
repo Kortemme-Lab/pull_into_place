@@ -809,6 +809,7 @@ class ModelView (gtk.Window):
                     max(scores))
             color = tango.color_from_cycle(index)
             label = labels[index] if labels is not None else ''
+            size = clip(7500 / (len(scores)), 2, 15)
 
             # Highlight the representative decoy.
             axes.scatter(
@@ -818,7 +819,7 @@ class ModelView (gtk.Window):
             # Draw the whole score vs distance plot.
             lines = axes.scatter(
                     distances, scores,
-                    s=15, c=color, marker='o', edgecolor='none',
+                    s=size, c=color, marker='o', edgecolor='none',
                     label=label, picker=True)
 
             lines.paths = design.paths

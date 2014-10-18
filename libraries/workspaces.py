@@ -1,17 +1,26 @@
 #!/usr/bin/env python2
 
-import os, glob
+import os, glob, pickle
 from tools import scripting
 
 class Workspace:
 
-    def __init__(self, name):
-        self.name = name
-        self._relative_path = ''
+    def __init__(self, root):
+        root = os.path.normpath(root)
+        self._root_basename = os.path.basename(root)
+        self._root_dirname = os.path.dirname(root)
+
+    @classmethod
+    def from_directory(cls, directory):
+        # Force subclasses to reimplement this method
+        if cls != Workspace:
+            raise NotImplementedError
+
+        return Workspace(directory)
 
     @property
     def root_dir(self):
-        return os.path.join(self._relative_path, self.name)
+        return os.path.join(self._root_dirname, self._root_basename)
 
     @property
     def focus_dir(self):
@@ -49,6 +58,14 @@ class Workspace:
         return self.find_path('restraints')
 
     @property
+    def loopmodel_path(self):
+        return self.find_path('loopmodel.xml')
+
+    @property
+    def fixbb_path(self):
+        return self.find_path('fixbb.xml')
+
+    @property
     def flags_path(self):
         return self.find_path('flags')
 
@@ -66,20 +83,10 @@ class Workspace:
         with open(self.rsync_url_path, 'w') as file:
             return file.write(url.strip() + '\n')
 
-    def find_path(self, basename, *directories):
-        if not directories:
-            directories = self.focus_dir, self.root_dir
-
-        default_path = None
-
-        for directory in directories:
-            path = os.path.join(directory, basename)
-            if default_path is None:
-                default_path = path
-            if os.path.exists(path):
-                return path
-
-        return default_path
+    def find_path(self, basename):
+        custom_path = os.path.join(self.focus_dir, basename)
+        default_path = os.path.join(self.root_dir, basename)
+        return custom_path if os.path.exists(custom_path) else default_path
 
     def required_paths(self):
         return [
@@ -87,8 +94,8 @@ class Workspace:
                 self.input_pdb_path,
                 self.loops_path,
                 self.resfile_path,
-                self.flags_path,
                 self.restraints_path,
+                self.flags_path,
         ]
 
     def check_paths(self):
@@ -98,6 +105,10 @@ class Workspace:
 
     def make_dirs(self):
         scripting.mkdir(self.focus_dir)
+
+        pickle_path = os.path.join(self.focus_dir, 'workspace.pkl')
+        with open(pickle_path, 'w') as file:
+            pickle.dump(self.__class__, file)
 
     def cd(self, *subpaths):
         source = os.path.abspath(self._relative_path)
@@ -169,8 +180,12 @@ class WithFragments:
 
 class AllRestrainedModels (Workspace, WithCluster, WithFragments):
 
-    def __init__(self, name):
-        Workspace.__init__(self, name) 
+    def __init__(self, root):
+        Workspace.__init__(self, root) 
+
+    @staticmethod
+    def from_directory(directory):
+        return AllRestrainedModels(os.path.join(directory, '..'))
 
     @property
     def focus_dir(self):
@@ -181,11 +196,11 @@ class AllRestrainedModels (Workspace, WithCluster, WithFragments):
         return os.path.join(self.focus_dir, 'outputs')
 
     def make_dirs(self):
-        Workspace.make_dirs()
+        Workspace.make_dirs(self)
         scripting.mkdir(self.fragments_dir)
         scripting.mkdir(self.output_dir)
         scripting.mkdir(self.stdout_dir)
-        scripting.mkdir(self.stderr)
+        scripting.mkdir(self.stderr_dir)
 
     def clear_models(self):
         scripting.clear_directory(self.output_dir)
@@ -198,8 +213,16 @@ class AllRestrainedModels (Workspace, WithCluster, WithFragments):
 
 class BestRestrainedModels (Workspace):
 
-    def __init__(self, name):
-        Workspace.__init__(self, name)
+    def __init__(self, root):
+        Workspace.__init__(self, root)
+
+    @staticmethod
+    def from_directory(directory):
+        return BestRestrainedModels(os.path.join(directory, '..'))
+
+    @property
+    def predecessor(self):
+        return AllRestrainedModels(self.root_path)
 
     @property
     def focus_dir(self):
@@ -207,22 +230,46 @@ class BestRestrainedModels (Workspace):
 
     @property
     def input_dir(self):
-        return os.path.join(self.focus_dir, 'inputs')
+        return self.predecessor.output_dir
 
     @property
     def output_dir(self):
         return os.path.join(self.focus_dir, 'outputs')
 
     @property
-    def predecessor(self):
-        return AllRestrainedModels(self.name)
+    def output_paths(self):
+        return glob.glob(os.path.join(self.output_dir, '*.pdb.gz'))
+
+    @property
+    def symlink_prefix(self):
+        return os.path.relpath(self.input_dir, self.output_dir)
+
+    def make_dirs(self):
+        Workspace.make_dirs(self)
+        scripting.mkdir(self.output_dir)
+
+    def clear_outputs(self):
+        scripting.clear_directory(self.output_dir)
 
 
-class AllFixbbWorkspaces (Workspace, WithCluster):
+class AllFixbbDesigns (Workspace, WithCluster):
 
-    def __init__(self, name, round):
-        Workspace.__init__(self, name)
+    def __init__(self, root, round):
+        Workspace.__init__(self, root)
         self.round = round
+
+    @staticmethod
+    def from_directory(directory):
+        root = os.path.join(directory, '..')
+        round = int(directory.split('_')[-1])
+        return AllFixbbDesigns(root, round)
+
+    @property
+    def predecessor(self):
+        if self.round == 1:
+            return BestRestrainedModels(self.root_path)
+        else:
+            return BestValidatedWorkspaces(self.root_path, self.round - 1)
 
     @property
     def focus_dir(self):
@@ -236,15 +283,16 @@ class AllFixbbWorkspaces (Workspace, WithCluster):
         return os.path.join(self.focus_dir, 'inputs')
 
     @property
+    def input_paths(self):
+        return glob.glob(os.path.join(self.input_dir, '*.pdb.gz'))
+
+    @property
     def output_dir(self):
         return os.path.join(self.focus_dir, 'outputs')
 
-    @property
-    def predecessor(self):
-        if self.round == 1:
-            return BestRestrainedModels(self.name)
-        else:
-            return BestValidatedWorkspaces(self.name, self.round - 1)
+    def make_dirs(self):
+        Workspace.make_dirs(self)
+        os.symlink('inputs', predecessor.output_dir)
 
 
 
@@ -267,6 +315,13 @@ class PathNotFound (IOError):
         self.no_stack_trace = True
 
 
+class WorkspaceNotFound (IOError):
+
+    def __init__(self, root):
+        message = "'{}' is not a workspace.".format(root)
+        super(WorkspaceNotFound, self).__init__(message)
+
+
 
 def pipeline_dir():
     dir = os.path.join(os.path.dirname(__file__), '..')
@@ -279,17 +334,18 @@ def big_job_path(basename):
     return os.path.join(template_dir(), basename)
 
 def from_directory(directory):
-    directory = os.path.abspath(directory)
+    pickle_path = os.path.join(directory, 'workspace.pkl')
 
-    if directory == '/':
-        scripting.print_error_and_die("No designs found in any subdirectories of given path.")
+    # Make sure the given directory contains a 'workspace' file.  This file is 
+    # needed to instantiate the right kind of workspace.
 
-    try:
-        workspace = Workspace(directory)
-        workspace.check_paths()
-        return workspace
+    if not os.path.exists(pickle_path):
+        raise WorkspaceNotFound(directory)
 
-    except PathNotFound:
-        parent_dir = os.path.join(directory, '..')
-        return from_directory(parent_dir)
+    # Load the 'workspace' file and create a workspace.
+
+    with open(pickle_path) as file:
+        workspace_class = pickle.load(file)
+
+    return workspace_class.from_directory(directory)
 

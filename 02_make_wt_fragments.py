@@ -11,38 +11,37 @@ potential drawback.
 Usage: 02_make_initial_fragments.py <name> <chain>
 """
 
-import subprocess
-from tools import docopt, scripting, bio, cluster
-from tools.bio.pdb import PDB
-from libraries import workspaces
+if __name__ == '__main__':
+    import subprocess
+    from tools import docopt, scripting, bio, cluster
+    from tools.bio.pdb import PDB
+    from libraries import workspaces
 
-def main():
-    arguments = docopt.docopt(__doc__)
-    cluster.require_chef()
+    with scripting.cath_and_print_errors():
+        arguments = docopt.docopt(__doc__)
+        cluster.require_chef()
 
-    workspace = workspaces.AllRestrainedModels(arguments['<name>'])
-    workspace.make_dirs()
-    workspace.check_paths()
-    workspace.clear_fragments()
+        workspace = workspaces.AllRestrainedModels(arguments['<name>'])
+        workspace.check_paths()
+        workspace.make_dirs()
+        workspace.clear_fragments()
 
-    # Create a FASTA file for the input structure.
+        # Create a FASTA file for the input structure.
 
-    pdb = PDB.from_filepath(workspace.input_pdb_path)
-    pdb.pdb_id = '0000'
+        pdb = PDB.from_filepath(workspace.input_pdb_path)
+        pdb.pdb_id = '0000'
 
-    with open(workspace.fasta_path, 'w') as file:
-        file.write(pdb.create_fasta())
+        with open(workspace.fasta_path, 'w') as file:
+            file.write(pdb.create_fasta())
 
-    # Run the fragment generation script.
+        # Run the fragment generation script.
 
-    workspace.cd('tools', 'bio', 'fragments')
+        workspace.cd('tools', 'bio', 'fragments')
 
-    generate_fragments = [
-            './generate_fragments.py',
-            '--fasta', workspace.fasta_path,
-            '--chain', arguments['<chain>'],
-            '--outdir', workspace.fragments_dir,
-    ]
-    subprocess.call(generate_fragments)
-
-scripting.run_main(locals)
+        generate_fragments = [
+                './generate_fragments.py',
+                '--fasta', workspace.fasta_path,
+                '--chain', arguments['<chain>'],
+                '--outdir', workspace.fragments_dir,
+        ]
+        subprocess.call(generate_fragments)

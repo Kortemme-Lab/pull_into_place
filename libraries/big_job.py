@@ -46,12 +46,12 @@ def initiate(workspace_factory):
     workspace = workspace_factory(*sys.argv[1:])
     job_id = int(os.environ['JOB_ID'])
     task_id = int(os.environ['SGE_TASK_ID']) - 1
-    job_params = read_params(workspace, job_id)
+    job_params = read_params(workspace.jobs_params_path(job_id))
 
     return workspace, job_id, task_id, job_params
 
-def read_params(workspace, job_id):
-    with open(workspace.job_params_path(job_id)) as file:
+def read_params(params_path):
+    with open(params_path) as file:
         return json.load(file)
 
 

@@ -1,0 +1,18 @@
+<ROSETTASCRIPTS>
+
+    <TASKOPERATIONS>
+        <ReadResfile name="resfile"/>
+        <ExtraRotamersGeneric name="ex"
+            ex1="yes" ex2="yes" extrachi_cutoff="0"/>
+    </TASKOPERATIONS>
+
+    <MOVERS>
+        <PackRotamersMover name="fixbb" task_operations="resfile,ex"/>
+    </MOVERS>
+
+    <PROTOCOLS>
+        <Add mover_name=fixbb/>
+    </PROTOCOLS>
+
+</ROSETTASCRIPTS>
+

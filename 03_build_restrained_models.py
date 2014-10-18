@@ -24,24 +24,24 @@ Options:
         Run on the short queue with a limited number of iterations.
 """
 
-from libraries import workspaces, big_job
-from tools import docopt, scripting, cluster
+if __name__ == '__main__':
+    from libraries import workspaces, big_job
+    from tools import docopt, scripting, cluster
 
-arguments = docopt.docopt(__doc__)
-cluster.require_chef()
+    with scripting.cath_and_print_error():
+        arguments = docopt.docopt(__doc__)
+        cluster.require_chef()
 
-workspace = workspaces.AllRestrainedModels(arguments['<name>'])
-workspace.make_dirs()
-workspace.check_paths()
+        workspace = workspaces.AllRestrainedModels(arguments['<name>'])
+        workspace.check_paths()
+        workspace.make_dirs()
 
-if arguments['--clear-old-results']:
-    workspace.clear_models()
+        if arguments['--clear-old-results']:
+            workspace.clear_models()
 
-big_job.submit(
-        'kr_build.py', workspace,
-        nstruct=arguments['--nstruct'],
-        max_runtime=arguments['--max-runtime'],
-        test_run=arguments['--test-run']
-)
-
-
+        big_job.submit(
+                'kr_build.py', workspace,
+                nstruct=arguments['--nstruct'],
+                max_runtime=arguments['--max-runtime'],
+                test_run=arguments['--test-run']
+        )

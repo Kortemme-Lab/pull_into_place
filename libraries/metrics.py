@@ -110,7 +110,9 @@ def read_and_calculate(pdb_paths, restraints_path):
         record['restraint_dist'] = np.mean(restraint_distances)
         records.append(record)
 
-    sys.stdout.write('\n')
+    if pdb_paths:
+        sys.stdout.write('\n')
+
     return records
 
 def xyz_to_array(xyz):

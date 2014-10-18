@@ -16,8 +16,6 @@ Options:
 """
 
 import os, shutil
-from tools import docopt, scripting
-from libraries import workspaces
 
 keys = (   # (fold)
         'rosetta_path',
@@ -102,76 +100,78 @@ validators = {   # (fold)
 }
 
 
-def main():
-    help = __doc__ + '\n' + '\n\n'.join(descriptions[x] for x in keys)
-    arguments = docopt.docopt(help)
-    workspace = workspaces.Workspace(arguments['<name>'])
+if __name__ == '__main__':
+    from tools import docopt, scripting
+    from libraries import workspaces
 
-    # Make sure this design doesn't already exist.
+    with scripting.catch_and_print_errors():
+        help = __doc__ + '\n' + '\n\n'.join(descriptions[x] for x in keys)
+        arguments = docopt.docopt(help)
+        workspace = workspaces.Workspace(arguments['<name>'])
 
-    if workspace.exists():
-        if arguments['--overwrite']: shutil.rmtree(workspace.name)
-        else: scripting.print_error_and_die("Design '{0}' already exists.", workspace.name)
+        # Make sure this design doesn't already exist.
 
-    # Get the necessary paths from the user.
+        if workspace.exists():
+            if arguments['--overwrite']: shutil.rmtree(workspace.name)
+            else: scripting.print_error_and_die("Design '{0}' already exists.", workspace.name)
 
-    print "Please provide the following pieces of information:"
-    print
+        # Get the necessary paths from the user.
 
-    settings = {}
-    scripting.use_path_completion()
-
-    for key in keys:
-        print descriptions[key]
+        print "Please provide the following pieces of information:"
         print
 
-        while True:
-            settings[key] = raw_input(prompts[key])
+        settings = {}
+        scripting.use_path_completion()
 
-            if settings[key] == '' and 'optional' in prompts[key]:
-                print "Skipping optional input."
-                break
-            elif key not in validators or validators[key](settings[key]):
-                break
-            else:        
-                print "'{0}' does not exist.".format(settings[key])
-                print
+        for key in keys:
+            print descriptions[key]
+            print
 
-        print
+            while True:
+                settings[key] = raw_input(prompts[key])
 
-    # Fill in the design directory.
+                if settings[key] == '' and 'optional' in prompts[key]:
+                    print "Skipping optional input."
+                    break
+                elif key not in validators or validators[key](settings[key]):
+                    break
+                else:        
+                    print "'{0}' does not exist.".format(settings[key])
+                    print
 
-    workspace.make_dirs()
+            print
 
-    rosetta_path = os.path.abspath(settings['rosetta_path'])
-    os.symlink(rosetta_path, workspace.rosetta_dir)
+        # Fill in the design directory.
 
-    shutil.copyfile(settings['input_pdb'], workspace.input_pdb_path)
-    shutil.copyfile(settings['loops_path'], workspace.loops_path)
-    shutil.copyfile(settings['resfile_path'], workspace.resfile_path)
-    shutil.copyfile(settings['restraints_path'], workspace.restraints_path)
+        workspace.make_dirs()
 
-    if settings['loopmodel_path']:
-        shutil.copyfile(settings['loopmodel_path'], workspace.loopmodel_path)
-    else:
-        default_path = workspaces.big_job_path('loopmodel.xml')
-        shutil.copyfile(default_path, workspace.loopmodel_path)
+        rosetta_path = os.path.abspath(settings['rosetta_path'])
+        os.symlink(rosetta_path, workspace.rosetta_dir)
 
-    if settings['fixbb_path']:
-        shutil.copyfile(settings['fixbb_path'], workspace.fixbb_path)
-    else:
-        default_path = workspaces.big_job_path('fixbb.xml')
-        shutil.copyfile(default_path, workspace.fixbb_path)
+        shutil.copyfile(settings['input_pdb'], workspace.input_pdb_path)
+        shutil.copyfile(settings['loops_path'], workspace.loops_path)
+        shutil.copyfile(settings['resfile_path'], workspace.resfile_path)
+        shutil.copyfile(settings['restraints_path'], workspace.restraints_path)
 
-    if settings['flags_path']:
-        shutil.copyfile(settings['flags_path'], workspace.flags_path)
-    else:
-        scripting.touch(workspace.flags_path)
+        if settings['loopmodel_path']:
+            shutil.copyfile(settings['loopmodel_path'], workspace.loopmodel_path)
+        else:
+            default_path = workspaces.big_job_path('loopmodel.xml')
+            shutil.copyfile(default_path, workspace.loopmodel_path)
 
-    if settings['rsync_url']:
-        workspace.rsync_url_path = settings['rsync_url']
+        if settings['fixbb_path']:
+            shutil.copyfile(settings['fixbb_path'], workspace.fixbb_path)
+        else:
+            default_path = workspaces.big_job_path('fixbb.xml')
+            shutil.copyfile(default_path, workspace.fixbb_path)
 
-    print "Setup successful for design '{0}'.".format(workspace.name)
+        if settings['flags_path']:
+            shutil.copyfile(settings['flags_path'], workspace.flags_path)
+        else:
+            scripting.touch(workspace.flags_path)
 
-scripting.run_main(locals())
+        if settings['rsync_url']:
+            workspace.rsync_url_path = settings['rsync_url']
+
+        print "Setup successful for design '{0}'.".format(workspace.name)
 
