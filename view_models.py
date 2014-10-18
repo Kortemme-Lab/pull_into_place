@@ -186,6 +186,7 @@ class ModelView (gtk.Window):
         self.groups = groups
         self.keys = list()
         self.filter = 'all' if not arguments['--interesting'] else 'interesting'
+        self.new_selection = None
         self.selected_decoy = None
         self.xlim = arguments.get('--xlim')
         if self.xlim is not None:
@@ -503,15 +504,23 @@ class ModelView (gtk.Window):
             self.update_annotations()
 
     def on_select_decoy(self, event):
-        self.selected_decoy = event.ind[0], event.artist.group
+        self.new_selection = event.ind[0], event.artist.group
 
     def on_click_plot_mpl(self, event):
-        if self.selected_decoy and event.button == 1:
-            index, group = self.selected_decoy
+        if self.new_selection and event.button == 1:
+            index, group = self.new_selection
             path = group.paths[index]
             self.toolbar.set_decoy(os.path.basename(path))
 
     def on_click_plot_gtk(self, widget, event):
+        # Update the selection.
+
+        self.selected_decoy = self.new_selection
+        self.new_selection = None
+        self.update_plot()
+
+        # Handle a right button press.
+
         if event.button != 3: return
         if self.toolbar._active == 'PAN': return
         if self.toolbar._active == 'ZOOM': return
@@ -520,7 +529,6 @@ class ModelView (gtk.Window):
         index, group = self.selected_decoy
         path = group.paths[index]
         is_rep = (group.representative == index)
-        self.selected_decoy = None
 
         file_menu = gtk.Menu()
 
@@ -798,6 +806,11 @@ class ModelView (gtk.Window):
         axes.clear()
         axes.set_xlabel(self.distance_metric)
         axes.set_ylabel(self.score_metric)
+
+        if self.selected_decoy is not None:
+            sel, selected_group = self.selected_decoy
+        else:
+            sel, selected_group = None, None
         
         for index, group in enumerate(groups):
             rep = group.representative
@@ -813,15 +826,25 @@ class ModelView (gtk.Window):
             size = clip(7500 / (len(scores)), 2, 15)
 
             # Highlight the representative decoy.
+
             axes.scatter(
                     [distances[rep]], [scores[rep]],
                     s=60, c=tango.yellow[1], marker='o', edgecolor='none')
 
             # Draw the whole score vs distance plot.
+
             lines = axes.scatter(
                     distances, scores,
                     s=size, c=color, marker='o', edgecolor='none',
                     label=label, picker=True)
+
+            # Highlight the selected decoy, if there is one.
+
+            if group is selected_group:
+                axes.scatter(
+                        [distances[sel]], [scores[sel]],
+                        s=60, c='none', marker='s', edgecolor=tango.yellow[1],
+                        linewidth=2)
 
             lines.paths = group.paths
             lines.group = group
