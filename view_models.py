@@ -8,14 +8,23 @@ both the model building and design validation stages of the pipeline.  Often
 you would use this script to get a big-picture view of your designs before 
 deciding which are worth carrying forward.
 
-Usage:
-    view_models.py [options] <directories>...
+Usage: view_models.py [options] <directories>...
 
 Options:
-    -f --force          Force the cache to be regenerated.
-    -q --quiet          Build the cache, but don't launch the GUI.
-    -i --interesting    Hide uninteresting designs by default.
-    -x --xlim XLIM      Set the x-axis limit for all distance metrics.
+    -f, --force
+        Force the cache to be regenerated.
+
+    -q, --quiet
+        Build the cache, but don't launch the GUI.
+
+    -r PATH, --restraints PATH
+        Specify a restraints file to use while building the cache.
+
+    -i, --interesting
+        Hide uninteresting groups by default.
+
+    -x XLIM, --xlim XLIM
+        Set the x-axis limit for all distance metrics.
 """
 
 # Imports (fold)
@@ -38,29 +47,22 @@ from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg
 from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg
 
 
-class Model:
+class ModelGroup:
 
-    def __init__(self, directory, use_cache=True):
+    def __init__(self, directory, restraints=None, use_cache=True):
         self.directory = directory
-        self.cache_path = os.path.join(directory, 'cache.npz')
         self.notes_path = os.path.join(directory, 'notes.txt')
         self.interest_path = os.path.join(directory, 'interesting')
         self.rep_path = os.path.join(directory, 'representative.txt')
-        self.sequence_path = os.path.join(directory, 'sequence.txt')
 
         self.paths = []
-        self.metrics = []
-        self.scores = None
-        self.loop_rmsds = None
-        self.cooh_dists = None
-        self.sequence = None
-        self.loop_sequence = None
+        self.metrics = None
         self._notes = ""
         self._interesting = False
         self._representative = None
 
         self._load_annotations()
-        self._load_scores_and_dists(use_cache)
+        self._load_scores_and_dists(restraints, use_cache)
 
     def __str__(self):
         return '<' + self.fancy_path + '>'
@@ -90,7 +92,7 @@ class Model:
     @property
     def representative(self):
         if self._representative is None:
-            return argmin(self.scores)
+            return argmin(self.get_scores('Total Score'))
         else:
             return self._representative
 
@@ -137,10 +139,10 @@ class Model:
         except IOError:
             pass
 
-    def _load_scores_and_dists(self, use_cache):
+    def _load_scores_and_dists(self, restraints, use_cache):
         from libraries import metrics
 
-        self.metrics = metrics.load(self.directory, use_cache)
+        self.metrics = metrics.load(self.directory, restraints, use_cache)
         self.paths = self.metrics['path']
 
     def _save_notes(self):
@@ -171,7 +173,7 @@ class Model:
 
 class ModelView (gtk.Window):
 
-    def __init__(self, designs, arguments):
+    def __init__(self, groups, arguments):
         
         # Setup the parent class.
 
@@ -181,7 +183,7 @@ class ModelView (gtk.Window):
 
         # Setup the data members.
 
-        self.designs = designs
+        self.groups = groups
         self.keys = list()
         self.filter = 'all' if not arguments['--interesting'] else 'interesting'
         self.selected_decoy = None
@@ -199,13 +201,13 @@ class ModelView (gtk.Window):
         self.connect('destroy', lambda x: gtk.main_quit())
         self.set_default_size(int(1.618 * 529), 529)
 
-        design_viewer = self.setup_design_viewer()
-        design_list = self.setup_design_list()
+        model_viewer = self.setup_model_viewer()
+        model_list = self.setup_model_list()
         menu_bar = self.setup_menu_bar()
 
         hbox = gtk.HBox()
-        hbox.pack_start(design_list, expand=False, padding=3)
-        hbox.pack_start(design_viewer, expand=True, padding=3)
+        hbox.pack_start(model_list, expand=False, padding=3)
+        hbox.pack_start(model_viewer, expand=True, padding=3)
 
         vbox = gtk.VBox()
         vbox.pack_start(menu_bar, expand=False)
@@ -215,22 +217,22 @@ class ModelView (gtk.Window):
         self.update_everything()
         self.show_all()
 
-    def get_interesting_designs(self):
-        for design in self.designs.values():
-            if design.interest:
-                yield design
+    def get_interesting_groups(self):
+        for group in self.groups.values():
+            if group.interest:
+                yield group
 
-    def num_interesting_designs(self):
+    def num_interesting_groups(self):
         count = 0
-        for design in self.designs.values():
-            count += 1 if design.interest else 0
+        for group in self.groups.values():
+            count += 1 if group.interest else 0
         return count
 
 
-    def setup_design_list(self):
+    def setup_model_list(self):
         return self.setup_job_tree_view()
 
-    def setup_design_viewer(self):
+    def setup_model_viewer(self):
         plot = self.setup_score_vs_dist_plot()
         notes = self.setup_annotation_area()
 
@@ -268,15 +270,14 @@ class ModelView (gtk.Window):
         # Create the view menu.
 
         view_config = [
-                "Show all designs", 
-                "Show interesting designs",
-                "Show interesting and annotated designs",
-                "Show interesting and unannotated designs",
-                "Show annotated designs",
-                "Show uninteresting designs",
+                "Show all groups", 
+                "Show interesting groups",
+                "Show interesting and annotated groups",
+                "Show interesting and unannotated groups",
+                "Show annotated groups",
+                "Show uninteresting groups",
         ]
         view_submenu = gtk.Menu()
-        group = None
 
         def on_pick_filter(widget, filter):
             self.filter_by(filter)
@@ -321,9 +322,9 @@ class ModelView (gtk.Window):
 
             def cell_data_func(column, cell, model, iter, attr):
                 key = model.get_value(iter, 0)
-                design = self.designs[key]
-                text = getattr(design, attr)
-                weight = 700 if design.interest else 400
+                group = self.groups[key]
+                text = getattr(group, attr)
+                weight = 700 if group.interest else 400
 
                 cell.set_property('text', text)
                 cell.set_property('weight', weight)
@@ -331,10 +332,10 @@ class ModelView (gtk.Window):
             def sort_func(model, iter_1, iter_2, attr):
                 key_1 = model.get_value(iter_1, 0)
                 key_2 = model.get_value(iter_2, 0)
-                design_1 = self.designs[key_1]
-                design_2 = self.designs[key_2]
-                value_1 = getattr(design_1, attr)
-                value_2 = getattr(design_2, attr)
+                group_1 = self.groups[key_1]
+                group_2 = self.groups[key_2]
+                value_1 = getattr(group_1, attr)
+                value_2 = getattr(group_2, attr)
                 return cmp(value_1, value_2)
 
             list_store.set_sort_func(index, sort_func, attr);
@@ -345,7 +346,7 @@ class ModelView (gtk.Window):
             self.view.append_column(column)
 
         selector = self.view.get_selection()
-        selector.connect("changed", self.on_select_designs)
+        selector.connect("changed", self.on_select_groups)
         selector.set_mode(gtk.SELECTION_MULTIPLE)
 
         scroller = gtk.ScrolledWindow()
@@ -445,8 +446,8 @@ class ModelView (gtk.Window):
         }
         
         normal_mode_hotkeys = {
-                'j': self.next_design,      'f': self.next_design,
-                'k': self.previous_design,  'd': self.previous_design,
+                'j': self.next_group,      'f': self.next_group,
+                'k': self.previous_group,  'd': self.previous_group,
                 'i': self.insert_mode,      'a': self.insert_mode,
                 'z': self.zoom_mode,
                 'x': self.pan_mode,
@@ -469,7 +470,7 @@ class ModelView (gtk.Window):
 
         self.update_filter()
 
-    def on_select_designs(self, selection) :
+    def on_select_groups(self, selection) :
         new_keys = []
         old_keys = self.keys[:]
         self.keys = []
@@ -480,8 +481,8 @@ class ModelView (gtk.Window):
             key = model.get_value(iter, 0)
             new_keys.append(key)
 
-        # Don't change the order of designs that were already selected.  The 
-        # order affects how the color of the design in the score vs rmsd plot, 
+        # Don't change the order of groups that were already selected.  The 
+        # order affects how the color of the group in the score vs rmsd plot, 
         # and things get confusing if it changes.
 
         for key in old_keys:
@@ -502,12 +503,12 @@ class ModelView (gtk.Window):
             self.update_annotations()
 
     def on_select_decoy(self, event):
-        self.selected_decoy = event.ind[0], event.artist.design
+        self.selected_decoy = event.ind[0], event.artist.group
 
     def on_click_plot_mpl(self, event):
         if self.selected_decoy and event.button == 1:
-            index, design = self.selected_decoy
-            path = design.paths[index]
+            index, group = self.selected_decoy
+            path = group.paths[index]
             self.toolbar.set_decoy(os.path.basename(path))
 
     def on_click_plot_gtk(self, widget, event):
@@ -516,9 +517,9 @@ class ModelView (gtk.Window):
         if self.toolbar._active == 'ZOOM': return
         if self.selected_decoy is None: return
 
-        index, design = self.selected_decoy
-        path = design.paths[index]
-        is_rep = (design.representative == index)
+        index, group = self.selected_decoy
+        path = group.paths[index]
+        is_rep = (group.representative == index)
         self.selected_decoy = None
 
         file_menu = gtk.Menu()
@@ -543,7 +544,7 @@ class ModelView (gtk.Window):
             item = gtk.MenuItem(key)
             item.connect(
                     'activate', self.on_show_decoy_in_pymol,
-                    design, index, pymol_modes)
+                    group, index, pymol_modes)
             file_menu.append(item)
 
         edit_modes = gtk.MenuItem("Edit pymol configuration")
@@ -552,17 +553,17 @@ class ModelView (gtk.Window):
         copy_path = gtk.MenuItem("Copy path to decoy")
         copy_path.connect('activate', self.on_copy_decoy_path, path)
 
-        if index == design.representative:
+        if index == group.representative:
             choose_rep = gtk.MenuItem("Reset representative")
             choose_rep.connect(
-                'activate', self.on_set_representative, design, None)
+                'activate', self.on_set_representative, group, None)
         else:
             choose_rep = gtk.MenuItem("Set as representative")
             choose_rep.connect(
-                'activate', self.on_set_representative, design, index)
+                'activate', self.on_set_representative, group, index)
 
         remove_outlier = gtk.MenuItem("Remove outlier")
-        remove_outlier.connect('activate', self.on_remove_outlier, design, index)
+        remove_outlier.connect('activate', self.on_remove_outlier, group, index)
 
         file_menu.append(gtk.SeparatorMenuItem())
         file_menu.append(edit_modes)
@@ -572,20 +573,20 @@ class ModelView (gtk.Window):
         file_menu.foreach(lambda item: item.show())
         file_menu.popup(None, None, None, event.button, event.time)
 
-    def on_show_decoy_in_pymol(self, widget, design, decoy, configs):
+    def on_show_decoy_in_pymol(self, widget, group, decoy, configs):
         key = widget.get_label()
-        open_in_pymol(design, decoy, configs[key])
+        open_in_pymol(group, decoy, configs[key])
 
     def on_copy_decoy_path(self, widget, path):
         import subprocess
         xsel = subprocess.Popen(['xsel', '-pi'], stdin=subprocess.PIPE)
         xsel.communicate(path)
 
-    def on_set_representative(self, widget, design, index):
-        design.set_representative(index)
+    def on_set_representative(self, widget, group, index):
+        group.set_representative(index)
         self.update_plot()
 
-    def on_remove_outlier(self, widget, design, index):
+    def on_remove_outlier(self, widget, group, index):
         message = gtk.MessageDialog(
                 type=gtk.MESSAGE_QUESTION,
                 buttons=gtk.BUTTONS_OK_CANCEL)
@@ -594,22 +595,22 @@ class ModelView (gtk.Window):
         message.destroy()
 
         if response == gtk.RESPONSE_OK:
-            design.remove_outlier(index)
+            group.remove_outlier(index)
             self.update_plot()
 
     def on_mark_as_interesting(self, widget):
         assert len(self.keys) == 1
-        design = self.designs[self.keys[0]]
+        group = self.groups[self.keys[0]]
         interest = widget.get_active()
-        design.set_interest(interest)
+        group.set_interest(interest)
         self.view.queue_draw()
 
     def on_edit_annotation(self, buffer):
         assert len(self.keys) == 1
-        design = self.designs[self.keys[0]]
+        group = self.groups[self.keys[0]]
         bounds = buffer.get_bounds()
         notes = buffer.get_text(*bounds)
-        design.set_notes(notes)
+        group.set_notes(notes)
 
     def on_change_metric(self, widget):
         label = widget.get_label()
@@ -647,7 +648,7 @@ class ModelView (gtk.Window):
         self.filter = filter
         self.update_filter()
 
-    def next_design(self):
+    def next_group(self):
         selection = self.view.get_selection()
         model, paths = selection.get_selected_rows()
         num_paths = model.iter_n_children(None)
@@ -656,7 +657,7 @@ class ModelView (gtk.Window):
             selection.select_path(paths[-1][0] + 1)
             self.view.scroll_to_cell(paths[-1][0] + 1)
 
-    def previous_design(self):
+    def previous_group(self):
         selection = self.view.get_selection()
         model, paths = selection.get_selected_rows()
         if paths[0][0] > 0:
@@ -697,8 +698,8 @@ class ModelView (gtk.Window):
         if response == gtk.RESPONSE_OK:
             with open(chooser.get_filename(), 'w') as file:
                 file.writelines(
-                        design.paths[design.representative] + '\n'
-                        for design in self.get_interesting_designs())
+                        group.paths[group.representative] + '\n'
+                        for group in self.get_interesting_groups())
 
         chooser.destroy()
 
@@ -720,15 +721,15 @@ class ModelView (gtk.Window):
         if response == gtk.RESPONSE_OK:
             pdf = PdfPages(chooser.get_filename())
 
-            for index, design in enumerate(self.get_interesting_designs()):
+            for index, group in enumerate(self.get_interesting_groups()):
                 plt.figure(figsize=(8.5, 11))
-                plt.suptitle(design.fancy_path)
+                plt.suptitle(group.fancy_path)
 
                 axes = plt.subplot(2, 1, 1)
-                self.plot_score_vs_dist(axes, [design], metric="COOH RMSD")
+                self.plot_score_vs_dist(axes, [group], metric="COOH RMSD")
 
                 axes = plt.subplot(2, 1, 2)
-                self.plot_score_vs_dist(axes, [design], metric="Loop RMSD")
+                self.plot_score_vs_dist(axes, [group], metric="Loop RMSD")
 
                 pdf.savefig(orientation='portrait')
                 plt.close()
@@ -755,30 +756,30 @@ class ModelView (gtk.Window):
             with open('pymol_modes.txt') as file:
                 base_config = yaml.load(file)['Evaluate decoy in pymol']
 
-            for design in self.get_interesting_designs():
-                decoy = design.representative
+            for group in self.get_interesting_groups():
+                decoy = group.representative
                 config = base_config + '; save ' + os.path.join(
-                        directory, design.get_fancy_path('.pse'))
+                        directory, group.get_fancy_path('.pse'))
 
-                open_in_pymol(design, decoy, config, gui=False)
+                open_in_pymol(group, decoy, config, gui=False)
 
         chooser.destroy()
 
     def save_subangstrom_decoys(self):
-        designs = [self.designs[k] for k in self.keys]
+        groups = [self.groups[k] for k in self.keys]
 
-        for design in designs:
-            job, outputs = os.path.split(design.directory)
+        for group in groups:
+            job, outputs = os.path.split(group.directory)
             best_decoys = os.path.join(job, 'best_decoys')
             if os.path.exists(best_decoys): shutil.rmtree(best_decoys)
             os.mkdir(best_decoys)
 
-        for design in designs:
-            job, outputs = os.path.split(design.directory)
+        for group in groups:
+            job, outputs = os.path.split(group.directory)
             best_decoys = os.path.join(job, 'best_decoys')
 
-            distances = design.get_distances('Max COOH Distance')
-            paths = array(design.paths)[distances < 0.6]
+            distances = group.get_distances('Max COOH Distance')
+            paths = array(group.paths)[distances < 0.6]
 
             for path in list(paths):
                 id = os.path.basename(path)
@@ -786,7 +787,7 @@ class ModelView (gtk.Window):
                 link_name = os.path.join(best_decoys, outputs + '.' + id)
                 os.symlink(source, link_name)
 
-    def plot_score_vs_dist(self, axes, designs, **kwargs):
+    def plot_score_vs_dist(self, axes, groups, **kwargs):
         from graphics import tango
         from itertools import count
 
@@ -798,10 +799,10 @@ class ModelView (gtk.Window):
         axes.set_xlabel(self.distance_metric)
         axes.set_ylabel(self.score_metric)
         
-        for index, design in enumerate(designs):
-            rep = design.representative
-            scores = design.get_scores(self.score_metric)
-            distances = design.get_distances(self.distance_metric)
+        for index, group in enumerate(groups):
+            rep = group.representative
+            scores = group.get_scores(self.score_metric)
+            distances = group.get_distances(self.distance_metric)
             ymin = min(ymin, min(scores))
             ymax = max(ymax, 
                     percentile(scores, 85)
@@ -822,8 +823,8 @@ class ModelView (gtk.Window):
                     s=size, c=color, marker='o', edgecolor='none',
                     label=label, picker=True)
 
-            lines.paths = design.paths
-            lines.design = design
+            lines.paths = group.paths
+            lines.group = group
 
         ypad = 0.05 * (ymax - ymin)
         axes.set_ylim(bottom=ymin-ypad, top=ymax+ypad)
@@ -834,7 +835,7 @@ class ModelView (gtk.Window):
         else:
             axes.set_xlim(0, xlim)
 
-        if labels and 1 < len(designs) < 5:
+        if labels and 1 < len(groups) < 5:
             axes.legend()
 
 
@@ -871,17 +872,17 @@ class ModelView (gtk.Window):
         self.update_plot()
 
     def update_plot(self):
-        designs = [self.designs[k] for k in self.keys]
-        self.plot_score_vs_dist(self.axes, designs, labels=self.keys)
+        groups = [self.groups[k] for k in self.keys]
+        self.plot_score_vs_dist(self.axes, groups, labels=self.keys)
         self.toolbar.set_decoy("")
         self.canvas.draw()
 
     def update_annotations(self):
         if len(self.keys) == 1:
-            design = self.designs[self.keys[0]]
-            self.notes.get_buffer().set_text(design.notes)
+            group = self.groups[self.keys[0]]
+            self.notes.get_buffer().set_text(group.notes)
             self.notes.set_sensitive(True)
-            self.mark_as_interesting.set_active(design.interest)
+            self.mark_as_interesting.set_active(group.interest)
             self.mark_as_interesting.set_sensitive(True)
         else:
             self.notes.set_sensitive(False)
@@ -893,37 +894,37 @@ class ModelView (gtk.Window):
         selector = self.view.get_selection()
         model.clear()
 
-        for key in sorted(self.designs):
-            design = self.designs[key]
+        for key in sorted(self.groups):
+            group = self.groups[key]
             column = [key]
 
             if self.filter == 'all':
                 model.append(column)
 
             elif self.filter == 'interesting':
-                if design.interest:
+                if group.interest:
                     model.append(column)
 
             elif self.filter == 'interesting and annotated':
-                if design.interest and design.notes:
+                if group.interest and group.notes:
                     model.append(column)
 
             elif self.filter == 'interesting and unannotated':
-                if design.interest and not design.notes:
+                if group.interest and not group.notes:
                     model.append(column)
 
             elif self.filter == 'annotated':
-                if design.notes:
+                if group.notes:
                     model.append(column)
 
             elif self.filter == 'uninteresting':
-                if not design.interest:
+                if not group.interest:
                     model.append(column)
 
             else:
                 model.append(column)
 
-        num_designs = model.iter_n_children(None)
+        num_groups = model.iter_n_children(None)
         selector.select_path((0,))
 
 
@@ -973,32 +974,40 @@ class ModelToolbar (NavigationToolbar2GTKAgg):
 
 
 
-def parse_designs(directories, use_cache=True):
-    from os.path import join, isdir, dirname, basename
+def load_models(directories, restraints=None, use_cache=True):
+    from libraries import workspaces
 
-    designs = collections.OrderedDict()
+    groups = collections.OrderedDict()
 
     for directory in directories:
-        if isdir(directory) and os.listdir(directory):
-                    designs[directory] = Model(directory, use_cache)
+        if os.path.isdir(directory) and os.listdir(directory):
+            try:
+                workspace = workspaces.from_directory(directory)
+                pdb_dir = workspace.output_dir
+                restraints = workspace.restraints
+                group = ModelGroup(pdb_dir, restraints, use_cache)
+            except:
+                group = ModelGroup(directory, restraints, use_cache)
 
-    return designs
+            groups[directory] = group
 
-def open_in_pymol(design, decoy, config, gui=True):
+    return groups
+
+def open_in_pymol(group, decoy, config, gui=True):
     import subprocess
 
-    path = os.path.join(design.directory, design.paths[decoy])
+    path = os.path.join(group.directory, group.paths[decoy])
     paths = path, '../data/original_structures/4UN3.pdb.gz'
 
     wt_name = '4UN3'
-    design_name = os.path.basename(path)[:-len('.pdb.gz')]
+    group_name = os.path.basename(path)[:-len('.pdb.gz')]
 
     #job_target, decoy = os.path.split(path); decoy = decoy[:-len('.pdb.gz')]
     #job, target = os.path.split(job_target)
     #target_path = os.path.join(job, 'inputs', target + '.pdb.gz')
     #wt_path = os.path.join('..', 'structures', 'wt-lig-dimer.pdb')
     #paths = path, wt_path, target_path
-    #design_name = design.fancy_path
+    #group_name = group.fancy_path
 
     #glu_match = re.search('glu_(\d+)', path)
     #glu_position = int(glu_match.group(1)) if glu_match else 38
@@ -1030,10 +1039,12 @@ def open_in_pymol(design, decoy, config, gui=True):
 if __name__ == '__main__':
     arguments = docopt.docopt(__doc__)
     directories = arguments['<directories>']
+    restraints = arguments['--restraints']
     use_cache = not arguments['--force']
-    designs = parse_designs(directories, use_cache)
+
+    groups = load_models(directories, restraints, use_cache)
 
     if not arguments['--quiet']:
-        gui = ModelView(designs, arguments)
+        gui = ModelView(groups, arguments)
         if not os.fork(): gtk.main()
 
