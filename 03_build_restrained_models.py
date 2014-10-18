@@ -29,7 +29,7 @@ if __name__ == '__main__':
     from libraries import workspaces, big_job
     from tools import docopt, scripting, cluster
 
-    with scripting.cath_and_print_error():
+    with scripting.catch_and_print_errors():
         arguments = docopt.docopt(__doc__)
         cluster.require_chef()
 

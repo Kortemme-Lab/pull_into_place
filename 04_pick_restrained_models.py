@@ -70,15 +70,15 @@ if __name__ == '__main__':
 
         # Figure out which models have already been considered.
 
-        existing_ids = {
+        existing_ids = set(
                 int(x[0:-len('.pdb.gz')])
-                for x in os.listdir(workspace.output_dir)}
+                for x in os.listdir(workspace.output_dir))
 
         next_id = max(existing_ids) + 1 if existing_ids else 0
 
-        existing_sources = {
+        existing_sources = set(
                 os.path.basename(os.readlink(x))
-                for x in workspace.output_paths}
+                for x in workspace.output_paths)
 
         new_sources = best_sources - existing_sources
         duplicate_sources = best_sources & existing_sources

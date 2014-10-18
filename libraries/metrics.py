@@ -7,13 +7,13 @@ from . import workspaces
 def load(pdb_dir, use_cache=True):
     workspace = workspaces.from_directory(pdb_dir)
     pdb_paths = glob.glob(os.path.join(pdb_dir, '*.pdb.gz'))
-    base_pdb_names = {os.path.basename(x) for x in pdb_paths}
+    base_pdb_names = set(os.path.basename(x) for x in pdb_paths)
     cache_path = os.path.join(pdb_dir, 'distances.pkl')
     restraints_path = workspace.restraints_path
 
     if use_cache and os.path.exists(cache_path):
         cached_records = pd.read_pickle(cache_path).to_dict('records')
-        cached_paths = {x['path'] for x in cached_records}
+        cached_paths = set(x['path'] for x in cached_records)
         uncached_paths = [
                 pdb_path for pdb_path in pdb_paths
                 if os.path.basename(pdb_path) not in cached_paths]
