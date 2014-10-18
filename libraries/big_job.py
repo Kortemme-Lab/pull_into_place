@@ -1,10 +1,10 @@
 #!/usr/bin/env python2
 
 import sys, os, re, json, subprocess
+from . import workspaces
 
 def submit(script, workspace, **params):
     from tools import cluster, process
-    from . import workspaces
 
     # Parse some parameters that 
     params = dict((k, v) for k, v in params.items() if v is not None)
@@ -23,7 +23,7 @@ def submit(script, workspace, **params):
     qsub_command += '-o', workspace.stdout_dir, '-e', workspace.stderr_dir,
     qsub_command += '-t', '1-{0}'.format(nstruct),
     qsub_command += '-l', 'h_rt={0}'.format(max_runtime),
-    qsub_command += workspaces.big_job_path(script), workspace.name,
+    qsub_command += workspaces.big_job_path(script), workspace.focus_dir,
 
     status = process.check_output(qsub_command)
     status_pattern = re.compile(r'Your job-array (\d+).[0-9:-]+ \(".*"\) has been submitted')
@@ -42,11 +42,11 @@ def submit(script, workspace, **params):
     process.check_output(qrls_command)
     print status,
 
-def initiate(workspace_factory):
-    workspace = workspace_factory(*sys.argv[1:])
+def initiate():
+    workspace = workspaces.from_directory(sys.argv[1])
     job_id = int(os.environ['JOB_ID'])
     task_id = int(os.environ['SGE_TASK_ID']) - 1
-    job_params = read_params(workspace.jobs_params_path(job_id))
+    job_params = read_params(workspace.job_params_path(job_id))
 
     return workspace, job_id, task_id, job_params
 

@@ -9,11 +9,8 @@
 import os, sys; sys.path.append(os.getcwd())
 import subprocess
 from libraries import big_job
-from libraries import workspaces
 
-workspace, job_id, task_id, parameters = \
-        big_job.initiate(workspaces.AllRestrainedModels)
-
+workspace, job_id, task_id, parameters = big_job.initiate()
 output_prefix = '{0}/{1}_{2:06d}_'.format(workspace.output_dir, job_id, task_id)
 test_run = parameters.get('test_run', False)
 
