@@ -24,7 +24,7 @@ rosetta_command = [
         '-in:file:native', workspace.input_pdb_path,
         '-out:prefix', workspace.output_dir + '/',
         '-out:suffix', '_{0:03d}'.format(task_id / len(bb_models)),
-        '-out:no_struct_label',
+        '-out:no_nstruct_label',
         '-out:overwrite',
         '-out:pdb_gz', 
         '-parser:protocol', workspace.fixbb_path,

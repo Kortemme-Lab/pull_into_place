@@ -20,7 +20,7 @@ rosetta_command = [
         '-in:file:s', workspace.input_pdb_path,
         '-in:file:native', workspace.input_pdb_path,
         '-out:prefix', output_prefix,
-        '-out:no_struct_label',
+        '-out:no_nstruct_label',
         '-out:overwrite',
         '-out:pdb_gz', 
         '-parser:protocol', workspace.loopmodel_path,
