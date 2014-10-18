@@ -115,7 +115,31 @@ class Workspace (object):
         return os.path.exists(self.focus_dir)
 
 
-class WithCluster:
+class BigJobWorkspace (Workspace):
+
+    @property
+    def input_dir(self):
+        return os.path.join(self.focus_dir, 'inputs')
+
+    @property
+    def input_paths(self):
+        return glob.glob(os.path.join(self.input_dir, '*.pdb.gz'))
+
+    @property
+    def output_dir(self):
+        return os.path.join(self.focus_dir, 'outputs')
+
+    @property
+    def output_paths(self):
+        return glob.glob(os.path.join(self.input_dir, '*.pdb.gz'))
+
+    @property
+    def stdout_dir(self):
+        return os.path.join(self.focus_dir, 'stdout')
+
+    @property
+    def stderr_dir(self):
+        return os.path.join(self.focus_dir, 'stderr')
 
     def job_params_path(self, job_id):
         return os.path.join(self.focus_dir, '{0}.json'.format(job_id))
@@ -136,19 +160,18 @@ class WithCluster:
             inputs -= set(params['inputs'])
         return sorted(inputs)
 
-    @property
-    def stdout_dir(self):
-        return os.path.join(self.focus_dir, 'stdout')
-
-    @property
-    def stderr_dir(self):
-        return os.path.join(self.focus_dir, 'stderr')
-
     def make_dirs(self):
+        Workspace.make_dirs(self)
+        scripting.mkdir(self.input_dir)
+        scripting.mkdir(self.output_dir)
         scripting.mkdir(self.stdout_dir)
         scripting.mkdir(self.stderr_dir)
 
-    def clear_params_and_logs(self):
+    def clear_inputs(self):
+        scripting.clear_directory(self.input_dir)
+
+    def clear_outputs(self):
+        scripting.clear_directory(self.output_dir)
         scripting.clear_directory(self.stdout_dir)
         scripting.clear_directory(self.stderr_dir)
 
@@ -156,7 +179,7 @@ class WithCluster:
             os.remove(path)
 
 
-class WithFragments:
+class FragmentMixin (object):
 
     @property
     def fasta_path(self):
@@ -186,14 +209,17 @@ class WithFragments:
         paths = [x for x in glob.glob(pattern) if 'score' not in x]
         return sorted(paths, reverse=True) + ['none']
 
+    def make_dirs(self):
+        scripting.mkdir(self.fragments_dir)
+
     def clear_fragments(self):
         scripting.clear_directory(self.fragments_dir)
 
 
-class AllRestrainedModels (Workspace, WithCluster, WithFragments):
+class AllRestrainedModels (BigJobWorkspace, FragmentMixin):
 
     def __init__(self, root):
-        Workspace.__init__(self, root) 
+        BigJobWorkspace.__init__(self, root) 
 
     @staticmethod
     def from_directory(directory):
@@ -204,66 +230,22 @@ class AllRestrainedModels (Workspace, WithCluster, WithFragments):
         return os.path.join(self.root_dir, '01_all_restrained_models')
 
     @property
-    def output_dir(self):
-        return os.path.join(self.focus_dir, 'outputs')
-
-    def make_dirs(self):
-        Workspace.make_dirs(self)
-        WithCluster.make_dirs(self)
-        scripting.mkdir(self.fragments_dir)
-        scripting.mkdir(self.output_dir)
-
-    def clear_models(self):
-        WithCluster.clear_params_and_logs(self)
-        scripting.clear_directory(self.output_dir)
-
-
-class BestRestrainedModels (Workspace):
-
-    def __init__(self, root):
-        Workspace.__init__(self, root)
-
-    @staticmethod
-    def from_directory(directory):
-        return BestRestrainedModels(os.path.join(directory, '..'))
-
-    @property
-    def predecessor(self):
-        return AllRestrainedModels(self.root_dir)
-
-    @property
-    def focus_dir(self):
-        return os.path.join(self.root_dir, '02_best_restrained_models')
-
-    @property
     def input_dir(self):
-        return os.path.join(self.focus_dir, 'inputs')
+        return self.root_dir
 
     @property
-    def output_dir(self):
-        return os.path.join(self.focus_dir, 'outputs')
-
-    @property
-    def output_paths(self):
-        return glob.glob(os.path.join(self.output_dir, '*.pdb.gz'))
-
-    @property
-    def symlink_prefix(self):
-        return os.path.relpath(self.input_dir, self.output_dir)
+    def input_paths(self):
+        return [self.input_pdb_path]
 
     def make_dirs(self):
-        Workspace.make_dirs(self)
-        scripting.mkdir(self.output_dir)
-        scripting.relative_symlink(self.predecessor.output_dir, self.input_dir)
-
-    def clear_outputs(self):
-        scripting.clear_directory(self.output_dir)
+        BigJobWorkspace.make_dirs(self)
+        FragmentMixin.make_dirs(self)
 
 
-class AllFixbbDesigns (Workspace, WithCluster):
+class AllFixbbDesigns (BigJobWorkspace):
 
     def __init__(self, root, round):
-        Workspace.__init__(self, root)
+        BigJobWorkspace.__init__(self, root)
         self.round = int(round)
 
     @staticmethod
@@ -275,63 +257,16 @@ class AllFixbbDesigns (Workspace, WithCluster):
     @property
     def predecessor(self):
         if self.round == 1:
-            return BestRestrainedModels(self.root_dir)
+            return AllRestrainedModels(self.root_dir)
         else:
-            return BestValidatedWorkspaces(self.root_dir, self.round - 1)
+            return AllValidatedWorkspaces(self.root_dir, self.round - 1)
 
     @property
     def focus_dir(self):
         assert self.round > 0
-        prefix = 3 + 4 * (self.round - 1)
+        prefix = 2 * self.round
         subdir = '{0:02}_all_fixbb_designs_round_{1}'.format(prefix, self.round)
         return os.path.join(self.root_dir, subdir)
-
-    @property
-    def input_dir(self):
-        return os.path.join(self.focus_dir, 'inputs')
-
-    @property
-    def input_paths(self):
-        return glob.glob(os.path.join(self.input_dir, '*.pdb.gz'))
-
-    @property
-    def output_dir(self):
-        return os.path.join(self.focus_dir, 'outputs')
-
-    def make_dirs(self):
-        Workspace.make_dirs(self)
-        WithCluster.make_dirs(self)
-        scripting.relative_symlink(self.predecessor.output_dir, self.input_dir)
-
-    def clear_outputs(self):
-        WithCluster.clear_params_and_logs(self)
-        scripting.clear_directory(self.output_dir)
-
-
-class PathNotFound (IOError):
-
-    def __init__(self, path, *directories):
-        if len(directories) == 0:
-            message = "'{0}' not found.".format(path)
-
-        elif len(directories) == 1:
-            path = os.path.join(directories[0], path)
-            message = "'{0}' not found.".format(path)
-
-        else:
-            message = "'{0}' not found.  Looked in:".format(path)
-            for directory in directories:
-                message += "\n    " + directory
-
-        super(PathNotFound, self).__init__(message)
-        self.no_stack_trace = True
-
-
-class WorkspaceNotFound (IOError):
-
-    def __init__(self, root):
-        message = "'{}' is not a workspace.".format(root)
-        super(WorkspaceNotFound, self).__init__(message)
 
 
 
@@ -360,4 +295,31 @@ def from_directory(directory):
         workspace_class = pickle.load(file)
 
     return workspace_class.from_directory(directory)
+
+
+class PathNotFound (IOError):
+
+    def __init__(self, path, *directories):
+        if len(directories) == 0:
+            message = "'{0}' not found.".format(path)
+
+        elif len(directories) == 1:
+            path = os.path.join(directories[0], path)
+            message = "'{0}' not found.".format(path)
+
+        else:
+            message = "'{0}' not found.  Looked in:".format(path)
+            for directory in directories:
+                message += "\n    " + directory
+
+        super(PathNotFound, self).__init__(message)
+        self.no_stack_trace = True
+
+
+class WorkspaceNotFound (IOError):
+
+    def __init__(self, root):
+        message = "'{}' is not a workspace.".format(root)
+        super(WorkspaceNotFound, self).__init__(message)
+
 

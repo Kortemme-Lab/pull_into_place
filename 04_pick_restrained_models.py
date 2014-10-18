@@ -54,50 +54,52 @@ if __name__ == '__main__':
 
         # Setup the workspace.
 
-        workspace = workspaces.BestRestrainedModels(arguments['<name>'])
+        workspace = workspaces.AllFixbbDesigns(arguments['<name>'], 1)
         workspace.make_dirs()
         workspace.check_paths()
 
         if arguments['--clear']:
-            workspace.clear_outputs()
+            workspace.clear_inputs()
+
+        predecessor = workspace.predecessor
 
         # Find models meeting the criteria specified on the command line.
 
         query = ' and '.join(arguments['<queries>'])
         all_score_dists = metrics.load(
-                workspace.input_dir, workspace.restraints_path)
+                predecessor.output_dir, predecessor.restraints_path)
         best_score_dists = all_score_dists.query(query)
-        best_sources = set(best_score_dists['path'])
+        best_inputs = set(best_score_dists['path'])
 
         # Figure out which models have already been considered.
 
         existing_ids = set(
                 int(x[0:-len('.pdb.gz')])
-                for x in os.listdir(workspace.output_dir))
+                for x in os.listdir(workspace.input_dir))
 
         next_id = max(existing_ids) + 1 if existing_ids else 0
 
-        existing_sources = set(
+        existing_inputs = set(
                 os.path.basename(os.readlink(x))
                 for x in workspace.output_paths)
 
-        new_sources = best_sources - existing_sources
-        duplicate_sources = best_sources & existing_sources
+        new_inputs = best_inputs - existing_inputs
+        duplicate_inputs = best_inputs & existing_inputs
 
         # Make symlinks to the new models.
 
-        for id, path in enumerate(new_sources, next_id):
-            source_path = os.path.join(workspace.symlink_prefix, path)
-            dest_path = os.path.join(workspace.output_dir, '{0:05d}.pdb.gz'.format(id))
-            os.symlink(source_path, dest_path)
+        for id, new_input in enumerate(new_inputs, next_id):
+            target = os.path.join(predecessor.output_dir, new_input)
+            link_name = os.path.join(workspace.input_dir, '{0:05d}.pdb.gz')
+            scripting.relative_symlink(target, link_name.format(id))
 
         # Tell the user what happened.
 
         plural = lambda x: 's' if len(x) != 1 else ''
 
         print "Selected {} of {} model{}.".format(
-                len(best_sources), len(all_score_dists), plural(best_sources))
+                len(best_inputs), len(all_score_dists), plural(best_inputs))
 
-        if duplicate_sources:
+        if duplicate_inputs:
             print "Skipping {} duplicate model{}.".format(
-                    len(duplicate_sources), plural(duplicate_sources))
+                    len(duplicate_inputs), plural(duplicate_inputs))
