@@ -112,8 +112,8 @@ if __name__ == '__main__':
         # Make sure this design doesn't already exist.
 
         if workspace.exists():
-            if arguments['--overwrite']: shutil.rmtree(workspace.name)
-            else: scripting.print_error_and_die("Design '{0}' already exists.", workspace.name)
+            if arguments['--overwrite']: shutil.rmtree(workspace.root_dir)
+            else: scripting.print_error_and_die("Design '{0}' already exists.", workspace.root_dir)
 
         # Get the necessary paths from the user.
 
@@ -171,7 +171,8 @@ if __name__ == '__main__':
             scripting.touch(workspace.flags_path)
 
         if settings['rsync_url']:
-            workspace.rsync_url_path = settings['rsync_url']
+            with open(workspace.rsync_url_path, 'w') as file:
+                file.write(settings['rsync_url'].strip() + '\n')
 
-        print "Setup successful for design '{0}'.".format(workspace.name)
+        print "Setup successful for design '{0}'.".format(workspace.root_dir)
 

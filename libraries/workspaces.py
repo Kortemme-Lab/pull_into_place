@@ -3,7 +3,7 @@
 import os, glob, pickle
 from tools import scripting
 
-class Workspace:
+class Workspace (object):
 
     def __init__(self, root):
         root = os.path.normpath(root)
@@ -77,11 +77,6 @@ class Workspace:
     def rsync_url(self):
         with open(self.rsync_url_path) as file:
             return file.read().strip()
-
-    @rsync_url.setter
-    def set_rsync_url(self, url):
-        with open(self.rsync_url_path, 'w') as file:
-            return file.write(url.strip() + '\n')
 
     def find_path(self, basename):
         custom_path = os.path.join(self.focus_dir, basename)
@@ -331,7 +326,7 @@ def big_job_dir():
     return os.path.join(pipeline_dir(), 'big_jobs')
 
 def big_job_path(basename):
-    return os.path.join(template_dir(), basename)
+    return os.path.join(big_job_dir(), basename)
 
 def from_directory(directory):
     pickle_path = os.path.join(directory, 'workspace.pkl')
