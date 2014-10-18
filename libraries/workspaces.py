@@ -217,7 +217,7 @@ class BestRestrainedModels (Workspace):
 
     @property
     def predecessor(self):
-        return AllRestrainedModels(self.root_path)
+        return AllRestrainedModels(self.root_dir)
 
     @property
     def focus_dir(self):
@@ -225,7 +225,7 @@ class BestRestrainedModels (Workspace):
 
     @property
     def input_dir(self):
-        return self.predecessor.output_dir
+        return os.path.join(self.focus_dir, 'inputs')
 
     @property
     def output_dir(self):
@@ -242,6 +242,7 @@ class BestRestrainedModels (Workspace):
     def make_dirs(self):
         Workspace.make_dirs(self)
         scripting.mkdir(self.output_dir)
+        scripting.relative_symlink(self.predecessor.output_dir, self.input_dir)
 
     def clear_outputs(self):
         scripting.clear_directory(self.output_dir)
@@ -262,9 +263,9 @@ class AllFixbbDesigns (Workspace, WithCluster):
     @property
     def predecessor(self):
         if self.round == 1:
-            return BestRestrainedModels(self.root_path)
+            return BestRestrainedModels(self.root_dir)
         else:
-            return BestValidatedWorkspaces(self.root_path, self.round - 1)
+            return BestValidatedWorkspaces(self.root_dir, self.round - 1)
 
     @property
     def focus_dir(self):
@@ -287,7 +288,7 @@ class AllFixbbDesigns (Workspace, WithCluster):
 
     def make_dirs(self):
         Workspace.make_dirs(self)
-        os.symlink('inputs', predecessor.output_dir)
+        scripting.relative_symlink(self.predecessor.output_dir, self.input_dir)
 
 
 

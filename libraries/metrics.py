@@ -4,12 +4,10 @@ import sys, os, re, glob, collections, gzip
 import numpy as np, scipy as sp, pandas as pd
 from . import workspaces
 
-def load(pdb_dir, use_cache=True):
-    workspace = workspaces.from_directory(pdb_dir)
+def load(pdb_dir, restraints_path, use_cache=True):
     pdb_paths = glob.glob(os.path.join(pdb_dir, '*.pdb.gz'))
     base_pdb_names = set(os.path.basename(x) for x in pdb_paths)
     cache_path = os.path.join(pdb_dir, 'distances.pkl')
-    restraints_path = workspace.restraints_path
 
     if use_cache and os.path.exists(cache_path):
         cached_records = pd.read_pickle(cache_path).to_dict('records')

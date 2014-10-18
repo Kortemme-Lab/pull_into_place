@@ -64,7 +64,8 @@ if __name__ == '__main__':
         # Find models meeting the criteria specified on the command line.
 
         query = ' and '.join(arguments['<queries>'])
-        all_score_dists = metrics.load(workspace.input_dir)
+        all_score_dists = metrics.load(
+                workspace.input_dir, workspace.restraints_path)
         best_score_dists = all_score_dists.query(query)
         best_sources = set(best_score_dists['path'])
 
