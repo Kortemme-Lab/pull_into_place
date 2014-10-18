@@ -130,12 +130,30 @@ class WithCluster:
         return [big_job.read_params(x) for x in self.all_job_params_paths]
 
     @property
+    def unclaimed_inputs(self):
+        inputs = set(self.input_paths)
+        for params in self.all_job_params:
+            inputs -= set(params['inputs'])
+        return sorted(inputs)
+
+    @property
     def stdout_dir(self):
         return os.path.join(self.focus_dir, 'stdout')
 
     @property
     def stderr_dir(self):
         return os.path.join(self.focus_dir, 'stderr')
+
+    def make_dirs(self):
+        scripting.mkdir(self.stdout_dir)
+        scripting.mkdir(self.stderr_dir)
+
+    def clear_params_and_logs(self):
+        scripting.clear_directory(self.stdout_dir)
+        scripting.clear_directory(self.stderr_dir)
+
+        for path in self.all_job_params_paths:
+            os.remove(path)
 
 
 class WithFragments:
@@ -172,7 +190,6 @@ class WithFragments:
         scripting.clear_directory(self.fragments_dir)
 
 
-
 class AllRestrainedModels (Workspace, WithCluster, WithFragments):
 
     def __init__(self, root):
@@ -192,18 +209,13 @@ class AllRestrainedModels (Workspace, WithCluster, WithFragments):
 
     def make_dirs(self):
         Workspace.make_dirs(self)
+        WithCluster.make_dirs(self)
         scripting.mkdir(self.fragments_dir)
         scripting.mkdir(self.output_dir)
-        scripting.mkdir(self.stdout_dir)
-        scripting.mkdir(self.stderr_dir)
 
     def clear_models(self):
+        WithCluster.clear_params_and_logs(self)
         scripting.clear_directory(self.output_dir)
-        scripting.clear_directory(self.stdout_dir)
-        scripting.clear_directory(self.stderr_dir)
-    
-        for path in self.all_job_params_paths:
-            os.remove(path)
 
 
 class BestRestrainedModels (Workspace):
@@ -252,7 +264,7 @@ class AllFixbbDesigns (Workspace, WithCluster):
 
     def __init__(self, root, round):
         Workspace.__init__(self, root)
-        self.round = round
+        self.round = int(round)
 
     @staticmethod
     def from_directory(directory):
@@ -271,7 +283,7 @@ class AllFixbbDesigns (Workspace, WithCluster):
     def focus_dir(self):
         assert self.round > 0
         prefix = 3 + 4 * (self.round - 1)
-        subdir = '{0}_all_fixbb_designs_round_{1}'.format(prefix, self.round)
+        subdir = '{0:02}_all_fixbb_designs_round_{1}'.format(prefix, self.round)
         return os.path.join(self.root_dir, subdir)
 
     @property
@@ -288,8 +300,12 @@ class AllFixbbDesigns (Workspace, WithCluster):
 
     def make_dirs(self):
         Workspace.make_dirs(self)
+        WithCluster.make_dirs(self)
         scripting.relative_symlink(self.predecessor.output_dir, self.input_dir)
 
+    def clear_outputs(self):
+        WithCluster.clear_params_and_logs(self)
+        scripting.clear_directory(self.output_dir)
 
 
 class PathNotFound (IOError):

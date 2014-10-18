@@ -12,24 +12,19 @@ import subprocess
 from libraries import big_job
 from libraries import workspaces
 
-workspace, job_id, task_id, parameters = \
-        big_job.initiate(workspaces.AllFixbbDesigns)
+workspace, job_id, task_id, parameters = big_job.initiate()
 
-bb_models = workspace.input_paths
+bb_models = parameters['inputs']
 bb_model = bb_models[task_id % len(bb_models)]
-
-output_dir = workspace.output_dir
-output_model = bb_model[:-len('.pdb.gz')]
-output_num = task_id // len(bb_models)
-output_prefix = '{0}/{1}_{2:03d}_'.format(output_dir, output_model, output_num)
 
 rosetta_command = [
         workspace.rosetta_scripts_path,
         '-database', workspace.rosetta_database_path,
         '-in:file:s', bb_model,
         '-in:file:native', workspace.input_pdb_path,
-        '-out:prefix', output_prefix,
-        '-out:nstruct', '1',
+        '-out:prefix', workspace.output_dir + '/',
+        '-out:suffix', '_{0:03d}'.format(task_id / len(bb_models)),
+        '-out:no_struct_label',
         '-out:overwrite',
         '-out:pdb_gz', 
         '-parser:protocol', workspace.fixbb_path,

@@ -3,7 +3,23 @@
 """\
 Find sequences to stabilize the backbone models built previously.
 
-Usage: 05_fixbb_design.py <name> <round>
+Usage: 05_fixbb_design.py <name> <round> [options]
+
+Options:
+    --nstruct NUM, -n NUM   [default: 10000]
+        The number of jobs to run.  The more backbones are generated here, the 
+        better the rest of the pipeline will work.  With too few backbones, you 
+        can run into a lot of issues with degenerate designs.
+
+    --max-runtime TIME      [default: 12:00:00]
+        The runtime limit for each model building job.
+
+    --test-run
+        Run on the short queue with a limited number of iterations.  This 
+        option automatically clears old results.
+
+    --clear
+        Clear existing results before submitting new jobs.
 """
 
 if __name__ == '__main__':
@@ -20,26 +36,17 @@ if __name__ == '__main__':
         workspace.make_dirs()
         workspace.check_paths()
 
-        if args['--clear']:
-            workspace.clear_designs()
-
-        # Pick which models to design (to avoid duplicating effort).
-
-        inputs = set(workspace.input_paths)
-
-        for path in workspace.all_job_params_paths:
-            params = big_job.read_params(path)
-            inputs -= set(params['inputs'])
+        if args['--clear'] or args['--test-run']:
+            workspace.clear_outputs()
 
         # Submit the design job.
 
+        inputs = workspace.unclaimed_inputs
+        nstruct = len(inputs) * int(args['--nstruct'])
+
         big_job.submit(
                 'kr_fixbb.py', workspace,
-                inputs=sorted(inputs),
-                nstruct=args['--nstruct'] * len(inputs)
+                inputs=inputs, nstruct=nstruct,
                 max_runtime=args['--max-runtime'],
-                test_run=args['test-run']
+                test_run=args['--test-run']
         )
-
-
-
