@@ -4,7 +4,6 @@
 #$ -l mem_free=1G
 #$ -l arch=linux-x64
 #$ -l netapp=1G
-#$ -l h_core=0
 #$ -cwd
 
 import os, sys; sys.path.append(os.getcwd())

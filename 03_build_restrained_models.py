@@ -17,11 +17,12 @@ Options:
     --max-runtime TIME      [default: 12:00:00]
         The runtime limit for each model building job.
 
-    --clear-old-results
-        Clear existing results before submitting new jobs.
-        
     --test-run
-        Run on the short queue with a limited number of iterations.
+        Run on the short queue with a limited number of iterations.  This 
+        option automatically clears old results.
+
+    --clear
+        Clear existing results before submitting new jobs.
 """
 
 if __name__ == '__main__':
@@ -36,7 +37,7 @@ if __name__ == '__main__':
         workspace.check_paths()
         workspace.make_dirs()
 
-        if arguments['--clear-old-results']:
+        if arguments['--clear'] or arguments['--test-run']:
             workspace.clear_models()
 
         big_job.submit(
