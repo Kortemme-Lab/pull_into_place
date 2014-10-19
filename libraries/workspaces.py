@@ -179,7 +179,7 @@ class BigJobWorkspace (Workspace):
             os.remove(path)
 
 
-class FragmentMixin (object):
+class WithFragmentLibs (object):
 
     @property
     def fasta_path(self):
@@ -216,7 +216,7 @@ class FragmentMixin (object):
         scripting.clear_directory(self.fragments_dir)
 
 
-class AllRestrainedModels (BigJobWorkspace, FragmentMixin):
+class AllRestrainedModels (BigJobWorkspace, WithFragmentLibs):
 
     def __init__(self, root):
         BigJobWorkspace.__init__(self, root) 
@@ -227,7 +227,7 @@ class AllRestrainedModels (BigJobWorkspace, FragmentMixin):
 
     @property
     def focus_dir(self):
-        return os.path.join(self.root_dir, '01_all_restrained_models')
+        return os.path.join(self.root_dir, '01_restrained_models')
 
     @property
     def input_dir(self):
@@ -239,7 +239,7 @@ class AllRestrainedModels (BigJobWorkspace, FragmentMixin):
 
     def make_dirs(self):
         BigJobWorkspace.make_dirs(self)
-        FragmentMixin.make_dirs(self)
+        WithFragmentLibs.make_dirs(self)
 
 
 class AllFixbbDesigns (BigJobWorkspace):
@@ -259,14 +259,42 @@ class AllFixbbDesigns (BigJobWorkspace):
         if self.round == 1:
             return AllRestrainedModels(self.root_dir)
         else:
-            return AllValidatedWorkspaces(self.root_dir, self.round - 1)
+            return AllValidatedDesigns(self.root_dir, self.round - 1)
 
     @property
     def focus_dir(self):
         assert self.round > 0
         prefix = 2 * self.round
-        subdir = '{0:02}_all_fixbb_designs_round_{1}'.format(prefix, self.round)
+        subdir = '{0:02}_fixbb_designs_round_{1}'.format(prefix, self.round)
         return os.path.join(self.root_dir, subdir)
+
+
+class AllValidatedDesigns (BigJobWorkspace, WithFragmentLibs):
+
+    def __init__(self, root, round):
+        BigJobWorkspace.__init__(self, root)
+        self.round = int(round)
+
+    @staticmethod
+    def from_directory(directory):
+        root = os.path.join(directory, '..')
+        round = int(directory.split('_')[-1])
+        return AllValidatedDesigns(root, round)
+
+    @property
+    def predecessor(self):
+        return AllFixbbDesigns(self.root_dir, self.round)
+
+    @property
+    def focus_dir(self):
+        assert self.round > 0
+        prefix = 2 * self.round + 1
+        subdir = '{0:02}_validated_designs_round_{1}'.format(prefix, self.round)
+        return os.path.join(self.root_dir, subdir)
+
+    def make_dirs(self):
+        BigJobWorkspace.make_dirs(self)
+        WithFragmentLibs.make_dirs(self)
 
 
 
@@ -280,14 +308,18 @@ def big_job_dir():
 def big_job_path(basename):
     return os.path.join(big_job_dir(), basename)
 
-def from_directory(directory):
+def from_directory(directory, recurse=True):
     pickle_path = os.path.join(directory, 'workspace.pkl')
 
     # Make sure the given directory contains a 'workspace' file.  This file is 
     # needed to instantiate the right kind of workspace.
-
+    
     if not os.path.exists(pickle_path):
-        raise WorkspaceNotFound(directory)
+        if recurse:
+            parent_dir = os.path.dirname(directory)
+            return from_directory(parent_dir, parent_dir == '/')
+        else:
+            raise WorkspaceNotFound(directory)
 
     # Load the 'workspace' file and create a workspace.
 

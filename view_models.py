@@ -1004,13 +1004,13 @@ def load_models(directories, restraints=None, use_cache=True):
 
     for directory in directories:
         if os.path.isdir(directory) and os.listdir(directory):
-            try:
+            if restraints is not None:
+                group = ModelGroup(directory, restraints, use_cache)
+            else:
                 workspace = workspaces.from_directory(directory)
                 pdb_dir = workspace.output_dir
                 restraints = workspace.restraints
                 group = ModelGroup(pdb_dir, restraints, use_cache)
-            except:
-                group = ModelGroup(directory, restraints, use_cache)
 
             groups[directory] = group
 
