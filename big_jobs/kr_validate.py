@@ -15,6 +15,7 @@ workspace, job_id, task_id, parameters = big_job.initiate()
 designs = parameters['inputs']
 input_path = designs[task_id % len(designs)]
 output_subdir = workspace.output_subdir(input_path)
+test_run = parameters.get('test_run', False)
 
 rosetta_command = [
         workspace.rosetta_scripts_path,
