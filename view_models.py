@@ -29,7 +29,6 @@ Options:
 
 # Imports (fold)
 import collections
-import docopt
 import glob
 import gtk
 import matplotlib
@@ -1088,6 +1087,8 @@ def open_in_pymol(group, decoy, config, gui=True):
 
 
 if __name__ == '__main__':
+    from tools import docopt
+
     arguments = docopt.docopt(__doc__)
     directories = arguments['<directories>']
     restraints = arguments['--restraints']
