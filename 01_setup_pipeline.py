@@ -160,22 +160,22 @@ with scripting.catch_and_print_errors():
     shutil.copyfile(settings['restraints_path'], workspace.restraints_path)
 
     if settings['build_script']:
-        shutil.copyfile(settings['build_script'], workspace.loopmodel_path)
+        shutil.copyfile(settings['build_script'], workspace.build_script_path)
     else:
         default_path = pipeline.big_job_path('build_models.xml')
-        shutil.copyfile(default_path, workspace.loopmodel_path)
+        shutil.copyfile(default_path, workspace.build_script_path)
 
     if settings['design_script']:
-        shutil.copyfile(settings['design_script'], workspace.fixbb_path)
+        shutil.copyfile(settings['design_script'], workspace.design_script_path)
     else:
         default_path = pipeline.big_job_path('design_models.xml')
-        shutil.copyfile(default_path, workspace.fixbb_path)
+        shutil.copyfile(default_path, workspace.design_script_path)
 
     if settings['validate_script']:
-        shutil.copyfile(settings['validate_script'], workspace.fixbb_path)
+        shutil.copyfile(settings['validate_script'], workspace.validate_script_path)
     else:
         default_path = pipeline.big_job_path('validate_designs.xml')
-        shutil.copyfile(default_path, workspace.fixbb_path)
+        shutil.copyfile(default_path, workspace.validate_script_path)
 
     if settings['flags_path']:
         shutil.copyfile(settings['flags_path'], workspace.flags_path)
