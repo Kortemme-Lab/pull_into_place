@@ -1025,16 +1025,22 @@ def load_models(directories, restraints=None, use_cache=True):
     groups = collections.OrderedDict()
 
     for directory in directories:
-        if os.path.isdir(directory) and os.listdir(directory):
-            if restraints is not None:
-                group = ModelGroup(directory, restraints, use_cache)
-            else:
-                workspace = pipeline.workspace_from_dir(directory)
-                pdb_dir = workspace.output_dir
-                restraints = workspace.restraints_path
-                group = ModelGroup(pdb_dir, restraints, use_cache)
+        if not os.path.isdir(directory):
+            print "'{}' does not exist.".format(directory)
+            continue
+        if not os.listdir(directory):
+            print "'{}' is empty.".format(directory)
+            continue
 
-            groups[directory] = group
+        if restraints is not None:
+            group = ModelGroup(directory, restraints, use_cache)
+        else:
+            workspace = pipeline.workspace_from_dir(directory)
+            pdb_dir = workspace.output_dir
+            restraints = workspace.restraints_path
+            group = ModelGroup(pdb_dir, restraints, use_cache)
+
+        groups[directory] = group
 
     return groups
 
@@ -1089,7 +1095,7 @@ if __name__ == '__main__':
 
     groups = load_models(directories, restraints, use_cache)
 
-    if not arguments['--quiet']:
+    if groups and not arguments['--quiet']:
         gui = ModelView(groups, arguments)
         if not os.fork(): gtk.main()
 
