@@ -37,7 +37,7 @@ with scripting.catch_and_print_errors():
     workspace.check_paths()
     workspace.make_dirs()
 
-    if arguments['--clear'] or arguments['--test-run']:
+    if args['--clear'] or args['--test-run']:
         workspace.clear_outputs()
 
     # Setup an output directory for each input.
@@ -54,8 +54,8 @@ with scripting.catch_and_print_errors():
     big_job.submit(
             'kr_validate.py', workspace,
             inputs=inputs, nstruct=nstruct,
-            max_runtime=arguments['--max-runtime'],
-            max_memory=arguments['--max-memory'],
-            test_run=arguments['--test-run'],
+            max_runtime=args['--max-runtime'],
+            max_memory=args['--max-memory'],
+            test_run=args['--test-run'],
     )
 
