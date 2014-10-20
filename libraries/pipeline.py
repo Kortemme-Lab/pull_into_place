@@ -79,6 +79,8 @@ class Workspace (object):
 
     @property
     def rsync_url(self):
+        if not os.path.exists(self.rsync_url_path):
+            raise PathNotFound(self.rsync_url_path)
         with open(self.rsync_url_path) as file:
             return file.read().strip()
 
@@ -101,11 +103,13 @@ class Workspace (object):
 
     def required_paths(self):
         return [
-                self.rosetta_dir,
                 self.input_pdb_path,
                 self.loops_path,
                 self.resfile_path,
                 self.restraints_path,
+                self.build_script_path,
+                self.design_script_path,
+                self.validate_script_path,
                 self.flags_path,
         ]
 
@@ -375,6 +379,17 @@ class PathNotFound (IOError):
 
         super(PathNotFound, self).__init__(message)
         self.no_stack_trace = True
+
+
+class RosettaNotFound (IOError):
+
+    def __init__(self, workspace):
+        message = """\
+No rosetta checkout found in '{0.root_dir}'.
+Use the following command to manually create a symlink to a rosetta checkout:
+
+$ ln -s /path/to/rosetta/checkout {0.rosetta_dir}"""
+        super(RosettaNotFound, self).__init__(message)
 
 
 class WorkspaceNotFound (IOError):

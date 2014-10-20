@@ -29,7 +29,6 @@ Options:
 
 # Imports (fold)
 import collections
-import docopt
 import glob
 import gtk
 import matplotlib
@@ -816,7 +815,7 @@ class ModelView (gtk.Window):
                 os.symlink(source, link_name)
 
     def plot_score_vs_dist(self, axes, groups, **kwargs):
-        from graphics import tango
+        from tools.graphics import tango
         from itertools import count
 
         labels = kwargs.get('labels', None)
@@ -1088,6 +1087,8 @@ def open_in_pymol(group, decoy, config, gui=True):
 
 
 if __name__ == '__main__':
+    from tools import docopt
+
     arguments = docopt.docopt(__doc__)
     directories = arguments['<directories>']
     restraints = arguments['--restraints']

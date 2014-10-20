@@ -7,10 +7,12 @@
     </TASKOPERATIONS>
 
     <MOVERS>
-        <PackRotamersMover name="fixbb" task_operations="resfile,ex"/>
+      <ConstraintSetMover name=cst cst_file="%%cst_file%%"/>
+      <PackRotamersMover name="fixbb" task_operations="resfile,ex"/>
     </MOVERS>
 
     <PROTOCOLS>
+        <Add mover_name=cst/>
         <Add mover_name=fixbb/>
     </PROTOCOLS>
 

@@ -6,7 +6,13 @@ from . import pipeline
 def submit(script, workspace, **params):
     from tools import cluster, process
 
-    # Parse some parameters that 
+    # Make sure the rosetta symlink has been created.
+
+    if not os.path.exists(workspace.rosetta_dir):
+        raise pipeline.RosettaNotFound(workspace)
+
+    # Parse some job parameters for the keyword arguments.
+
     params = dict((k, v) for k, v in params.items() if v is not None)
     test_run = params.get('test_run', False)
     nstruct = params.get('nstruct')
@@ -19,6 +25,8 @@ def submit(script, workspace, **params):
 
     if nstruct is None:
         raise TypeError("qsub() requires the keyword argument 'nstruct' for production runs.")
+
+    # Submit the job and put it immediately into the hold state.
 
     qsub_command = 'qsub', '-h'
     qsub_command += '-o', workspace.stdout_dir, '-e', workspace.stderr_dir,
@@ -35,10 +43,14 @@ def submit(script, workspace, **params):
         print status
         sys.exit()
 
+    # Figure out the job id, and make a params file specifically for that job.
+
     job_id = status_match.group(1)
 
     with open(workspace.job_params_path(job_id), 'w') as file:
         json.dump(params, file)
+
+    # Release the hold on the job.
 
     qrls_command = 'qrls', job_id
     process.check_output(qrls_command)

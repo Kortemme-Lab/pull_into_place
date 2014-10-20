@@ -66,8 +66,12 @@ def read_and_calculate(pdb_paths, restraints_path):
         dunbrack_scores = []
         restraint_distances = []
 
-        with gzip.open(path) as file:
-            lines = file.readlines()
+        try:
+            with gzip.open(path) as file:
+                lines = file.readlines()
+        except IOError:
+            print "\nFailed to read '{}'".format(path)
+            continue
 
         for line in lines:
             score_table_match = \

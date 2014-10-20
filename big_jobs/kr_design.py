@@ -16,6 +16,7 @@ workspace, job_id, task_id, parameters = big_job.initiate()
 
 bb_models = parameters['inputs']
 bb_model = bb_models[task_id % len(bb_models)]
+nstruct = parameters['designs_per']
 
 rosetta_command = [
         workspace.rosetta_scripts_path,
@@ -23,14 +24,13 @@ rosetta_command = [
         '-in:file:s', bb_model,
         '-in:file:native', workspace.input_pdb_path,
         '-out:prefix', workspace.output_dir + '/',
-        '-out:suffix', '_{0:03d}'.format(task_id / len(bb_models)),
-        '-out:no_nstruct_label',
+        '-out:nstruct', str(nstruct),
         '-out:overwrite',
         '-out:pdb_gz', 
         '-parser:protocol', workspace.design_script_path,
+        '-parser:script_vars', 'cst_file=' + workspace.restraints_path,
         '-packing:resfile', workspace.resfile_path,
         '-score:weights', 'talaris2013_cst',
-        '-constraints:cst_fa_file', workspace.restraints_path,
         '@', workspace.flags_path,
 ]
 
