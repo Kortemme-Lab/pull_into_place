@@ -25,14 +25,14 @@ Options:
         Clear existing results before submitting new jobs.
 """
 
-from libraries import workspaces, big_job
+from libraries import pipeline, big_job
 from tools import docopt, scripting, cluster
 
 with scripting.catch_and_print_errors():
     arguments = docopt.docopt(__doc__)
     cluster.require_chef()
 
-    workspace = workspaces.AllRestrainedModels(arguments['<name>'])
+    workspace = pipeline.RestrainedModels(arguments['<name>'])
     workspace.check_paths()
     workspace.make_dirs()
 

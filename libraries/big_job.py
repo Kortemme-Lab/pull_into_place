@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 
 import sys, os, re, json, subprocess
-from . import workspaces
+from . import pipeline
 
 def submit(script, workspace, **params):
     from tools import cluster, process
@@ -25,7 +25,7 @@ def submit(script, workspace, **params):
     qsub_command += '-t', '1-{0}'.format(nstruct),
     qsub_command += '-l', 'h_rt={0}'.format(max_runtime),
     qsub_command += '-l', 'memfree={0}'.format(max_memory),
-    qsub_command += workspaces.big_job_path(script), workspace.focus_dir,
+    qsub_command += pipeline.big_job_path(script), workspace.focus_dir,
 
     status = process.check_output(qsub_command)
     status_pattern = re.compile(r'Your job-array (\d+).[0-9:-]+ \(".*"\) has been submitted')
@@ -45,7 +45,7 @@ def submit(script, workspace, **params):
     print status,
 
 def initiate():
-    workspace = workspaces.from_directory(sys.argv[1])
+    workspace = pipeline.workspace_from_dir(sys.argv[1])
     job_id = int(os.environ['JOB_ID'])
     task_id = int(os.environ['SGE_TASK_ID']) - 1
     job_params = read_params(workspace.job_params_path(job_id))

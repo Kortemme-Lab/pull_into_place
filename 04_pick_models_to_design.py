@@ -15,6 +15,9 @@ Options:
     --clear
         Remove any previously selected "best" models.
 
+    --dry-run
+        Choose which models to pick, but don't actually make any symlinks.
+
 Queries:
     The queries provided after the design name are used to decide which models 
     to carry forward and which to discard.  Any number of queries may be 
@@ -46,14 +49,14 @@ Queries:
 
 import os
 from tools import docopt, scripting
-from libraries import workspaces, metrics
+from libraries import pipeline, structures
 
 with scripting.catch_and_print_errors():
     arguments = docopt.docopt(__doc__)
     name, round = arguments['<name>'], arguments['<round>']
     query = ' and '.join(arguments['<queries>'])
 
-    workspace = workspaces.AllFixbbDesigns(name, round)
+    workspace = pipeline.FixbbDesigns(name, round)
     workspace.check_paths()
     workspace.make_dirs()
 
@@ -64,7 +67,7 @@ with scripting.catch_and_print_errors():
 
     # Find models meeting the criteria specified on the command line.
 
-    all_score_dists = metrics.load(
+    all_score_dists = structures.load(
             predecessor.output_dir, predecessor.restraints_path)
 
     best_score_dists = all_score_dists.query(query)
@@ -87,10 +90,11 @@ with scripting.catch_and_print_errors():
 
     # Make symlinks to the new models.
 
-    for id, new_input in enumerate(new_inputs, next_id):
-        target = os.path.join(predecessor.output_dir, new_input)
-        link_name = os.path.join(workspace.input_dir, '{0:05d}.pdb.gz')
-        scripting.relative_symlink(target, link_name.format(id))
+    if not arguments['--dry-run']:
+        for id, new_input in enumerate(new_inputs, next_id):
+            target = os.path.join(predecessor.output_dir, new_input)
+            link_name = os.path.join(workspace.input_dir, '{0:05d}.pdb.gz')
+            scripting.relative_symlink(target, link_name.format(id))
 
     # Tell the user what happened.
 
@@ -103,4 +107,6 @@ with scripting.catch_and_print_errors():
         print "Skipping {} duplicate model{}.".format(
                 len(duplicate_inputs), plural(duplicate_inputs))
 
+    if arguments['--dry-run']:
+        print "(Dry run: no symlinks created.)"
 

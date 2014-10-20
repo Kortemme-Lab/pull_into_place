@@ -15,13 +15,13 @@ if __name__ == '__main__':
     import subprocess
     from tools import docopt, scripting, bio, cluster
     from tools.bio.pdb import PDB
-    from libraries import workspaces
+    from libraries import pipeline
 
     with scripting.cath_and_print_errors():
         arguments = docopt.docopt(__doc__)
         cluster.require_chef()
 
-        workspace = workspaces.AllRestrainedModels(arguments['<name>'])
+        workspace = pipeline.RestrainedModels(arguments['<name>'])
         workspace.check_paths()
         workspace.make_dirs()
         workspace.clear_fragments()

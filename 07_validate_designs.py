@@ -24,7 +24,7 @@ Options:
         Clear existing results before submitting new jobs.
 """
 
-from libraries import workspaces, big_job
+from libraries import pipeline, big_job
 from tools import docopt, scripting, cluster
 
 with scripting.catch_and_print_errors():
@@ -33,7 +33,7 @@ with scripting.catch_and_print_errors():
 
     # Setup the workspace.
 
-    workspace = workspaces.AllValidatedDesigns(args['<name>'], args['<round>'])
+    workspace = pipeline.ValidatedDesigns(args['<name>'], args['<round>'])
     workspace.check_paths()
     workspace.make_dirs()
 

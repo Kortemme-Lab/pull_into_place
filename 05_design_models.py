@@ -23,7 +23,7 @@ Options:
 """
 
 from tools import docopt, scripting, cluster
-from libraries import workspaces, big_job
+from libraries import pipeline, big_job
 
 with scripting.catch_and_print_errors():
     args = docopt.docopt(__doc__)
@@ -31,7 +31,7 @@ with scripting.catch_and_print_errors():
 
     # Setup the workspace.
 
-    workspace = workspaces.AllFixbbDesigns(args['<name>'], args['<round>'])
+    workspace = pipeline.FixbbDesigns(args['<name>'], args['<round>'])
     workspace.make_dirs()
     workspace.check_paths()
 

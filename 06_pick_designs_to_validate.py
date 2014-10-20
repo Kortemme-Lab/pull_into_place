@@ -27,7 +27,7 @@ Options:
 import os, sys, pylab
 from numpy import *
 from tools import docopt, scripting
-from libraries import workspaces, metrics
+from libraries import pipeline, structures
 
 with scripting.catch_and_print_errors():
     arguments = docopt.docopt(__doc__)
@@ -35,7 +35,7 @@ with scripting.catch_and_print_errors():
     round = arguments['<round>']
     temp = float(arguments['--temp'])
 
-    workspace = workspaces.AllValidatedDesigns(name, round)
+    workspace = pipeline.ValidatedDesigns(name, round)
     workspace.check_paths()
     workspace.make_dirs()
 
@@ -46,7 +46,7 @@ with scripting.catch_and_print_errors():
 
     # Get sequences and scores for each design.
 
-    seqs_scores = metrics.load(
+    seqs_scores = structures.load(
             predecessor.output_dir,
             predecessor.restraints_path,
             not arguments['--recalc'])

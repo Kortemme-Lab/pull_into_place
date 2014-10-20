@@ -11,10 +11,10 @@ Options:
 """
 
 from tools import docopt
-from libraries import workspaces, metrics
+from libraries import pipeline, metrics
 
 arguments = docopt.docopt(__doc__)
-workspace = workspaces.from_directory(arguments['<directory>'])
+workspace = pipeline.workspace_from_dir(arguments['<directory>'])
 
 print metrics.load(
         arguments['<directory>'], 

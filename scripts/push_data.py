@@ -9,11 +9,11 @@ Usage: push_to_cluster.py <directory>
 
 import os, subprocess
 from tools import docopt
-from libraries import workspaces
+from libraries import pipeline
 
 arguments = docopt.docopt(__doc__)
 directory = arguments['<directory>']
-workspace = workspaces.from_directory(directory)
+workspace = pipeline.workspace_from_dir(directory)
 
 rsync_command = [
         'rsync', '-avr',

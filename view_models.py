@@ -55,8 +55,7 @@ class ModelGroup (object):
         self.interest_path = os.path.join(directory, 'interesting')
         self.rep_path = os.path.join(directory, 'representative.txt')
 
-        self.paths = []
-        self.metrics = None
+        self.structures = None
         self._notes = ""
         self._interesting = False
         self._representative = None
@@ -70,6 +69,10 @@ class ModelGroup (object):
     def __len__(self):
         return len(self.paths)
 
+
+    @property
+    def paths(self):
+        return self.structures['path']
 
     @property
     def notes(self):
@@ -106,19 +109,19 @@ class ModelGroup (object):
 
     def get_scores(self, metric):
         if metric == 'Total Score':
-            return self.metrics['total_score']
+            return self.structures['total_score']
         elif metric == 'Dunbrack Score':
-            return self.metrics['dunbrack_score']
+            return self.structures['dunbrack_score']
         elif metric == 'Buried Unsat Score':
-            return self.metrics['buried_unsat_score']
+            return self.structures['buried_unsat_score']
         else:
             raise ValueError, "Unknown score '{}'.".format(metric)
 
     def get_distances(self, metric):
         if metric == 'Loop RMSD':
-            return self.metrics['loop_dist']
+            return self.structures['loop_dist']
         elif metric == 'Restraint Dist':
-            return self.metrics['restraint_dist']
+            return self.structures['restraint_dist']
         else:
             raise ValueError, "Unknown distance metric '{}'.".format(metric)
 
@@ -139,10 +142,9 @@ class ModelGroup (object):
             pass
 
     def _load_scores_and_dists(self, restraints, use_cache):
-        from libraries import metrics
+        from libraries import structures
 
-        self.metrics = metrics.load(self.directory, restraints, use_cache)
-        self.paths = self.metrics['path']
+        self.structures = structures.load(self.directory, restraints, use_cache)
 
     def _save_notes(self):
         with open(self.notes_path, 'w') as file:
@@ -1018,7 +1020,7 @@ class ModelToolbar (NavigationToolbar2GTKAgg):
 
 
 def load_models(directories, restraints=None, use_cache=True):
-    from libraries import workspaces
+    from libraries import pipeline
 
     groups = collections.OrderedDict()
 
@@ -1027,7 +1029,7 @@ def load_models(directories, restraints=None, use_cache=True):
             if restraints is not None:
                 group = ModelGroup(directory, restraints, use_cache)
             else:
-                workspace = workspaces.from_directory(directory)
+                workspace = pipeline.workspace_from_dir(directory)
                 pdb_dir = workspace.output_dir
                 restraints = workspace.restraints_path
                 group = ModelGroup(pdb_dir, restraints, use_cache)

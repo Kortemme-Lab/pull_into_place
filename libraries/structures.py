@@ -2,7 +2,7 @@
 
 import sys, os, re, glob, collections, gzip
 import numpy as np, scipy as sp, pandas as pd
-from . import workspaces
+from . import pipeline
 
 def load(pdb_dir, restraints_path, use_cache=True):
     pdb_paths = glob.glob(os.path.join(pdb_dir, '*.pdb.gz'))
@@ -47,7 +47,7 @@ def read_and_calculate(pdb_paths, restraints_path):
 
     score_table_pattern = re.compile(r'^[A-Z]{3}(?:_[A-Z])?_([1-9]+) ')
 
-    # Read metrics.
+    # Read structures.
 
     records = []
     from scipy.spatial.distance import euclidean

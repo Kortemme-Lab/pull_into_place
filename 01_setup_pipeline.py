@@ -108,12 +108,12 @@ validators = {   # (fold)
 
 
 from tools import docopt, scripting
-from libraries import workspaces
+from libraries import pipeline
 
 with scripting.catch_and_print_errors():
     help = __doc__ + '\n' + '\n\n'.join(descriptions[x] for x in keys)
     arguments = docopt.docopt(help)
-    workspace = workspaces.Workspace(arguments['<name>'])
+    workspace = pipeline.Workspace(arguments['<name>'])
 
     # Make sure this design doesn't already exist.
 
@@ -162,19 +162,19 @@ with scripting.catch_and_print_errors():
     if settings['build_script']:
         shutil.copyfile(settings['build_script'], workspace.loopmodel_path)
     else:
-        default_path = workspaces.big_job_path('build_models.xml')
+        default_path = pipeline.big_job_path('build_models.xml')
         shutil.copyfile(default_path, workspace.loopmodel_path)
 
     if settings['design_script']:
         shutil.copyfile(settings['design_script'], workspace.fixbb_path)
     else:
-        default_path = workspaces.big_job_path('design_models.xml')
+        default_path = pipeline.big_job_path('design_models.xml')
         shutil.copyfile(default_path, workspace.fixbb_path)
 
     if settings['validate_script']:
         shutil.copyfile(settings['validate_script'], workspace.fixbb_path)
     else:
-        default_path = workspaces.big_job_path('validate_designs.xml')
+        default_path = pipeline.big_job_path('validate_designs.xml')
         shutil.copyfile(default_path, workspace.fixbb_path)
 
     if settings['flags_path']:
