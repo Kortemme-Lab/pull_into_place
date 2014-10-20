@@ -3,7 +3,7 @@
 """\
 Find sequences to stabilize the backbone models built previously.
 
-Usage: 05_fixbb_design.py <name> <round> [options]
+Usage: 05_design_models.py <name> <round> [options]
 
 Options:
     --nstruct NUM, -n NUM   [default: 10000]
@@ -44,7 +44,7 @@ with scripting.catch_and_print_errors():
     nstruct = len(inputs) * int(args['--nstruct'])
 
     big_job.submit(
-            'kr_fixbb.py', workspace,
+            'kr_design.py', workspace,
             inputs=inputs, nstruct=nstruct,
             max_runtime=args['--max-runtime'],
             test_run=args['--test-run']

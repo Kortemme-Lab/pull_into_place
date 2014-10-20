@@ -359,7 +359,7 @@ class PathNotFound (IOError):
 class WorkspaceNotFound (IOError):
 
     def __init__(self, root):
-        message = "'{}' is not a workspace.".format(root)
+        message = "'{0}' is not a workspace.".format(root)
         super(WorkspaceNotFound, self).__init__(message)
 
 
