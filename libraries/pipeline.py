@@ -82,6 +82,18 @@ class Workspace (object):
         with open(self.rsync_url_path) as file:
             return file.read().strip()
 
+    @property
+    def rsync_recursive_flag(self):
+        return False
+
+    @property
+    def rsync_include_patterns(self):
+        return []
+
+    @property
+    def rsync_exclude_patterns(self):
+        return ['rosetta', 'rsync_url']
+
     def find_path(self, basename):
         custom_path = os.path.join(self.focus_dir, basename)
         default_path = os.path.join(self.root_dir, basename)
@@ -144,6 +156,15 @@ class BigJobWorkspace (Workspace):
     @property
     def stderr_dir(self):
         return os.path.join(self.focus_dir, 'stderr')
+
+    @property
+    def rsync_recursive_flag(self):
+        return True
+
+    @property
+    def rsync_exclude_patterns(self):
+        parent_patterns = super(BigJobWorkspace, self).rsync_exclude_patterns
+        return parent_patterns + ['stderr/', 'stdout/', '*.sc']
 
     def job_params_path(self, job_id):
         return os.path.join(self.focus_dir, '{0}.json'.format(job_id))
