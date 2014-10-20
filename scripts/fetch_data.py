@@ -23,7 +23,7 @@ with scripting.catch_and_print_errors():
     try:
         workspace = pipeline.workspace_from_dir(directory)
         remote_url = workspace.rsync_url
-    except pipeline.WorkspaceNotFound:
+    except IOError:
         remote_url = arguments['--remote']
         if remote_url is None:
             scripting.print_error_and_die("No remote host specified.")

@@ -103,7 +103,6 @@ class Workspace (object):
 
     def required_paths(self):
         return [
-                self.rosetta_dir,
                 self.input_pdb_path,
                 self.loops_path,
                 self.resfile_path,
@@ -380,6 +379,17 @@ class PathNotFound (IOError):
 
         super(PathNotFound, self).__init__(message)
         self.no_stack_trace = True
+
+
+class RosettaNotFound (IOError):
+
+    def __init__(self, workspace):
+        message = """\
+No rosetta checkout found in '{0.root_dir}'.
+Use the following command to manually create a symlink to a rosetta checkout:
+
+$ ln -s /path/to/rosetta/checkout {0.rosetta_dir}"""
+        super(RosettaNotFound, self).__init__(message)
 
 
 class WorkspaceNotFound (IOError):
