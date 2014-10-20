@@ -816,7 +816,7 @@ class ModelView (gtk.Window):
                 os.symlink(source, link_name)
 
     def plot_score_vs_dist(self, axes, groups, **kwargs):
-        from graphics import tango
+        from tools.graphics import tango
         from itertools import count
 
         labels = kwargs.get('labels', None)
