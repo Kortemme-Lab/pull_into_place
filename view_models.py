@@ -2,7 +2,7 @@
 # encoding: utf-8
 
 """\
-Display score vs rmsd plots for sets of models generated during the design 
+Display score vs distance plots for sets of models generated during the design 
 pipeline.  In particular, this script can be used to visualize results from 
 both the model building and design validation stages of the pipeline.  Often 
 you would use this script to get a big-picture view of your designs before 
@@ -47,7 +47,7 @@ from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg
 from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg
 
 
-class ModelGroup:
+class ModelGroup (object):
 
     def __init__(self, directory, restraints=None, use_cache=True):
         self.directory = directory
@@ -65,7 +65,7 @@ class ModelGroup:
         self._load_scores_and_dists(restraints, use_cache)
 
     def __str__(self):
-        return '<' + self.fancy_path + '>'
+        return '<ModelGroup dir={}>'.format(self.directory)
 
     def __len__(self):
         return len(self.paths)
@@ -84,7 +84,6 @@ class ModelGroup:
     def interest(self):
         return self._interest
 
-    @interest.setter
     def set_interest(self, interest):
         self._interest = interest
         self._save_interest()
@@ -219,9 +218,7 @@ class ModelView (gtk.Window):
         self.show_all()
 
     def get_interesting_groups(self):
-        for group in self.groups.values():
-            if group.interest:
-                yield group
+        return [x for x in self.groups.values() if x.interest]
 
     def num_interesting_groups(self):
         count = 0
@@ -715,6 +712,14 @@ class ModelView (gtk.Window):
         from matplotlib.backends.backend_pdf import PdfPages
         import matplotlib.pyplot as plt
 
+        if not self.get_interesting_groups():
+            message = gtk.MessageDialog(
+                            type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK)
+            message.set_markup("No groups have been marked as interesting.")
+            message.run()
+            message.destroy()
+            return
+
         chooser = gtk.FileChooserDialog(
                 action=gtk.FILE_CHOOSER_ACTION_SAVE,
                 buttons=(
@@ -731,14 +736,27 @@ class ModelView (gtk.Window):
 
             for index, group in enumerate(self.get_interesting_groups()):
                 plt.figure(figsize=(8.5, 11))
-                plt.suptitle(group.fancy_path)
+                plt.suptitle(group.directory)
 
-                axes = plt.subplot(2, 1, 1)
-                self.plot_score_vs_dist(axes, [group], metric="COOH RMSD")
+                axes = plt.subplot(3, 2, 1)
+                self.plot_score_vs_dist(axes, [group], scores='Total Score', dists='Restraint Dist')
 
-                axes = plt.subplot(2, 1, 2)
-                self.plot_score_vs_dist(axes, [group], metric="Loop RMSD")
+                axes = plt.subplot(3, 2, 2)
+                self.plot_score_vs_dist(axes, [group], scores='Total Score', dists='Loop RMSD')
 
+                axes = plt.subplot(3, 2, 3)
+                self.plot_score_vs_dist(axes, [group], scores='Dunbrack Score', dists='Restraint Dist')
+
+                axes = plt.subplot(3, 2, 4)
+                self.plot_score_vs_dist(axes, [group], scores='Dunbrack Score', dists='Loop RMSD')
+
+                axes = plt.subplot(3, 2, 5)
+                self.plot_score_vs_dist(axes, [group], scores='Buried Unsat Score', dists='Restraint Dist')
+
+                axes = plt.subplot(3, 2, 6)
+                self.plot_score_vs_dist(axes, [group], scores='Buried Unsat Score', dists='Loop RMSD')
+
+                plt.tight_layout(rect=[0, 0.03, 1, 0.97])
                 pdf.savefig(orientation='portrait')
                 plt.close()
 
@@ -801,11 +819,13 @@ class ModelView (gtk.Window):
 
         labels = kwargs.get('labels', None)
         xlim = kwargs.get('xlim', self.xlim)
+        score_metric = kwargs.get('scores', self.score_metric)
+        distance_metric = kwargs.get('dists', self.distance_metric)
         ymin, ymax = inf, -inf
 
         axes.clear()
-        axes.set_xlabel(self.distance_metric)
-        axes.set_ylabel(self.score_metric)
+        axes.set_xlabel(distance_metric)
+        axes.set_ylabel(score_metric)
 
         if self.selected_decoy is not None:
             sel, selected_group = self.selected_decoy
@@ -814,12 +834,12 @@ class ModelView (gtk.Window):
         
         for index, group in enumerate(groups):
             rep = group.representative
-            scores = group.get_scores(self.score_metric)
-            distances = group.get_distances(self.distance_metric)
+            scores = group.get_scores(score_metric)
+            distances = group.get_distances(distance_metric)
             ymin = min(ymin, min(scores))
             ymax = max(ymax, 
                     percentile(scores, 85)
-                    if self.score_metric == 'Total Score' else
+                    if score_metric == 'Total Score' else
                     max(scores))
             color = tango.color_from_cycle(index)
             label = labels[index] if labels is not None else ''
@@ -854,7 +874,7 @@ class ModelView (gtk.Window):
         axes.axvline(1, color='gray', linestyle='--')
 
         if xlim is None:
-            axes.set_xlim(0, 10 if self.distance_metric == 'Loop RMSD' else 25)
+            axes.set_xlim(0, 10 if distance_metric == 'Loop RMSD' else 25)
         else:
             axes.set_xlim(0, xlim)
 
@@ -1009,7 +1029,7 @@ def load_models(directories, restraints=None, use_cache=True):
             else:
                 workspace = workspaces.from_directory(directory)
                 pdb_dir = workspace.output_dir
-                restraints = workspace.restraints
+                restraints = workspace.restraints_path
                 group = ModelGroup(pdb_dir, restraints, use_cache)
 
             groups[directory] = group
