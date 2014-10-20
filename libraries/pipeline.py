@@ -79,6 +79,8 @@ class Workspace (object):
 
     @property
     def rsync_url(self):
+        if not os.path.exists(self.rsync_url_path):
+            raise PathNotFound(self.rsync_url_path)
         with open(self.rsync_url_path) as file:
             return file.read().strip()
 
@@ -106,6 +108,9 @@ class Workspace (object):
                 self.loops_path,
                 self.resfile_path,
                 self.restraints_path,
+                self.build_script_path,
+                self.design_script_path,
+                self.validate_script_path,
                 self.flags_path,
         ]
 
