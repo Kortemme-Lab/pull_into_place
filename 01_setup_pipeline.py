@@ -23,8 +23,9 @@ keys = (   # (fold)
         'loops_path',
         'resfile_path',
         'restraints_path',
-        'loopmodel_path',
-        'fixbb_path',
+        'build_script',
+        'design_script',
+        'validate_script',
         'flags_path',
         'rsync_url',
 )
@@ -35,8 +36,9 @@ prompts = {   # (fold)
         'loops_path': "Path to the loops file: ",
         'resfile_path': "Path to resfile: ",
         'restraints_path': "Path to restraints file: ",
-        'loopmodel_path': "Path to loopmodel XML script [optional]: ",
-        'fixbb_path': "Path to fixbb XML script [optional]: ",
+        'build_script': "Path to build script [optional]: ",
+        'design_script': "Path to design script [optional]: ",
+        'validate_script': "Path to validate script [optional]: ",
         'flags_path': "Path to flags file [optional]: ",
         'rsync_url': "Path to project on cluster [optional]: ",
 }
@@ -66,16 +68,20 @@ Restraints file: A file describing the geometry you're trying to design.  In
 rosetta parlance, this is more often (inaccurately) called a constraint file.  
 Note that restraints are only used to build the initial set of models.""",
 
-        'loopmodel_path': """\
-Loopmodel script: An XML rosetta script describing how to carry out a loopmodel 
-simulation.  Loop modeling is used to build backbones that support the desired 
-geometry and to validate designs.  The default version of this script uses KIC 
+        'build_script': """\
+Build script: An XML rosetta script that generates backbones capable of 
+supporting the desired geometry.  The default version of this script uses KIC 
 with fragments in "ensemble-generation mode" (i.e. no initial build step).""",
 
-        'fixbb_path': """\
-Fixbb script: An XML rosetta script that performs design (usually on a fixed 
+        'design_script': """\
+Design script: An XML rosetta script that performs design (usually on a fixed 
 backbone) to stabilize the desired geometry.  The default version of this 
 script uses fixbb.""",
+
+        'validate_script': """\
+Validate script: An XML rosetta script that samples the designed loop to 
+determine whether the desired geometry is really the global score minimum.  The 
+default version of this script uses rama KIC in "ensemble-generation mode".""",
 
         'flags_path': """\
 Flags file: A file containing command line flags that should be passed to every 
@@ -94,85 +100,91 @@ validators = {   # (fold)
         'loops_path': os.path.exists,
         'resfile_path': os.path.exists,
         'restraints_path': os.path.exists,
-        'loopmodel_path': os.path.exists,
-        'fixbb_path': os.path.exists,
+        'build_script': os.path.exists,
+        'design_script': os.path.exists,
+        'validate_script': os.path.exists,
         'flags_path': os.path.exists,
 }
 
 
-if __name__ == '__main__':
-    from tools import docopt, scripting
-    from libraries import workspaces
+from tools import docopt, scripting
+from libraries import workspaces
 
-    with scripting.catch_and_print_errors():
-        help = __doc__ + '\n' + '\n\n'.join(descriptions[x] for x in keys)
-        arguments = docopt.docopt(help)
-        workspace = workspaces.Workspace(arguments['<name>'])
+with scripting.catch_and_print_errors():
+    help = __doc__ + '\n' + '\n\n'.join(descriptions[x] for x in keys)
+    arguments = docopt.docopt(help)
+    workspace = workspaces.Workspace(arguments['<name>'])
 
-        # Make sure this design doesn't already exist.
+    # Make sure this design doesn't already exist.
 
-        if workspace.exists():
-            if arguments['--overwrite']: shutil.rmtree(workspace.root_dir)
-            else: scripting.print_error_and_die("Design '{0}' already exists.", workspace.root_dir)
+    if workspace.exists():
+        if arguments['--overwrite']: shutil.rmtree(workspace.root_dir)
+        else: scripting.print_error_and_die("Design '{0}' already exists.", workspace.root_dir)
 
-        # Get the necessary paths from the user.
+    # Get the necessary paths from the user.
 
-        print "Please provide the following pieces of information:"
+    print "Please provide the following pieces of information:"
+    print
+
+    settings = {}
+    scripting.use_path_completion()
+
+    for key in keys:
+        print descriptions[key]
         print
 
-        settings = {}
-        scripting.use_path_completion()
+        while True:
+            settings[key] = raw_input(prompts[key])
 
-        for key in keys:
-            print descriptions[key]
-            print
+            if settings[key] == '' and 'optional' in prompts[key]:
+                print "Skipping optional input."
+                break
+            elif key not in validators or validators[key](settings[key]):
+                break
+            else:        
+                print "'{0}' does not exist.".format(settings[key])
+                print
 
-            while True:
-                settings[key] = raw_input(prompts[key])
+        print
 
-                if settings[key] == '' and 'optional' in prompts[key]:
-                    print "Skipping optional input."
-                    break
-                elif key not in validators or validators[key](settings[key]):
-                    break
-                else:        
-                    print "'{0}' does not exist.".format(settings[key])
-                    print
+    # Fill in the design directory.
 
-            print
+    workspace.make_dirs()
 
-        # Fill in the design directory.
+    rosetta_path = os.path.abspath(settings['rosetta_path'])
+    os.symlink(rosetta_path, workspace.rosetta_dir)
 
-        workspace.make_dirs()
+    shutil.copyfile(settings['input_pdb'], workspace.input_pdb_path)
+    shutil.copyfile(settings['loops_path'], workspace.loops_path)
+    shutil.copyfile(settings['resfile_path'], workspace.resfile_path)
+    shutil.copyfile(settings['restraints_path'], workspace.restraints_path)
 
-        rosetta_path = os.path.abspath(settings['rosetta_path'])
-        os.symlink(rosetta_path, workspace.rosetta_dir)
+    if settings['build_script']:
+        shutil.copyfile(settings['build_script'], workspace.loopmodel_path)
+    else:
+        default_path = workspaces.big_job_path('build_models.xml')
+        shutil.copyfile(default_path, workspace.loopmodel_path)
 
-        shutil.copyfile(settings['input_pdb'], workspace.input_pdb_path)
-        shutil.copyfile(settings['loops_path'], workspace.loops_path)
-        shutil.copyfile(settings['resfile_path'], workspace.resfile_path)
-        shutil.copyfile(settings['restraints_path'], workspace.restraints_path)
+    if settings['design_script']:
+        shutil.copyfile(settings['design_script'], workspace.fixbb_path)
+    else:
+        default_path = workspaces.big_job_path('design_models.xml')
+        shutil.copyfile(default_path, workspace.fixbb_path)
 
-        if settings['loopmodel_path']:
-            shutil.copyfile(settings['loopmodel_path'], workspace.loopmodel_path)
-        else:
-            default_path = workspaces.big_job_path('loopmodel.xml')
-            shutil.copyfile(default_path, workspace.loopmodel_path)
+    if settings['validate_script']:
+        shutil.copyfile(settings['validate_script'], workspace.fixbb_path)
+    else:
+        default_path = workspaces.big_job_path('validate_designs.xml')
+        shutil.copyfile(default_path, workspace.fixbb_path)
 
-        if settings['fixbb_path']:
-            shutil.copyfile(settings['fixbb_path'], workspace.fixbb_path)
-        else:
-            default_path = workspaces.big_job_path('fixbb.xml')
-            shutil.copyfile(default_path, workspace.fixbb_path)
+    if settings['flags_path']:
+        shutil.copyfile(settings['flags_path'], workspace.flags_path)
+    else:
+        scripting.touch(workspace.flags_path)
 
-        if settings['flags_path']:
-            shutil.copyfile(settings['flags_path'], workspace.flags_path)
-        else:
-            scripting.touch(workspace.flags_path)
+    if settings['rsync_url']:
+        with open(workspace.rsync_url_path, 'w') as file:
+            file.write(settings['rsync_url'].strip() + '\n')
 
-        if settings['rsync_url']:
-            with open(workspace.rsync_url_path, 'w') as file:
-                file.write(settings['rsync_url'].strip() + '\n')
-
-        print "Setup successful for design '{0}'.".format(workspace.root_dir)
+    print "Setup successful for design '{0}'.".format(workspace.root_dir)
 

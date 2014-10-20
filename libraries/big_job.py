@@ -11,6 +11,7 @@ def submit(script, workspace, **params):
     test_run = params.get('test_run', False)
     nstruct = params.get('nstruct')
     max_runtime = params.get('max_runtime', '6:00:00')
+    max_memory = params.get('max_runtime', '1G')
 
     if test_run:
         nstruct = 50
@@ -23,6 +24,7 @@ def submit(script, workspace, **params):
     qsub_command += '-o', workspace.stdout_dir, '-e', workspace.stderr_dir,
     qsub_command += '-t', '1-{0}'.format(nstruct),
     qsub_command += '-l', 'h_rt={0}'.format(max_runtime),
+    qsub_command += '-l', 'memfree={0}'.format(max_memory),
     qsub_command += workspaces.big_job_path(script), workspace.focus_dir,
 
     status = process.check_output(qsub_command)

@@ -1,0 +1,21 @@
+<ROSETTASCRIPTS>
+
+    <TASKOPERATIONS>
+        <ReadResfile name="resfile"/>
+        <ExtraRotamersGeneric name="ex"
+            ex1="yes" ex2="yes" extrachi_cutoff="0"/>
+    </TASKOPERATIONS>
+
+    <MOVERS>
+        <LoopModeler name="modeler"
+            config="kic"
+            task_operations="resfile,ex"
+            loops_file="%%loop_file%%"
+            fast="%%fast%%"/>
+    </MOVERS>
+
+    <PROTOCOLS>
+        <Add mover_name=modeler/>
+    </PROTOCOLS>
+
+</ROSETTASCRIPTS>

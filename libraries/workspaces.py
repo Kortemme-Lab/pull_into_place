@@ -58,12 +58,16 @@ class Workspace (object):
         return self.find_path('restraints')
 
     @property
-    def loopmodel_path(self):
-        return self.find_path('loopmodel.xml')
+    def build_script_path(self):
+        return self.find_path('build_models.xml')
 
     @property
-    def fixbb_path(self):
-        return self.find_path('fixbb.xml')
+    def design_script_path(self):
+        return self.find_path('design_models.xml')
+
+    @property
+    def validate_script_path(self):
+        return self.find_path('validate_designs.xml')
 
     @property
     def flags_path(self):
@@ -291,6 +295,10 @@ class AllValidatedDesigns (BigJobWorkspace, WithFragmentLibs):
         prefix = 2 * self.round + 1
         subdir = '{0:02}_validated_designs_round_{1}'.format(prefix, self.round)
         return os.path.join(self.root_dir, subdir)
+
+    def output_subdir(self, input):
+        basename = os.path.basename(input[:-len('.pdb.gz')])
+        return os.path.join(self.output_dir, basename)
 
     def make_dirs(self):
         BigJobWorkspace.make_dirs(self)

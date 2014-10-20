@@ -4,34 +4,33 @@
 #$ -l mem_free=1G
 #$ -l arch=linux-x64
 #$ -l netapp=1G
+#$ -l h_core=0
 #$ -cwd
 
 import os, sys; sys.path.append(os.getcwd())
 import subprocess
 from libraries import big_job
+from libraries import workspaces
 
 workspace, job_id, task_id, parameters = big_job.initiate()
-output_prefix = '{0}/{1}_{2:06d}_'.format(workspace.output_dir, job_id, task_id)
-test_run = parameters.get('test_run', False)
+
+bb_models = parameters['inputs']
+bb_model = bb_models[task_id % len(bb_models)]
 
 rosetta_command = [
         workspace.rosetta_scripts_path,
         '-database', workspace.rosetta_database_path,
-        '-in:file:s', workspace.input_pdb_path,
+        '-in:file:s', bb_model,
         '-in:file:native', workspace.input_pdb_path,
-        '-out:prefix', output_prefix,
+        '-out:prefix', workspace.output_dir + '/',
+        '-out:suffix', '_{0:03d}'.format(task_id / len(bb_models)),
         '-out:no_nstruct_label',
         '-out:overwrite',
         '-out:pdb_gz', 
-        '-parser:protocol', workspace.build_script_path,
-        '-parser:script_vars',
-            'loop_file=' + workspace.loops_path,
-            'fast=' + ('yes' if test_run else 'no'),
+        '-parser:protocol', workspace.design_script_path,
         '-packing:resfile', workspace.resfile_path,
         '-score:weights', 'talaris2013_cst',
         '-constraints:cst_fa_file', workspace.restraints_path,
-        '-loops:frag_sizes'] + workspace.fragments_sizes + [
-        '-loops:frag_files'] + workspace.fragments_paths + [
         '@', workspace.flags_path,
 ]
 

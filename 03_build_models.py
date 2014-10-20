@@ -25,24 +25,23 @@ Options:
         Clear existing results before submitting new jobs.
 """
 
-if __name__ == '__main__':
-    from libraries import workspaces, big_job
-    from tools import docopt, scripting, cluster
+from libraries import workspaces, big_job
+from tools import docopt, scripting, cluster
 
-    with scripting.catch_and_print_errors():
-        arguments = docopt.docopt(__doc__)
-        cluster.require_chef()
+with scripting.catch_and_print_errors():
+    arguments = docopt.docopt(__doc__)
+    cluster.require_chef()
 
-        workspace = workspaces.AllRestrainedModels(arguments['<name>'])
-        workspace.check_paths()
-        workspace.make_dirs()
+    workspace = workspaces.AllRestrainedModels(arguments['<name>'])
+    workspace.check_paths()
+    workspace.make_dirs()
 
-        if arguments['--clear'] or arguments['--test-run']:
-            workspace.clear_models()
+    if arguments['--clear'] or arguments['--test-run']:
+        workspace.clear_outputs()
 
-        big_job.submit(
-                'kr_build.py', workspace,
-                nstruct=arguments['--nstruct'],
-                max_runtime=arguments['--max-runtime'],
-                test_run=arguments['--test-run']
-        )
+    big_job.submit(
+            'kr_build.py', workspace,
+            nstruct=arguments['--nstruct'],
+            max_runtime=arguments['--max-runtime'],
+            test_run=arguments['--test-run']
+    )
