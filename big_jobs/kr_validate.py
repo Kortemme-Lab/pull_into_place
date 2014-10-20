@@ -26,6 +26,7 @@ rosetta_command = [
         '-out:no_nstruct_label',
         '-out:overwrite',
         '-out:pdb_gz', 
+        '-out:mute', 'protocols.loops.loops_main',
         '-parser:protocol', workspace.validate_script_path,
         '-parser:script_vars',
             'loop_file=' + workspace.loops_path,
