@@ -11,13 +11,13 @@ Options:
 """
 
 from tools import docopt
-from libraries import pipeline, metrics
+from libraries import pipeline, structures
 
 arguments = docopt.docopt(__doc__)
 workspace = pipeline.workspace_from_dir(arguments['<directory>'])
 
-print metrics.load(
+print structures.load(
         arguments['<directory>'], 
         workspace.restraints_path,
-        not arguments['--recalc'])
+        not arguments['--recalc']).head()
 

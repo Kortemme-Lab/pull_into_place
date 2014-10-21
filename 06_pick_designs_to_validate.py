@@ -22,6 +22,8 @@ Options:
 
     --num NUM, -n NUM           [default: 50]
 
+    --dry-run
+
 """
 
 import os, sys, pylab
@@ -128,12 +130,14 @@ highest scoring designs are being picked.
 
     # Make symlinks to the picked designs.
     
-    for index in picked_indices:
-        basename = seqs_scores.iloc[index]['path']
-        target = os.path.join(predecessor.output_dir, basename)
-        link_name = os.path.join(workspace.input_dir, basename)
-        scripting.relative_symlink(target, link_name)
+    if not arguments['--dry-run']:
+        for index in picked_indices:
+            basename = seqs_scores.iloc[index]['path']
+            target = os.path.join(predecessor.output_dir, basename)
+            link_name = os.path.join(workspace.input_dir, basename)
+            scripting.relative_symlink(target, link_name)
 
     print "Picked {} designs.".format(len(picked_indices))
 
-
+    if arguments['--dry-run']:
+        print "(Dry run: no symlinks created.)"
