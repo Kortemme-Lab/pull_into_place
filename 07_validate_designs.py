@@ -5,10 +5,8 @@ ugh...
 Usage: 07_validate_designs.py <name> <round> [options]
 
 Options:
-    --nstruct NUM, -n NUM   [default: 10000]
-        The number of jobs to run.  The more backbones are generated here, the 
-        better the rest of the pipeline will work.  With too few backbones, you 
-        can run into a lot of issues with degenerate designs.
+    --nstruct NUM, -n NUM   [default: 500]
+        The number of simulations to run per design.
         
     --max-runtime TIME      [default: 12:00:00]
         The runtime limit for each model building job.
