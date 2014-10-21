@@ -22,7 +22,7 @@ rosetta_command = [
         '-database', workspace.rosetta_database_path,
         '-in:file:s', input_path,
         '-in:file:native', workspace.input_pdb_path,
-        '-out:prefix', output_subdir,
+        '-out:prefix', output_subdir + '/',
         '-out:suffix', '_{0:03d}'.format(task_id / len(designs)),
         '-out:no_nstruct_label',
         '-out:overwrite',
@@ -34,5 +34,5 @@ rosetta_command = [
             'fast=' + ('yes' if test_run else 'no'),
         '@', workspace.flags_path,
 ]
-
+print ' '.join(rosetta_command)
 subprocess.call(rosetta_command)
