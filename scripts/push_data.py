@@ -4,7 +4,7 @@
 Copy design files to a remote destination.  A common application is to copy 
 input files onto the cluster before starting big jobs.
 
-Usage: push_to_cluster.py <directory>
+Usage: push_to_cluster.py <directory> [options]
 
 Options:
     --remote URL, -r URL
@@ -29,6 +29,6 @@ def push_data(directory, remote_url=None):
 if __name__ == '__main__':
     from tools import docopt, scripting
     with scripting.catch_and_print_errors():
-        arguments = docopt.docopt(__doc__)
+        args = docopt.docopt(__doc__)
         push_data(args['<directory>'], args['--remote'])
 

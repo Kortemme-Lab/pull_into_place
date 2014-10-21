@@ -30,7 +30,7 @@ def load(pdb_dir, restraints_path=None, use_cache=True, job_report=None):
         job_report['old_records'] = len(cached_records)
 
     distances = pd.DataFrame(cached_records + uncached_records)
-    distances.to_pickle(cache_path)
+    if len(distances) > 0: distances.to_pickle(cache_path)
     return distances
 
 def read_and_calculate(pdb_paths, restraints_path):

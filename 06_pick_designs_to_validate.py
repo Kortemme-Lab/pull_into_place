@@ -32,17 +32,17 @@ from tools import docopt, scripting
 from libraries import pipeline, structures
 
 with scripting.catch_and_print_errors():
-    arguments = docopt.docopt(__doc__)
-    name = arguments['<name>']
-    round = arguments['<round>']
-    query = ' and '.join(arguments['<queries>'])
-    temp = float(arguments['--temp'])
+    args = docopt.docopt(__doc__)
+    name = args['<name>']
+    round = args['<round>']
+    query = ' and '.join(args['<queries>'])
+    temp = float(args['--temp'])
 
     workspace = pipeline.ValidatedDesigns(name, round)
     workspace.check_paths()
     workspace.make_dirs()
 
-    if arguments['--clear']:
+    if args['--clear']:
         workspace.clear_inputs()
 
     predecessor = workspace.predecessor
@@ -52,7 +52,7 @@ with scripting.catch_and_print_errors():
     seqs_scores = structures.load(
             predecessor.output_dir,
             predecessor.restraints_path,
-            not arguments['--recalc'])
+            not args['--recalc'])
     print 'Total number of designs:      ', len(seqs_scores)
 
     # If a query was given on the command line, find models that satisfy it.
@@ -88,7 +88,7 @@ with scripting.catch_and_print_errors():
     pdf = array(weights)
     cdf = cumsum(pdf) / sum(pdf)
 
-    num_to_pick = min(int(arguments['--num']), len(scores))
+    num_to_pick = min(int(args['--num']), len(scores))
     picked_indices = set()
 
     while len(picked_indices) < num_to_pick:
@@ -141,7 +141,7 @@ highest scoring designs are being picked.
 
     # Make symlinks to the picked designs.
     
-    if not arguments['--dry-run']:
+    if not args['--dry-run']:
         for index in picked_indices:
             basename = seqs_scores.iloc[index]['path']
             target = os.path.join(predecessor.output_dir, basename)
@@ -150,5 +150,5 @@ highest scoring designs are being picked.
 
     print "Picked {} designs.".format(len(picked_indices))
 
-    if arguments['--dry-run']:
+    if args['--dry-run']:
         print "(Dry run: no symlinks created.)"

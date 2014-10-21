@@ -150,6 +150,10 @@ class BigJobWorkspace (Workspace):
         return os.path.join(self.focus_dir, 'outputs')
 
     @property
+    def output_subdirs(self):
+        return [self.output_subdirs]
+
+    @property
     def output_paths(self):
         return glob.glob(os.path.join(self.input_dir, '*.pdb.gz'))
 
@@ -298,7 +302,7 @@ class FixbbDesigns (BigJobWorkspace):
         return os.path.join(self.root_dir, subdir)
 
 
-class ValidatedDesigns (BigJobWorkspace, WithFragmentLibs):
+class ValidatedDesigns (BigJobWorkspace):
 
     def __init__(self, root, round):
         BigJobWorkspace.__init__(self, root)
@@ -320,6 +324,10 @@ class ValidatedDesigns (BigJobWorkspace, WithFragmentLibs):
         prefix = 2 * self.round + 1
         subdir = '{0:02}_validated_designs_round_{1}'.format(prefix, self.round)
         return os.path.join(self.root_dir, subdir)
+
+    @property
+    def output_subdirs(self):
+        return glob.glob(os.path.join(self.output_dir, '*/'))
 
     def output_subdir(self, input):
         basename = os.path.basename(input[:-len('.pdb.gz')])
