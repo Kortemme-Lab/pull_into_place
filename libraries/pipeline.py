@@ -80,7 +80,7 @@ class Workspace (object):
     @property
     def rsync_url(self):
         if not os.path.exists(self.rsync_url_path):
-            raise PathNotFound(self.rsync_url_path)
+            raise UnspecifiedRemoteHost()
         with open(self.rsync_url_path) as file:
             return file.read().strip()
 
@@ -350,7 +350,7 @@ def workspace_from_dir(directory, recurse=True):
     if not os.path.exists(pickle_path):
         if recurse:
             parent_dir = os.path.dirname(directory)
-            return workspace_from_dir(parent_dir, parent_dir == '/')
+            return workspace_from_dir(parent_dir, parent_dir != '/')
         else:
             raise WorkspaceNotFound(directory)
 
@@ -362,7 +362,14 @@ def workspace_from_dir(directory, recurse=True):
     return workspace_class.from_directory(directory)
 
 
-class PathNotFound (IOError):
+class PipelineError (IOError):
+
+    def __init__(self, message):
+        super(PipelineError, self).__init__(message)
+        self.no_stack_trace = True
+
+
+class PathNotFound (PipelineError):
 
     def __init__(self, path, *directories):
         if len(directories) == 0:
@@ -377,25 +384,28 @@ class PathNotFound (IOError):
             for directory in directories:
                 message += "\n    " + directory
 
-        super(PathNotFound, self).__init__(message)
-        self.no_stack_trace = True
+        PipelineError.__init__(self, message)
 
 
-class RosettaNotFound (IOError):
+class RosettaNotFound (PipelineError):
 
     def __init__(self, workspace):
-        message = """\
+        PipelineError.__init__(self, """\
 No rosetta checkout found in '{0.root_dir}'.
 Use the following command to manually create a symlink to a rosetta checkout:
 
-$ ln -s /path/to/rosetta/checkout {0.rosetta_dir}"""
-        super(RosettaNotFound, self).__init__(message)
+$ ln -s /path/to/rosetta/checkout {0.rosetta_dir}""")
 
 
-class WorkspaceNotFound (IOError):
+class WorkspaceNotFound (PipelineError):
 
     def __init__(self, root):
         message = "'{0}' is not a workspace.".format(root)
-        super(WorkspaceNotFound, self).__init__(message)
+        PipelineError.__init__(self, message)
 
+
+class UnspecifiedRemoteHost (PipelineError):
+
+    def __init__(self):
+        PipelineError.__init__(self, "No remote host specified.")
 

@@ -1031,15 +1031,7 @@ def load_models(directories, restraints=None, use_cache=True):
             print "'{}' is empty.".format(directory)
             continue
 
-        if restraints is not None:
-            group = ModelGroup(directory, restraints, use_cache)
-        else:
-            workspace = pipeline.workspace_from_dir(directory)
-            pdb_dir = workspace.output_dir
-            restraints = workspace.restraints_path
-            group = ModelGroup(pdb_dir, restraints, use_cache)
-
-        groups[directory] = group
+        groups[directory] = ModelGroup(directory, restraints, use_cache)
 
     return groups
 
