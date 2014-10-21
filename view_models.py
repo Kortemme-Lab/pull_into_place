@@ -40,7 +40,6 @@ import shutil
 import yaml
 
 from numpy import *
-from biophysics import pdb
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg
 from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg
