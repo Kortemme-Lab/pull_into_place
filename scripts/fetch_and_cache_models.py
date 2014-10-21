@@ -14,22 +14,30 @@ Options:
     --restraints PATH
 """
 
+import os, signal
+from signal import *
 from time import time, sleep
 from tools import docopt, scripting
 from libraries import structures
 from fetch_data import fetch_data
 
 with scripting.catch_and_print_errors():
-    args = docopt.docopt(__doc__)
+    signal(SIGHUP, SIG_IGN)
 
+    args = docopt.docopt(__doc__)
+    directories = []
     sleep_time = 5 * 60
     job_finished_time = 60 * 60
     last_activity = time()
 
+    for directory in args['<directories>']:
+        if os.path.isdir(directory): directories.append(directory)
+        else: print "Skipping '{}': not a directory.".format(directory)
+
     while time() - last_activity < job_finished_time:
         job_reports = {}
 
-        for directory in args['<directories>']:
+        for directory in directories:
             report = job_reports[directory] = {}
             fetch_data(directory, args['--remote'])
             structures.load(directory, args['--restraints'], job_report=report)
@@ -38,6 +46,7 @@ with scripting.catch_and_print_errors():
         for directory in job_reports:
             if job_reports[directory]['new_records'] > 0:
                 last_activity = time()
+                break
 
         print "Sleeping..."
         sleep(sleep_time)
