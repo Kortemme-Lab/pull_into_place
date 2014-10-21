@@ -6,7 +6,7 @@ because so few designs can be validated.  Typically the decision is made based
 on sequence identity and rosetta score.  It might be nice to add a clustering 
 component as well.
 
-Usage: 06_pick_designs_to_validate.py <name> <round> [options]
+Usage: 06_pick_designs_to_validate.py <name> <round> [<queries>...] [options]
 
 Options:
     --clear, -x
@@ -15,7 +15,7 @@ Options:
     --recalc, -f
         Recalculate all the metrics that will be used to choose designs.
 
-    --temp TEMP, -t TEMP        [default: 1]
+    --temp TEMP, -t TEMP        [default: 2.0]
         The parameter controlling how often low scoring designs are picked.
 
     --random-seed
@@ -35,6 +35,7 @@ with scripting.catch_and_print_errors():
     arguments = docopt.docopt(__doc__)
     name = arguments['<name>']
     round = arguments['<round>']
+    query = ' and '.join(arguments['<queries>'])
     temp = float(arguments['--temp'])
 
     workspace = pipeline.ValidatedDesigns(name, round)
@@ -52,6 +53,13 @@ with scripting.catch_and_print_errors():
             predecessor.output_dir,
             predecessor.restraints_path,
             not arguments['--recalc'])
+    print 'Total number of designs:      ', len(seqs_scores)
+
+    # If a query was given on the command line, find models that satisfy it.
+
+    if query:
+        seqs_scores = seqs_scores.query(query)
+        print '    minus given query:        ', len(seqs_scores)
 
     # Keep only the lowest scoring model for each set of identical sequences.
 
@@ -59,11 +67,14 @@ with scripting.catch_and_print_errors():
     seqs_scores = groups.\
             apply(lambda df: df.ix[df.total_score.idxmin()]).\
             reset_index(drop=True)
-
+    print '    minus duplicate sequences:', len(seqs_scores)
+    
     # Remove designs that have already been picked.
 
     existing_inputs = set(os.path.basename(x) for x in workspace.input_paths)
     seqs_scores = seqs_scores.query('path not in @existing_inputs')
+    print '    minus current inputs:     ', len(seqs_scores)
+    print
 
     # Use a Boltzmann weighting scheme to pick designs.
 
