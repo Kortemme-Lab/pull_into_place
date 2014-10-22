@@ -333,10 +333,6 @@ class ValidatedDesigns (BigJobWorkspace):
         basename = os.path.basename(input[:-len('.pdb.gz')])
         return os.path.join(self.output_dir, basename)
 
-    def make_dirs(self):
-        BigJobWorkspace.make_dirs(self)
-        WithFragmentLibs.make_dirs(self)
-
 
 
 def pipeline_dir():

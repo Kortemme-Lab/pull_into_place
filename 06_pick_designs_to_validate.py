@@ -148,6 +148,11 @@ highest scoring designs are being picked.
             link_name = os.path.join(workspace.input_dir, basename)
             scripting.relative_symlink(target, link_name)
 
+        # Always add a symlink to the input structure as a control simulation.
+
+        control_input = os.path.join(workspace.input_dir, 'input.pdb.gz')
+        scripting.relative_symlink(workspace.input_pdb_path, control_input)
+
     print "Picked {} designs.".format(len(picked_indices))
 
     if args['--dry-run']:
