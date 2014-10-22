@@ -8,7 +8,7 @@ sequence but rare for the original one might not get sampled.  However, we
 believe that the improved sampling that fragments offer outweighs this 
 potential drawback.
 
-Usage: 02_make_initial_fragments.py <name> <chain>
+Usage: 02_setup_model_fragments.py <name> <chain>
 """
 
 if __name__ == '__main__':

@@ -6,7 +6,7 @@ specified by the loop file are allowed to move and only the residues specified
 in the resfile are allowed to design.  The design goal is embodied by the 
 restraints specified in the restraints file.
 
-Usage: 03_build_restrained_models.py <name> [options]
+Usage: 03_build_models.py <name> [options]
 
 Options:
     --nstruct NUM, -n NUM   [default: 10000]
