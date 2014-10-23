@@ -31,7 +31,7 @@ rosetta_command = [
         '-parser:protocol', workspace.validate_script_path,
         '-parser:script_vars',
             'loop_file=' + workspace.loops_path,
-            'fast=' + ('yes' if test_run else 'no')] + 
+            'fast=' + ('yes' if test_run else 'no')] + \
         workspace.fragments_flags(input_path) + [
         '@', workspace.flags_path,
 ]
