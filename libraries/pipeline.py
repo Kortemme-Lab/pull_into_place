@@ -310,7 +310,7 @@ class FixbbDesigns (BigJobWorkspace):
         return os.path.join(self.root_dir, subdir)
 
 
-class ValidatedDesigns (BigJobWorkspace):
+class ValidatedDesigns (BigJobWorkspace, WithFragmentLibs):
 
     def __init__(self, root, round):
         BigJobWorkspace.__init__(self, root)
