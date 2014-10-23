@@ -222,28 +222,40 @@ class WithFragmentLibs (object):
     def fragments_dir(self):
         return os.path.join(self.focus_dir, 'fragments')
 
-    @property
-    def fragments_sizes(self):
+    def fragments_tag(self, input_path):
+        return os.path.basename(input_path)[:4]
+
+    def fragments_sizes(self, input_path):
         import re
 
         sizes = []
         pattern = re.compile(r'(\d+)mers\.gz')
 
-        for path in self.fragments_paths:
+        for path in self.fragments_paths(input_path):
             match = pattern.search(path)
             if match: sizes.append(match.group(1))
             elif path == 'none': sizes.append('1')
 
         return sizes
 
-    @property
-    def fragments_paths(self):
-        pattern = os.path.join(self.fragments_dir, '*', '*mers.gz')
+    def fragments_paths(self, input_path):
+        tag = self.fragments_tag(input_path)
+        pattern = os.path.join(self.fragments_dir, tag+'?', '*mers.gz')
         paths = [x for x in glob.glob(pattern) if 'score' not in x]
         return sorted(paths, reverse=True) + ['none']
 
-    def make_dirs(self):
-        scripting.mkdir(self.fragments_dir)
+    def fragments_flags(self, input_path):
+        flags = []
+        paths = self.fragments_paths(input_path)
+        sizes = self.fragments_sizes(input_path)
+
+        if paths and sizes:
+            flags.append('-loops:frag_sizes')
+            flags.extend(sizes)
+            flags.append('-loops:frag_files')
+            flags.extend(paths)
+
+        return flags
 
     def clear_fragments(self):
         scripting.clear_directory(self.fragments_dir)
@@ -269,10 +281,6 @@ class RestrainedModels (BigJobWorkspace, WithFragmentLibs):
     @property
     def input_paths(self):
         return [self.input_pdb_path]
-
-    def make_dirs(self):
-        BigJobWorkspace.make_dirs(self)
-        WithFragmentLibs.make_dirs(self)
 
 
 class FixbbDesigns (BigJobWorkspace):

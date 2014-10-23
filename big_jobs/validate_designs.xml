@@ -2,7 +2,7 @@
 
     <MOVERS>
         <LoopModeler name="modeler"
-          config="kic"
+          config="kic_with_frags"
           loops_file="%%loop_file%%"
           fast="%%fast%%">
             <Build skip="yes"/>

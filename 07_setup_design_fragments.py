@@ -1,14 +1,10 @@
 #!/usr/bin/env python2
 
 """\
-Generate fragments for the initial model building simulations.  Note that it's 
-a little bit weird to use fragments even though the models are allowed to 
-design in these simulations.  Conformations that are common for the current 
-sequence but rare for the original one might not get sampled.  However, we 
-believe that the improved sampling that fragments offer outweighs this 
-potential drawback.
+Generate fragments for the design validation simulations.  Each design has a 
+different sequence, so each input needs its own fragment library.  
 
-Usage: 02_setup_model_fragments.py <name> <chain>
+Usage: 07_setup_design_fragments.py <name> <chain>
 """
 
 import subprocess
@@ -31,8 +27,9 @@ with scripting.catch_and_print_errors():
 
     generate_fragments = [
             './generate_fragments.py',
-            '--pdb', workspace.input_pdb_path,
+            '--batch', workspace.input_dir,
             '--chain', arguments['<chain>'],
             '--outdir', workspace.fragments_dir,
     ]
     subprocess.call(generate_fragments)
+
