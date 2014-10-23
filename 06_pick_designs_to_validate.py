@@ -71,7 +71,9 @@ with scripting.catch_and_print_errors():
     
     # Remove designs that have already been picked.
 
-    existing_inputs = set(os.path.basename(x) for x in workspace.input_paths)
+    existing_inputs = set(
+            os.path.basename(os.path.realpath(x))
+            for x in workspace.input_paths)
     seqs_scores = seqs_scores.query('path not in @existing_inputs')
     print '    minus current inputs:     ', len(seqs_scores)
     print
@@ -142,16 +144,16 @@ highest scoring designs are being picked.
     # Make symlinks to the picked designs.
     
     if not args['--dry-run']:
-        for index in picked_indices:
-            basename = seqs_scores.iloc[index]['path']
+        existing_ids = set(
+                int(x[0:-len('.pdb.gz')])
+                for x in os.listdir(workspace.input_dir))
+        next_id = max(existing_ids) + 1 if existing_ids else 0
+
+        for id, picked_index in enumerate(picked_indices, next_id):
+            basename = seqs_scores.iloc[picked_index]['path']
             target = os.path.join(predecessor.output_dir, basename)
-            link_name = os.path.join(workspace.input_dir, basename)
-            scripting.relative_symlink(target, link_name)
-
-        # Always add a symlink to the input structure as a control simulation.
-
-        control_input = os.path.join(workspace.input_dir, 'input.pdb.gz')
-        scripting.relative_symlink(workspace.input_pdb_path, control_input)
+            link_name = os.path.join(workspace.input_dir, '{0:03}.pdb.gz')
+            scripting.relative_symlink(target, link_name.format(id))
 
     print "Picked {} designs.".format(len(picked_indices))
 
