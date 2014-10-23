@@ -4,7 +4,11 @@ import sys, os, re, glob, collections, gzip
 import numpy as np, scipy as sp, pandas as pd
 from . import pipeline
 
-def load(pdb_dir, restraints_path, use_cache=True):
+def load(pdb_dir, restraints_path=None, use_cache=True, job_report=None):
+    if restraints_path is None:
+        workspace = pipeline.workspace_from_dir(pdb_dir)
+        restraints_path = workspace.restraints_path
+
     pdb_paths = glob.glob(os.path.join(pdb_dir, '*.pdb.gz'))
     base_pdb_names = set(os.path.basename(x) for x in pdb_paths)
     cache_path = os.path.join(pdb_dir, 'distances.pkl')
@@ -21,8 +25,12 @@ def load(pdb_dir, restraints_path, use_cache=True):
 
     uncached_records = read_and_calculate(uncached_paths, restraints_path)
 
+    if job_report is not None:
+        job_report['new_records'] = len(uncached_records)
+        job_report['old_records'] = len(cached_records)
+
     distances = pd.DataFrame(cached_records + uncached_records)
-    distances.to_pickle(cache_path)
+    if len(distances) > 0: distances.to_pickle(cache_path)
     return distances
 
 def read_and_calculate(pdb_paths, restraints_path):

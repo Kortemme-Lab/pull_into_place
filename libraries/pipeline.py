@@ -80,7 +80,7 @@ class Workspace (object):
     @property
     def rsync_url(self):
         if not os.path.exists(self.rsync_url_path):
-            raise PathNotFound(self.rsync_url_path)
+            raise UnspecifiedRemoteHost()
         with open(self.rsync_url_path) as file:
             return file.read().strip()
 
@@ -148,6 +148,10 @@ class BigJobWorkspace (Workspace):
     @property
     def output_dir(self):
         return os.path.join(self.focus_dir, 'outputs')
+
+    @property
+    def output_subdirs(self):
+        return [self.output_subdirs]
 
     @property
     def output_paths(self):
@@ -218,28 +222,40 @@ class WithFragmentLibs (object):
     def fragments_dir(self):
         return os.path.join(self.focus_dir, 'fragments')
 
-    @property
-    def fragments_sizes(self):
+    def fragments_tag(self, input_path):
+        return os.path.basename(input_path)[:4]
+
+    def fragments_sizes(self, input_path):
         import re
 
         sizes = []
         pattern = re.compile(r'(\d+)mers\.gz')
 
-        for path in self.fragments_paths:
+        for path in self.fragments_paths(input_path):
             match = pattern.search(path)
             if match: sizes.append(match.group(1))
             elif path == 'none': sizes.append('1')
 
         return sizes
 
-    @property
-    def fragments_paths(self):
-        pattern = os.path.join(self.fragments_dir, '*', '*mers.gz')
+    def fragments_paths(self, input_path):
+        tag = self.fragments_tag(input_path)
+        pattern = os.path.join(self.fragments_dir, tag+'?', '*mers.gz')
         paths = [x for x in glob.glob(pattern) if 'score' not in x]
         return sorted(paths, reverse=True) + ['none']
 
-    def make_dirs(self):
-        scripting.mkdir(self.fragments_dir)
+    def fragments_flags(self, input_path):
+        flags = []
+        paths = self.fragments_paths(input_path)
+        sizes = self.fragments_sizes(input_path)
+
+        if paths and sizes:
+            flags.append('-loops:frag_sizes')
+            flags.extend(sizes)
+            flags.append('-loops:frag_files')
+            flags.extend(paths)
+
+        return flags
 
     def clear_fragments(self):
         scripting.clear_directory(self.fragments_dir)
@@ -265,10 +281,6 @@ class RestrainedModels (BigJobWorkspace, WithFragmentLibs):
     @property
     def input_paths(self):
         return [self.input_pdb_path]
-
-    def make_dirs(self):
-        BigJobWorkspace.make_dirs(self)
-        WithFragmentLibs.make_dirs(self)
 
 
 class FixbbDesigns (BigJobWorkspace):
@@ -321,13 +333,13 @@ class ValidatedDesigns (BigJobWorkspace, WithFragmentLibs):
         subdir = '{0:02}_validated_designs_round_{1}'.format(prefix, self.round)
         return os.path.join(self.root_dir, subdir)
 
+    @property
+    def output_subdirs(self):
+        return glob.glob(os.path.join(self.output_dir, '*/'))
+
     def output_subdir(self, input):
         basename = os.path.basename(input[:-len('.pdb.gz')])
         return os.path.join(self.output_dir, basename)
-
-    def make_dirs(self):
-        BigJobWorkspace.make_dirs(self)
-        WithFragmentLibs.make_dirs(self)
 
 
 
@@ -350,7 +362,7 @@ def workspace_from_dir(directory, recurse=True):
     if not os.path.exists(pickle_path):
         if recurse:
             parent_dir = os.path.dirname(directory)
-            return workspace_from_dir(parent_dir, parent_dir == '/')
+            return workspace_from_dir(parent_dir, parent_dir != '/')
         else:
             raise WorkspaceNotFound(directory)
 
@@ -362,7 +374,14 @@ def workspace_from_dir(directory, recurse=True):
     return workspace_class.from_directory(directory)
 
 
-class PathNotFound (IOError):
+class PipelineError (IOError):
+
+    def __init__(self, message):
+        super(PipelineError, self).__init__(message)
+        self.no_stack_trace = True
+
+
+class PathNotFound (PipelineError):
 
     def __init__(self, path, *directories):
         if len(directories) == 0:
@@ -377,25 +396,28 @@ class PathNotFound (IOError):
             for directory in directories:
                 message += "\n    " + directory
 
-        super(PathNotFound, self).__init__(message)
-        self.no_stack_trace = True
+        PipelineError.__init__(self, message)
 
 
-class RosettaNotFound (IOError):
+class RosettaNotFound (PipelineError):
 
     def __init__(self, workspace):
-        message = """\
+        PipelineError.__init__(self, """\
 No rosetta checkout found in '{0.root_dir}'.
 Use the following command to manually create a symlink to a rosetta checkout:
 
-$ ln -s /path/to/rosetta/checkout {0.rosetta_dir}"""
-        super(RosettaNotFound, self).__init__(message)
+$ ln -s /path/to/rosetta/checkout {0.rosetta_dir}""")
 
 
-class WorkspaceNotFound (IOError):
+class WorkspaceNotFound (PipelineError):
 
     def __init__(self, root):
         message = "'{0}' is not a workspace.".format(root)
-        super(WorkspaceNotFound, self).__init__(message)
+        PipelineError.__init__(self, message)
 
+
+class UnspecifiedRemoteHost (PipelineError):
+
+    def __init__(self):
+        PipelineError.__init__(self, "No remote host specified.")
 

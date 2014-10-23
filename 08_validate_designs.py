@@ -1,7 +1,8 @@
 #!/usr/bin/env python2
 
 """\
-ugh...
+Validate the designs by running unrestrained flexible backbone simulations.
+
 Usage: 07_validate_designs.py <name> <round> [options]
 
 Options:

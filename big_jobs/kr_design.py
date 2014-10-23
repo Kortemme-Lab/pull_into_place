@@ -30,7 +30,6 @@ rosetta_command = [
         '-parser:protocol', workspace.design_script_path,
         '-parser:script_vars', 'cst_file=' + workspace.restraints_path,
         '-packing:resfile', workspace.resfile_path,
-        '-score:weights', 'talaris2013_cst',
         '@', workspace.flags_path,
 ]
 

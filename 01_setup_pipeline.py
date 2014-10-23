@@ -7,7 +7,7 @@ that will be allowed to design, and more.  A brief description of each field is
 given below.  This information is used to build a workspace for this design 
 that will be used by the rest of the scripts in this pipeline.  
 
-Usage: 01_setup_design.py <name> [--overwrite]
+Usage: 01_setup_pipeline.py <name> [--overwrite]
 
 Options:
     --overwrite, -o

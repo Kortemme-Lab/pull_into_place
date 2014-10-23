@@ -12,10 +12,13 @@ section below.
 Usage: 04_pick_models_to_design.py [options] <name> <round> <queries>...
 
 Options:
-    --clear
+    --clear, -x
         Remove any previously selected "best" models.
 
-    --dry-run
+    --recalc, -f
+        Recalculate all the metrics that will be used to choose designs.
+
+    --dry-run, -d
         Choose which models to pick, but don't actually make any symlinks.
 
 Queries:
@@ -52,61 +55,66 @@ from tools import docopt, scripting
 from libraries import pipeline, structures
 
 with scripting.catch_and_print_errors():
-    arguments = docopt.docopt(__doc__)
-    name, round = arguments['<name>'], arguments['<round>']
-    query = ' and '.join(arguments['<queries>'])
+    args = docopt.docopt(__doc__)
+    name, round = args['<name>'], args['<round>']
+    query = ' and '.join(args['<queries>'])
 
     workspace = pipeline.FixbbDesigns(name, round)
     workspace.check_paths()
     workspace.make_dirs()
 
-    if arguments['--clear']:
+    if args['--clear']:
         workspace.clear_inputs()
 
     predecessor = workspace.predecessor
+    num_models, num_selected, num_duplicates = 0, 0, 0
 
-    # Find models meeting the criteria specified on the command line.
+    for input_subdir in predecessor.output_subdirs:
 
-    all_score_dists = structures.load(
-            predecessor.output_dir, predecessor.restraints_path)
+        # Find models meeting the criteria specified on the command line.
 
-    best_score_dists = all_score_dists.query(query)
-    best_inputs = set(best_score_dists['path'])
+        all_score_dists = structures.load(
+                input_subdir, predecessor.restraints_path, not args['--recalc'])
+        best_score_dists = all_score_dists.query(query)
+        best_inputs = set(best_score_dists['path'])
 
-    # Figure out which models have already been considered.
+        num_models += len(all_score_dists)
+        num_selected += len(best_inputs)
 
-    existing_ids = set(
-            int(x[0:-len('.pdb.gz')])
-            for x in os.listdir(workspace.input_dir))
+        # Figure out which models have already been considered.
 
-    next_id = max(existing_ids) + 1 if existing_ids else 0
+        existing_ids = set(
+                int(x[0:-len('.pdb.gz')])
+                for x in os.listdir(workspace.input_dir))
 
-    existing_inputs = set(
-            os.path.basename(os.readlink(x))
-            for x in workspace.output_paths)
+        next_id = max(existing_ids) + 1 if existing_ids else 0
 
-    new_inputs = best_inputs - existing_inputs
-    duplicate_inputs = best_inputs & existing_inputs
+        existing_inputs = set(
+                os.path.basename(os.readlink(x))
+                for x in workspace.input_paths)
 
-    # Make symlinks to the new models.
+        new_inputs = best_inputs - existing_inputs
+        num_duplicates += len(best_inputs & existing_inputs)
 
-    if not arguments['--dry-run']:
-        for id, new_input in enumerate(new_inputs, next_id):
-            target = os.path.join(predecessor.output_dir, new_input)
-            link_name = os.path.join(workspace.input_dir, '{0:05d}.pdb.gz')
-            scripting.relative_symlink(target, link_name.format(id))
+        # Make symlinks to the new models.
+
+        if not args['--dry-run']:
+            for id, new_input in enumerate(new_inputs, next_id):
+                target = os.path.join(input_subdir, new_input)
+                link_name = os.path.join(workspace.input_dir, '{0:05d}.pdb.gz')
+                scripting.relative_symlink(target, link_name.format(id))
 
     # Tell the user what happened.
 
-    plural = lambda x: 's' if len(x) != 1 else ''
+    plural = lambda x: 's' if x != 1 else ''
 
     print "Selected {} of {} model{}.".format(
-            len(best_inputs), len(all_score_dists), plural(best_inputs))
+            num_selected, num_models, plural(num_selected))
 
-    if duplicate_inputs:
+    if num_duplicates:
         print "Skipping {} duplicate model{}.".format(
-                len(duplicate_inputs), plural(duplicate_inputs))
+                num_duplicates, plural(num_duplicates))
 
-    if arguments['--dry-run']:
+    if args['--dry-run']:
         print "(Dry run: no symlinks created.)"
 
