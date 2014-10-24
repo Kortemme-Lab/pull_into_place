@@ -17,22 +17,21 @@ from tools.bio.pdb import PDB
 from libraries import pipeline
 
 with scripting.catch_and_print_errors():
-    arguments = docopt.docopt(__doc__)
+    args = docopt.docopt(__doc__)
     cluster.require_chef()
 
-    workspace = pipeline.RestrainedModels(arguments['<name>'])
+    workspace = pipeline.RestrainedModels(args['<name>'])
     workspace.check_paths()
     workspace.make_dirs()
     workspace.clear_fragments()
 
     # Run the fragment generation script.
 
-    workspace.cd('tools', 'bio', 'fragments')
-
     generate_fragments = [
-            './generate_fragments.py',
-            '--pdb', workspace.input_pdb_path,
-            '--chain', arguments['<chain>'],
+            'tools/bio/fragments/generate_fragments.py',
+            '--chain', args['<chain>'],
+            '--loop_file', workspace.loops_path,
             '--outdir', workspace.fragments_dir,
+            workspace.input_pdb_path,
     ]
     subprocess.call(generate_fragments)

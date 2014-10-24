@@ -128,7 +128,7 @@ class Workspace (object):
     def cd(self, *subpaths):
         source = os.path.abspath(self._relative_path)
         target = os.path.abspath(os.path.join(*subpaths))
-        self._relative_path = os.path.relpath(source, target)
+        self._root_dirname = os.path.relpath(source, target)
         os.chdir(target)
 
     def exists(self):
