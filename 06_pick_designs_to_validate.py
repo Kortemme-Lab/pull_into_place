@@ -152,7 +152,7 @@ highest scoring designs are being picked.
         for id, picked_index in enumerate(picked_indices, next_id):
             basename = seqs_scores.iloc[picked_index]['path']
             target = os.path.join(predecessor.output_dir, basename)
-            link_name = os.path.join(workspace.input_dir, '{0:03}.pdb.gz')
+            link_name = os.path.join(workspace.input_dir, '{0:04}.pdb.gz')
             scripting.relative_symlink(target, link_name.format(id))
 
     print "Picked {} designs.".format(len(picked_indices))
