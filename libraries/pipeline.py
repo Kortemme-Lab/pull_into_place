@@ -128,7 +128,7 @@ class Workspace (object):
     def cd(self, *subpaths):
         source = os.path.abspath(self._relative_path)
         target = os.path.abspath(os.path.join(*subpaths))
-        self._relative_path = os.path.relpath(source, target)
+        self._root_dirname = os.path.relpath(source, target)
         os.chdir(target)
 
     def exists(self):
@@ -229,7 +229,7 @@ class WithFragmentLibs (object):
         import re
 
         sizes = []
-        pattern = re.compile(r'(\d+)mers\.gz')
+        pattern = re.compile(r'(\d+)backup\.rewrite\.gz')
 
         for path in self.fragments_paths(input_path):
             match = pattern.search(path)
@@ -240,9 +240,9 @@ class WithFragmentLibs (object):
 
     def fragments_paths(self, input_path):
         tag = self.fragments_tag(input_path)
-        pattern = os.path.join(self.fragments_dir, tag+'?', '*mers.gz')
-        paths = [x for x in glob.glob(pattern) if 'score' not in x]
-        return sorted(paths, reverse=True) + ['none']
+        pattern = os.path.join(self.fragments_dir, tag+'?', '*rewrite.gz')
+        paths = sorted(glob.glob(pattern), reverse=True)
+        return paths + ['none'] if paths else []
 
     def fragments_flags(self, input_path):
         flags = []

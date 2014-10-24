@@ -1,2 +1,5 @@
 designs
+make_fragments_destinations.txt
 *.pyc
+.*.sw*
+*~
