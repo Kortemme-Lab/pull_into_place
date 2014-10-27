@@ -9,11 +9,14 @@ this step is to expand the number of designs for each backbone model.
 Usage: 05_design_models.py <name> <round> [options]
 
 Options:
-    --nstruct NUM, -n NUM   [default: 500]
+    --nstruct NUM, -n NUM   [default: 100]
         The number of design jobs to run.
 
-    --max-runtime TIME      [default: 6:00:00]
-        The runtime limit for each design job.
+    --max-runtime TIME      [default: 0:30:00]
+        The runtime limit for each design job.  The default value is 
+        set pretty low so that the short queue is available by default.  This 
+        should work fine more often than not, but you also shouldn't be 
+        surprised if you need to increase this.
 
     --max-memory MEM        [default: 1G]
         The memory limit for each design job.
@@ -45,17 +48,17 @@ with scripting.catch_and_print_errors():
     # Decide which inputs to use.
 
     inputs = workspace.unclaimed_inputs
-    designs_per = int(args['--nstruct']) if not args['--test-run'] else 2
+    nstruct = len(inputs) * int(args['--nstruct'])
 
     if not inputs:
-        print "All inputs have been claimed."
+        print "No inputs available."
         raise SystemExit
 
     # Submit the design job.
 
     big_job.submit(
             'kr_design.py', workspace,
-            inputs=inputs, nstruct=len(inputs), designs_per=designs_per,
+            inputs=inputs, nstruct=nstruct,
             max_runtime=args['--max-runtime'],
             max_memory=args['--max-memory'],
             test_run=args['--test-run']

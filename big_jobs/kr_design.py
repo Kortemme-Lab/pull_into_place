@@ -16,7 +16,7 @@ workspace, job_id, task_id, parameters = big_job.initiate()
 
 bb_models = parameters['inputs']
 bb_model = bb_models[task_id % len(bb_models)]
-nstruct = parameters['designs_per']
+design_id = task_id // len(bb_models)
 
 rosetta_command = [
         workspace.rosetta_scripts_path,
@@ -24,7 +24,8 @@ rosetta_command = [
         '-in:file:s', bb_model,
         '-in:file:native', workspace.input_pdb_path,
         '-out:prefix', workspace.output_dir + '/',
-        '-out:nstruct', str(nstruct),
+        '-out:suffix', '_{0:03}'.format(design_id),
+        '-out:no_nstruct_label',
         '-out:overwrite',
         '-out:pdb_gz', 
         '-parser:protocol', workspace.design_script_path,
