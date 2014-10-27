@@ -1,7 +1,10 @@
 #!/usr/bin/env python2
 
 """\
-Validate the designs by running unrestrained flexible backbone simulations.
+Validate the designs by running unrestrained flexible backbone simulations.  
+Only regions of the backbone specified by the loop file are allowed to move.  
+The resfile used in the previous steps of the pipeline is not respected here; 
+all residues within 10A of the loop are allowed to pack.
 
 Usage: 07_validate_designs.py <name> <round> [options]
 
@@ -10,10 +13,10 @@ Options:
         The number of simulations to run per design.
         
     --max-runtime TIME      [default: 12:00:00]
-        The runtime limit for each model building job.
+        The runtime limit for each validation job.
 
     --max-memory MEM        [default: 1G]
-        The memory limit for each model building job.
+        The memory limit for each validation job.
 
     --test-run
         Run on the short queue with a limited number of iterations.  This 
