@@ -319,7 +319,7 @@ class ValidatedDesigns (BigJobWorkspace, WithFragmentLibs):
     @staticmethod
     def from_directory(directory):
         root = os.path.join(directory, '..')
-        round = int(directory.split('_')[-1])
+        round = int(directory.strip('/').split('_')[-1])
         return ValidatedDesigns(root, round)
 
     @property
