@@ -4,6 +4,7 @@ import sys, os, re, json, subprocess
 from . import pipeline
 
 def submit(script, workspace, **params):
+    """Submit a job with the given parameters."""
     from tools import cluster, process
 
     # Make sure the rosetta symlink has been created.
@@ -57,11 +58,11 @@ def submit(script, workspace, **params):
     print status,
 
 def initiate():
+    """Return some relevant information about the currently running job."""
     workspace = pipeline.workspace_from_dir(sys.argv[1])
     job_id = int(os.environ['JOB_ID'])
     task_id = int(os.environ['SGE_TASK_ID']) - 1
     job_params = read_params(workspace.job_params_path(job_id))
-
     return workspace, job_id, task_id, job_params
 
 def read_params(params_path):

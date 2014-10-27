@@ -1,9 +1,40 @@
 #!/usr/bin/env python2
 
+"""\
+This module defines the Workspace classes that are central to every script.  
+The role of these classes is to provide paths to all the data files used in any 
+part of the pipeline and to hide the organization of the directories containing 
+those files.  The base Workspace class deals with files in the root directory 
+of a design.  It subclasses deal with file in the different subdirectories of 
+the design, each of which is related to a cluster job.
+"""
+
 import os, glob, pickle
 from tools import scripting
 
 class Workspace (object):
+    """
+    Provide paths to every file used in the design pipeline.
+
+    Each workspace object is responsible for returning paths to files that are 
+    relevant to a particular stage of the design pipeline.  These files are 
+    organized hierarchically: files that are relevant to many parts of the 
+    pipeline are stored in the root design directory while files that are 
+    relevant to specific stages are stored in subdirectories.  You can think of 
+    each workspace class as representing a different directory.
+    
+    The Workspace class itself represents the root directory, but it is also 
+    the superclass from which all of the other workspace derive.  The reason 
+    for this is that the root workspace knows where all the shared parameter 
+    files are located, and this information is needed in every workspace.
+
+    When modifying or inheriting from this class, keep in mind two things.  
+    First, workspace objects should do little more than return paths to files.  
+    There are a few convenience functions that clear directories and things 
+    like that, but these are the exception rather than the rule.  Second, use 
+    the @property decorator very liberally to keep the code that uses this API 
+    succinct and easy to read.
+    """
 
     def __init__(self, root):
         root = os.path.normpath(root)
@@ -24,6 +55,10 @@ class Workspace (object):
 
     @property
     def focus_dir(self):
+        """
+        The particular directory managed by this class.  This is meant to be 
+        overridden in subclasses.
+        """
         return self.root_dir
 
     @property
@@ -97,6 +132,17 @@ class Workspace (object):
         return ['rosetta', 'rsync_url']
 
     def find_path(self, basename):
+        """
+        Look in a few places for a file with the given name.  If a custom 
+        version of the file is found in the directory being managed by 
+        this workspace, return it.  Otherwise return the path to the default 
+        version of the file in the root directory.
+
+        This function makes it easy to provide custom parameters to any stage 
+        to the design pipeline.  Just place the file with the custom parameters 
+        in the directory associated with that stage.
+        """
+        
         custom_path = os.path.join(self.focus_dir, basename)
         default_path = os.path.join(self.root_dir, basename)
         return custom_path if os.path.exists(custom_path) else default_path
@@ -126,6 +172,11 @@ class Workspace (object):
             pickle.dump(self.__class__, file)
 
     def cd(self, *subpaths):
+        """
+        Change the current working directory and update all the paths in the 
+        workspace.  This is useful for commands that have to be run from a 
+        certain directory.
+        """
         source = os.path.abspath(self._relative_path)
         target = os.path.abspath(os.path.join(*subpaths))
         self._root_dirname = os.path.relpath(source, target)
@@ -136,6 +187,14 @@ class Workspace (object):
 
 
 class BigJobWorkspace (Workspace):
+    """
+    Provide paths needed to run big jobs on the cluster.
+
+    This is a base class for all the workspaces meant to store results from 
+    long simulations (which is presently all of them except for the root).  
+    This class provides paths to input directories, output directories, 
+    parameters files, and several other things like that.
+    """
 
     @property
     def input_dir(self):
@@ -213,6 +272,12 @@ class BigJobWorkspace (Workspace):
 
 
 class WithFragmentLibs (object):
+    """
+    Provide paths needed to interact with fragment libraries.
+
+    This is a mixin class that provides a handful of paths and features useful 
+    for working with fragment libraries.
+    """
 
     @property
     def fasta_path(self):
@@ -354,6 +419,14 @@ def big_job_path(basename):
     return os.path.join(big_job_dir(), basename)
 
 def workspace_from_dir(directory, recurse=True):
+    """
+    Construct a workspace object from a directory name.  If recurse=True, this 
+    function will search down the directory tree and return the first workspace 
+    it finds.  If recurse=False, an exception will be raised if the given 
+    directory is not a workspace.  Workspace identification requires a file 
+    called 'workspace.pkl' to be present in each workspace directory, which can 
+    unfortunately be a little fragile.
+    """
     pickle_path = os.path.join(directory, 'workspace.pkl')
 
     # Make sure the given directory contains a 'workspace' file.  This file is 
