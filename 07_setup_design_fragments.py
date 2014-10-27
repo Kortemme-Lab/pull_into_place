@@ -28,6 +28,7 @@ with scripting.catch_and_print_errors():
             '--chain', args['<chain>'],
             '--loops_file', workspace.loops_path,
             '--outdir', workspace.fragments_dir,
+            '--queue', 'lab.q,long.q',
             workspace.input_dir,
     ]
     subprocess.call(generate_fragments)
