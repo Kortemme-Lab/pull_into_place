@@ -9,18 +9,19 @@ component as well.
 Usage: 06_pick_designs_to_validate.py <name> <round> [<queries>...] [options]
 
 Options:
+    --num NUM, -n NUM           [default: 50]
+        The number of designs to pick.  The code can gets stuck and run for a 
+        long time if this is too close to the number of design to pick from.
+
+    --temp TEMP, -t TEMP        [default: 2.0]
+        The parameter controlling how often low scoring designs are picked.
+
+
     --clear, -x
         Forget about any designs that were previously picked for validation.
 
     --recalc, -f
         Recalculate all the metrics that will be used to choose designs.
-
-    --temp TEMP, -t TEMP        [default: 2.0]
-        The parameter controlling how often low scoring designs are picked.
-
-    --random-seed
-
-    --num NUM, -n NUM           [default: 50]
 
     --dry-run
 

@@ -2,7 +2,9 @@
 
 """\
 Generate fragments for the design validation simulations.  Each design has a 
-different sequence, so each input needs its own fragment library.  
+different sequence, so each input needs its own fragment library.  You can skip 
+this step if you don't plan to use fragments in your validation simulations, 
+but other algorithms may not perform as well on long loops.
 
 Usage: 07_setup_design_fragments.py <name> <round> <chain>
 """

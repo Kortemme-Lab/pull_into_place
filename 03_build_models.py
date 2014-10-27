@@ -17,6 +17,9 @@ Options:
     --max-runtime TIME      [default: 12:00:00]
         The runtime limit for each model building job.
 
+    --max-memory MEM        [default: 1G]
+        The memory limit for each model building job.
+
     --test-run
         Run on the short queue with a limited number of iterations.  This 
         option automatically clears old results.
@@ -32,6 +35,8 @@ with scripting.catch_and_print_errors():
     arguments = docopt.docopt(__doc__)
     cluster.require_chef()
 
+    # Setup the workspace.
+
     workspace = pipeline.RestrainedModels(arguments['<name>'])
     workspace.check_paths()
     workspace.make_dirs()
@@ -39,9 +44,12 @@ with scripting.catch_and_print_errors():
     if arguments['--clear'] or arguments['--test-run']:
         workspace.clear_outputs()
 
+    # Submit the model building job.
+
     big_job.submit(
             'kr_build.py', workspace,
             nstruct=arguments['--nstruct'],
             max_runtime=arguments['--max-runtime'],
+            max_memory=arguments['--max-memory'],
             test_run=arguments['--test-run']
     )

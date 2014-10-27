@@ -1,18 +1,22 @@
 #!/usr/bin/env python2
 
 """\
-Find sequences to stabilize the backbone models built previously.
+Find sequences that stabilize the backbone models built previously.  The same 
+resfile that was used for the model building step is used again for this step.  
+Note that the model build step already includes some design.  The purpose of 
+this step is to expand the number of designs for each backbone model.
 
 Usage: 05_design_models.py <name> <round> [options]
 
 Options:
     --nstruct NUM, -n NUM   [default: 500]
-        The number of jobs to run.  The more backbones are generated here, the 
-        better the rest of the pipeline will work.  With too few backbones, you 
-        can run into a lot of issues with degenerate designs.
+        The number of design jobs to run.
 
     --max-runtime TIME      [default: 6:00:00]
-        The runtime limit for each model building job.
+        The runtime limit for each design job.
+
+    --max-memory MEM        [default: 1G]
+        The memory limit for each design job.
 
     --test-run
         Run on the short queue with a limited number of iterations.  This 
@@ -38,7 +42,7 @@ with scripting.catch_and_print_errors():
     if args['--clear'] or args['--test-run']:
         workspace.clear_outputs()
 
-    # Submit the design job.
+    # Decide which inputs to use.
 
     inputs = workspace.unclaimed_inputs
     designs_per = int(args['--nstruct']) if not args['--test-run'] else 2
@@ -47,9 +51,12 @@ with scripting.catch_and_print_errors():
         print "All inputs have been claimed."
         raise SystemExit
 
+    # Submit the design job.
+
     big_job.submit(
             'kr_design.py', workspace,
             inputs=inputs, nstruct=len(inputs), designs_per=designs_per,
             max_runtime=args['--max-runtime'],
+            max_memory=args['--max-memory'],
             test_run=args['--test-run']
     )
