@@ -83,7 +83,7 @@ with scripting.catch_and_print_errors():
     seqs_scores.sort('total_score', inplace=True)
     
     scores = seqs_scores.total_score.values
-    scores -= max(scores)
+    scores -= median(scores)
     weights = exp(-scores / temp)
     indices = arange(len(scores))
 

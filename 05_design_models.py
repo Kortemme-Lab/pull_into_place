@@ -6,13 +6,16 @@ Find sequences to stabilize the backbone models built previously.
 Usage: 05_design_models.py <name> <round> [options]
 
 Options:
-    --nstruct NUM, -n NUM   [default: 500]
+    --nstruct NUM, -n NUM   [default: 100]
         The number of jobs to run.  The more backbones are generated here, the 
         better the rest of the pipeline will work.  With too few backbones, you 
         can run into a lot of issues with degenerate designs.
 
-    --max-runtime TIME      [default: 6:00:00]
-        The runtime limit for each model building job.
+    --max-runtime TIME      [default: 0:30:00]
+        The runtime limit for each model building job.  The default value is 
+        set pretty low so that the short queue is available by default.  This 
+        should work fine more often than not, but you also shouldn't be 
+        surprised if you need to increase this.
 
     --test-run
         Run on the short queue with a limited number of iterations.  This 
@@ -41,15 +44,15 @@ with scripting.catch_and_print_errors():
     # Submit the design job.
 
     inputs = workspace.unclaimed_inputs
-    designs_per = int(args['--nstruct']) if not args['--test-run'] else 2
+    nstruct = len(inputs) * int(args['--nstruct'])
 
     if not inputs:
-        print "All inputs have been claimed."
+        print "No inputs available."
         raise SystemExit
 
     big_job.submit(
             'kr_design.py', workspace,
-            inputs=inputs, nstruct=len(inputs), designs_per=designs_per,
+            inputs=inputs, nstruct=nstruct,
             max_runtime=args['--max-runtime'],
             test_run=args['--test-run']
     )
