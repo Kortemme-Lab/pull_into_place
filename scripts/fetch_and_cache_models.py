@@ -15,6 +15,7 @@ Options:
 
 from __future__ import division
 
+import os
 from tools import docopt, scripting
 from libraries import structures
 from fetch_data import fetch_data
