@@ -294,7 +294,7 @@ class WithFragmentLibs (object):
         import re
 
         sizes = []
-        pattern = re.compile(r'(\d+)backup\.rewrite\.gz')
+        pattern = re.compile(r'(\d+)mers\.rewrite\.gz')
 
         for path in self.fragments_paths(input_path):
             match = pattern.search(path)
@@ -305,7 +305,7 @@ class WithFragmentLibs (object):
 
     def fragments_paths(self, input_path):
         tag = self.fragments_tag(input_path)
-        pattern = os.path.join(self.fragments_dir, tag+'?', '*rewrite.gz')
+        pattern = os.path.join(self.fragments_dir, tag+'?', '*mers.rewrite.gz')
         paths = sorted(glob.glob(pattern), reverse=True)
         return paths + ['none'] if paths else []
 
