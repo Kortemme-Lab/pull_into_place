@@ -31,7 +31,7 @@ from tools import docopt, scripting, cluster
 
 with scripting.catch_and_print_errors():
     args = docopt.docopt(__doc__)
-    cluster.require_chef()
+    cluster.require_qsub()
 
     # Setup the workspace.
 

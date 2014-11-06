@@ -16,7 +16,7 @@ from libraries import pipeline
 
 with scripting.catch_and_print_errors():
     args = docopt.docopt(__doc__)
-    cluster.require_chef()
+    cluster.require_qsub()
 
     workspace = pipeline.ValidatedDesigns(args['<name>'], args['<round>'])
     workspace.check_paths()
