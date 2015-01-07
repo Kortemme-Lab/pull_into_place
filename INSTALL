@@ -1,8 +1,8 @@
 Installation
 ============
-Install the KicRemodel pipeline simply by cloning:
+Install the Pull Into Place pipeline simply by cloning:
 
-$ git clone http://guybrush.ucsf.edu/gitlab/kortemme-lab/kic_remodel.git
+$ git clone http://guybrush.ucsf.edu/gitlab/kortemme-lab/pull_into_place.git
 
 Dependencies
 ============
@@ -10,8 +10,10 @@ In general, there are two types of scripts in this pipeline: those that run on
 the cluster and those that analyze results.  The cluster scripts don't require 
 anything beyond Sun Grid Engine (SGE) and the python 2.6 standard distribution.  
 The analysis scripts typically require python 2.7 and the full complement of 
-scientific python packages.  The view_models.py script requires GUI libraries, 
-as well.  All the packages needed to run the analysis scripts are listed below:
+scientific python packages.  The view_models.py script additionally requires 
+the Gtk2 GUI library, which is often pre-installed on Linux and is probably 
+possible to install on other systems as well.  All the packages needed to run 
+the analysis scripts are listed below:
 
 python 2.7
 numpy 1.9

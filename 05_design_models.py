@@ -57,7 +57,7 @@ with scripting.catch_and_print_errors():
     # Submit the design job.
 
     big_job.submit(
-            'kr_design.py', workspace,
+            'pip_design.py', workspace,
             inputs=inputs, nstruct=nstruct,
             max_runtime=args['--max-runtime'],
             max_memory=args['--max-memory'],

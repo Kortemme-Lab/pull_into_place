@@ -47,7 +47,7 @@ with scripting.catch_and_print_errors():
     # Submit the model building job.
 
     big_job.submit(
-            'kr_build.py', workspace,
+            'pip_build.py', workspace,
             nstruct=arguments['--nstruct'],
             max_runtime=arguments['--max-runtime'],
             max_memory=arguments['--max-memory'],
