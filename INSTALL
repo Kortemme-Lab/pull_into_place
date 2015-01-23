@@ -1,8 +1,10 @@
 Installation
 ============
-Install the Pull Into Place pipeline simply by cloning:
+Install the Pull Into Place pipeline by cloning its git repository with the 
+following command.  The --recursive option tells git to also clone the 'tools' 
+submodule used by PIP.
 
-$ git clone http://guybrush.ucsf.edu/gitlab/kortemme-lab/pull_into_place.git
+$ git clone --recursive https://guybrush.ucsf.edu/gitlab/kortemme-lab/pull_into_place.git
 
 Dependencies
 ============
