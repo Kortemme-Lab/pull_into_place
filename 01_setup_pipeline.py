@@ -154,6 +154,9 @@ with scripting.catch_and_print_errors():
     rosetta_path = os.path.abspath(settings['rosetta_path'])
     os.symlink(rosetta_path, workspace.rosetta_dir)
 
+    # Note, the input pdb will be given a pdb.gz file name even if the user 
+    # supplies a regular pdb file.
+
     shutil.copyfile(settings['input_pdb'], workspace.input_pdb_path)
     shutil.copyfile(settings['loops_path'], workspace.loops_path)
     shutil.copyfile(settings['resfile_path'], workspace.resfile_path)

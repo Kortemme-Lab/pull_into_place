@@ -8,7 +8,7 @@ sequence but rare for the original one might not get sampled.  However, we
 believe that the improved sampling that fragments offer outweighs this 
 potential drawback.
 
-Usage: 02_setup_model_fragments.py <name> <chain>
+Usage: 02_setup_model_fragments.py <name>
 """
 
 import subprocess
@@ -29,7 +29,6 @@ with scripting.catch_and_print_errors():
 
     generate_fragments = [
             'tools/bio/fragments/generate_fragments.py',
-            '--chain', args['<chain>'],
             '--loops_file', workspace.loops_path,
             '--outdir', workspace.fragments_dir,
             workspace.input_pdb_path,
