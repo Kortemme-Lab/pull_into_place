@@ -6,6 +6,33 @@ submodule used by PIP.
 
 $ git clone --recursive https://guybrush.ucsf.edu/gitlab/kortemme-lab/pull_into_place.git
 
+Installation on the UCSF Cluster
+================================
+If you are cloning PIP on the UCSF cluster and are using the Kortemme lab's SSH 
+tunneling tricks, then you can't use the command above because it will crash 
+when it tries to clone the 'tools' submodule without going through a tunnel.  
+Instead, use this set of commands to install PIP:
+
+$ git clone git@gitlab:kortemme-lab/pull_into_place.git
+$ cd pull_into_place
+$ git submodule init
+$ vim .git/config   
+
+In the editor, change the lines that say:
+    
+[submodule "tools"]
+    url = git@guybrush.ucsf.edu:kortemme-lab/tools.git
+
+to:
+    
+[submodule "tools"]
+    url = git@gitlab:kortemme-lab/tools.git
+
+where 'gitlab' is the name of your tunnel to guybrush.ucsf.edu on port 22.  The 
+save, exit, and run one last command to clone the 'tools' submodule:
+
+$ git submodule update
+
 Dependencies
 ============
 In general, there are two types of scripts in this pipeline: those that run on 
