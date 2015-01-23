@@ -15,7 +15,19 @@ Options:
         it with the new design created by this script.
 """
 
-import os, shutil
+import os, re, shutil, subprocess
+
+def ensure_path_exists(path):
+    if not os.path.exists(path):
+        print "'{0}' does not exist.".format(path)
+        raise ValueError
+
+def ensure_path_is_pdb(path):
+    ensure_path_exists(path)
+    if not re.match('.+(\.pdb|\.pdb\.gz)$', path):
+        print "'{0}' is not a PDB file.".format(path)
+        raise ValueError
+
 
 keys = (   # (fold)
         'rosetta_path',
@@ -95,15 +107,15 @@ setting is used by scripts that keep the two locations in sync.""",
 }
 
 validators = {   # (fold)
-        'rosetta_path': os.path.exists,
-        'input_pdb': os.path.exists,
-        'loops_path': os.path.exists,
-        'resfile_path': os.path.exists,
-        'restraints_path': os.path.exists,
-        'build_script': os.path.exists,
-        'design_script': os.path.exists,
-        'validate_script': os.path.exists,
-        'flags_path': os.path.exists,
+        'rosetta_path': ensure_path_exists,
+        'input_pdb': ensure_path_is_pdb,
+        'loops_path': ensure_path_exists,
+        'resfile_path': ensure_path_exists,
+        'restraints_path': ensure_path_exists,
+        'build_script': ensure_path_exists,
+        'design_script': ensure_path_exists,
+        'validate_script': ensure_path_exists,
+        'flags_path': ensure_path_exists,
 }
 
 
@@ -139,11 +151,10 @@ with scripting.catch_and_print_errors():
             if settings[key] == '' and 'optional' in prompts[key]:
                 print "Skipping optional input."
                 break
-            elif key not in validators or validators[key](settings[key]):
-                break
-            else:        
-                print "'{0}' does not exist.".format(settings[key])
-                print
+
+            try: key in validators and validators[key](settings[key])
+            except ValueError: continue
+            else: break
 
         print
 
@@ -154,10 +165,12 @@ with scripting.catch_and_print_errors():
     rosetta_path = os.path.abspath(settings['rosetta_path'])
     os.symlink(rosetta_path, workspace.rosetta_dir)
 
-    # Note, the input pdb will be given a pdb.gz file name even if the user 
-    # supplies a regular pdb file.
+    if settings['input_pdb'].endswith('.pdb.gz'):
+        shutil.copyfile(settings['input_pdb'], workspace.input_pdb_path)
+    else:
+        subprocess.call('gzip -c {} > {}'.format(
+                settings['input_pdb'], workspace.input_pdb_path), shell=True)
 
-    shutil.copyfile(settings['input_pdb'], workspace.input_pdb_path)
     shutil.copyfile(settings['loops_path'], workspace.loops_path)
     shutil.copyfile(settings['resfile_path'], workspace.resfile_path)
     shutil.copyfile(settings['restraints_path'], workspace.restraints_path)
