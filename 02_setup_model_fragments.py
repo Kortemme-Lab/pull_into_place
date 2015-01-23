@@ -30,8 +30,9 @@ with scripting.catch_and_print_errors():
     generate_fragments = [
             'tools/bio/fragments/generate_fragments.py',
             '--chain', args['<chain>'],
-            '--loop_file', workspace.loops_path,
+            '--loops_file', workspace.loops_path,
             '--outdir', workspace.fragments_dir,
             workspace.input_pdb_path,
     ]
+    print ' '.join(generate_fragments) 
     subprocess.call(generate_fragments)
