@@ -22,6 +22,22 @@ def ensure_path_exists(path):
         print "'{0}' does not exist.".format(path)
         raise ValueError
 
+def ensure_path_is_rosetta(path):
+    ensure_path_exists(path)
+
+    rosetta_paths = [
+            os.path.join(path, 'database'),
+            os.path.join(path, 'test'),
+            os.path.join(path, 'source'),
+            os.path.join(path, 'source', 'bin'),
+    ]
+    rosetta_paths_exist = map(
+            os.path.exists, rosetta_paths)
+
+    if not all(rosetta_paths_exist):
+        print "'{0}' does not appear to be the main rosetta directory."
+        raise ValueError
+
 def ensure_path_is_pdb(path):
     ensure_path_exists(path)
     if not re.match('.+(\.pdb|\.pdb\.gz)$', path):
@@ -56,10 +72,11 @@ prompts = {   # (fold)
 }
 descriptions = {   # (fold)
         'rosetta_path': """\
-Rosetta checkout: Rosetta is used both locally and on the cluster.  Because 
-paths are often different between machines, this setting is not copied to the 
-cluster.  Instead, you must manually specify it by making a symlink called 
-rosetta in the design directory.""",
+Rosetta checkout: Path to the main directory of a Rosetta source code checkout.  
+This is the directory called 'main' in a normal rosetta checkout.  Rosetta is 
+used both locally and on the cluster, but the path you specify here probably 
+won't apply to both machines.  You can manually correct the path by changing 
+the symlink called 'rosetta' in the workspace directory.""",
 
         'input_pdb': """\
 Input PDB file: A structure containing the functional groups to be positioned.  
@@ -107,7 +124,7 @@ setting is used by scripts that keep the two locations in sync.""",
 }
 
 validators = {   # (fold)
-        'rosetta_path': ensure_path_exists,
+        'rosetta_path': ensure_path_is_rosetta,
         'input_pdb': ensure_path_is_pdb,
         'loops_path': ensure_path_exists,
         'resfile_path': ensure_path_exists,

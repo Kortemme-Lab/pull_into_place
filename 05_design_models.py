@@ -39,8 +39,9 @@ with scripting.catch_and_print_errors():
     # Setup the workspace.
 
     workspace = pipeline.FixbbDesigns(args['<name>'], args['<round>'])
-    workspace.make_dirs()
     workspace.check_paths()
+    workspace.check_rosetta()
+    workspace.make_dirs()
 
     if args['--clear'] or args['--test-run']:
         workspace.clear_outputs()
