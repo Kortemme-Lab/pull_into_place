@@ -217,7 +217,7 @@ class BigJobWorkspace (Workspace):
 
     @property
     def output_subdirs(self):
-        return [self.output_subdirs]
+        return [self.output_dir]
 
     @property
     def output_paths(self):
