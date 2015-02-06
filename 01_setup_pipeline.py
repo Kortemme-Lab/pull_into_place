@@ -15,7 +15,35 @@ Options:
         it with the new design created by this script.
 """
 
-import os, shutil
+import os, re, shutil, subprocess
+
+def ensure_path_exists(path):
+    if not os.path.exists(path):
+        print "'{0}' does not exist.".format(path)
+        raise ValueError
+
+def ensure_path_is_rosetta(path):
+    ensure_path_exists(path)
+
+    rosetta_paths = [
+            os.path.join(path, 'database'),
+            os.path.join(path, 'test'),
+            os.path.join(path, 'source'),
+            os.path.join(path, 'source', 'bin'),
+    ]
+    rosetta_paths_exist = map(
+            os.path.exists, rosetta_paths)
+
+    if not all(rosetta_paths_exist):
+        print "'{0}' does not appear to be the main rosetta directory."
+        raise ValueError
+
+def ensure_path_is_pdb(path):
+    ensure_path_exists(path)
+    if not re.match('.+(\.pdb|\.pdb\.gz)$', path):
+        print "'{0}' is not a PDB file.".format(path)
+        raise ValueError
+
 
 keys = (   # (fold)
         'rosetta_path',
@@ -44,10 +72,11 @@ prompts = {   # (fold)
 }
 descriptions = {   # (fold)
         'rosetta_path': """\
-Rosetta checkout: Rosetta is used both locally and on the cluster.  Because 
-paths are often different between machines, this setting is not copied to the 
-cluster.  Instead, you must manually specify it by making a symlink called 
-rosetta in the design directory.""",
+Rosetta checkout: Path to the main directory of a Rosetta source code checkout.  
+This is the directory called 'main' in a normal rosetta checkout.  Rosetta is 
+used both locally and on the cluster, but the path you specify here probably 
+won't apply to both machines.  You can manually correct the path by changing 
+the symlink called 'rosetta' in the workspace directory.""",
 
         'input_pdb': """\
 Input PDB file: A structure containing the functional groups to be positioned.  
@@ -95,15 +124,15 @@ setting is used by scripts that keep the two locations in sync.""",
 }
 
 validators = {   # (fold)
-        'rosetta_path': os.path.exists,
-        'input_pdb': os.path.exists,
-        'loops_path': os.path.exists,
-        'resfile_path': os.path.exists,
-        'restraints_path': os.path.exists,
-        'build_script': os.path.exists,
-        'design_script': os.path.exists,
-        'validate_script': os.path.exists,
-        'flags_path': os.path.exists,
+        'rosetta_path': ensure_path_is_rosetta,
+        'input_pdb': ensure_path_is_pdb,
+        'loops_path': ensure_path_exists,
+        'resfile_path': ensure_path_exists,
+        'restraints_path': ensure_path_exists,
+        'build_script': ensure_path_exists,
+        'design_script': ensure_path_exists,
+        'validate_script': ensure_path_exists,
+        'flags_path': ensure_path_exists,
 }
 
 
@@ -139,11 +168,10 @@ with scripting.catch_and_print_errors():
             if settings[key] == '' and 'optional' in prompts[key]:
                 print "Skipping optional input."
                 break
-            elif key not in validators or validators[key](settings[key]):
-                break
-            else:        
-                print "'{0}' does not exist.".format(settings[key])
-                print
+
+            try: key in validators and validators[key](settings[key])
+            except ValueError: continue
+            else: break
 
         print
 
@@ -154,7 +182,12 @@ with scripting.catch_and_print_errors():
     rosetta_path = os.path.abspath(settings['rosetta_path'])
     os.symlink(rosetta_path, workspace.rosetta_dir)
 
-    shutil.copyfile(settings['input_pdb'], workspace.input_pdb_path)
+    if settings['input_pdb'].endswith('.pdb.gz'):
+        shutil.copyfile(settings['input_pdb'], workspace.input_pdb_path)
+    else:
+        subprocess.call('gzip -c {} > {}'.format(
+                settings['input_pdb'], workspace.input_pdb_path), shell=True)
+
     shutil.copyfile(settings['loops_path'], workspace.loops_path)
     shutil.copyfile(settings['resfile_path'], workspace.resfile_path)
     shutil.copyfile(settings['restraints_path'], workspace.restraints_path)

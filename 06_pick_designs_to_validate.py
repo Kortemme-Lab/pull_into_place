@@ -16,7 +16,6 @@ Options:
     --temp TEMP, -t TEMP        [default: 2.0]
         The parameter controlling how often low scoring designs are picked.
 
-
     --clear, -x
         Forget about any designs that were previously picked for validation.
 
@@ -54,6 +53,7 @@ with scripting.catch_and_print_errors():
             predecessor.output_dir,
             predecessor.restraints_path,
             not args['--recalc'])
+    seqs_scores.dropna(inplace=True)
     print 'Total number of designs:      ', len(seqs_scores)
 
     # If a query was given on the command line, find models that satisfy it.

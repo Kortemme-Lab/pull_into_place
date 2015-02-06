@@ -33,12 +33,13 @@ from tools import docopt, scripting, cluster
 
 with scripting.catch_and_print_errors():
     arguments = docopt.docopt(__doc__)
-    cluster.require_chef()
+    cluster.require_qsub()
 
     # Setup the workspace.
 
     workspace = pipeline.RestrainedModels(arguments['<name>'])
     workspace.check_paths()
+    workspace.check_rosetta()
     workspace.make_dirs()
 
     if arguments['--clear'] or arguments['--test-run']:
@@ -47,7 +48,7 @@ with scripting.catch_and_print_errors():
     # Submit the model building job.
 
     big_job.submit(
-            'kr_build.py', workspace,
+            'pip_build.py', workspace,
             nstruct=arguments['--nstruct'],
             max_runtime=arguments['--max-runtime'],
             max_memory=arguments['--max-memory'],

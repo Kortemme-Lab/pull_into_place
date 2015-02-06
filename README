@@ -1,10 +1,10 @@
 Introduction
 ============
-KicRemodel is a protocol to design protein functional groups with sub-angstrom 
-accuracy.  The protocol is based on two ideas: 1) using restraints to define 
-the geometry you're trying to design and 2) using an unrestrained simulations 
-to test designs.  In particular, the design pipeline used by KicRemodel has the 
-following steps:
+Pull Into Place (PIP) is a protocol to design protein functional groups with 
+sub-angstrom accuracy.  The protocol is based on two ideas: 1) using restraints 
+to define the geometry you're trying to design and 2) using an unrestrained 
+simulations to test designs.  In particular, the design pipeline used by PIP
+has the following steps:
 
 0. Define your project.  This entails creating an input PDB file and preparing 
    it for use with rosetta, creating a restraints file that specifies your 
@@ -24,16 +24,18 @@ following steps:
 4. Pick a small number of designs to validate.  Typically I generate 100,000 
    designs and can only validate 50-100.  I've found that randomly picking 
    designs according to the Boltzmann weight of their rosetta score gives a 
-   good mix of designs that are good but not too homogeneous.
+   nice mix of designs that are good but not too homogeneous.
 
 5. Validate the designs using unrestrained Monte Carlo simulations.  Designs 
    that are "successful" will have a funnel on the left side of their score vs 
    rmsd plots.
 
 6. Optionally take the decoys with the best geometry from the validation run 
-   (even if they didn't score well) and feed them back into step 3.  A second 
-   round of simulation usually produces much better results than the first, 
-   because the models being designed are more realistic.
+   (even if they didn't score well) and feed them back into step 3.  Second and 
+   third rounds of simulation usually produce much better results than the 
+   first, because the models being designed are more realistic.  Additional 
+   rounds of simulation give diminishing returns, and may be more effected by 
+   some of rosetta's pathologies (i.e. it's preference for aromatic residues).
 
 Usage
 =====
@@ -41,8 +43,8 @@ This repository contains a set of scripts that make it easy to perform each of
 these steps described above.  The core scripts responsible for carrying out the 
 pipeline are all stored in the root of the repository and are numbered in the 
 order they're meant to be run in.  Note that some of these scripts must be run 
-on the chef.  Also in the root directory is the view_models.py script, which is 
-useful for visualizing results at almost every stage of the pipeline.
+on the cluster.  Also in the root directory is the view_models.py script, which 
+is useful for visualizing results at almost every stage of the pipeline.
 
 The scripts/ subdirectory contains other assorted scripts that are useful, but 
 not central to the pipeline.  For example, this includes scripts to send data 
@@ -51,7 +53,7 @@ used by the core scripts, and other things like that.
 
 Each script will give a description of what it does and how it is supposed to 
 be used if you pass it the '-h' or '--help' flags.  In general, the first 
-argument each script is the path to the directory containing all of the data 
+argument to each script is the path to the directory containing all of the data 
 for a particular design.  This directory is created by 01_setup_pipeline.py and 
 is referred to as the "name" of the design.  Several of the scripts also take a 
 round number as a second argument.
@@ -81,7 +83,7 @@ libraries.pipeline:
 
 libraries.structures:
     This module provides a function that will read a directory of PDB files and 
-    return a pandas data frame containing a number of score, distance, and 
+    return a pandas.DataFrame containing a number of score, distance, and 
     sequence metrics for each structure.  This information is also cached, 
     because it takes a while to calculate up front.  Note that the cache files 
     are pickles and seem to depend very closely on the version of pandas used 
@@ -91,7 +93,7 @@ libraries.structures:
 libraries.big_jobs:
     This module provides a simple wrapper around the cluster submission 
     process.  This makes it easy to both submit jobs to the queue and to 
-    configure jobs once the come off the queue and onto a node.
+    configure jobs once they come off the queue and onto a node.
 
 tools.scripting:
     This module provides a handful of simple functions that just make scripting 

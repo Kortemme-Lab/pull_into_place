@@ -31,7 +31,7 @@ from tools import docopt, scripting, cluster
 
 with scripting.catch_and_print_errors():
     args = docopt.docopt(__doc__)
-    cluster.require_chef()
+    cluster.require_qsub()
 
     # Setup the workspace.
 
@@ -54,7 +54,7 @@ with scripting.catch_and_print_errors():
     # Launch the validation job.
 
     big_job.submit(
-            'kr_validate.py', workspace,
+            'pip_validate.py', workspace,
             inputs=inputs, nstruct=nstruct,
             max_runtime=args['--max-runtime'],
             max_memory=args['--max-memory'],

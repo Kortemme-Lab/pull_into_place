@@ -5,7 +5,7 @@ This module defines the Workspace classes that are central to every script.
 The role of these classes is to provide paths to all the data files used in any 
 part of the pipeline and to hide the organization of the directories containing 
 those files.  The base Workspace class deals with files in the root directory 
-of a design.  It subclasses deal with file in the different subdirectories of 
+of a design.  It's subclasses deal with file in the different subdirectories of 
 the design, each of which is related to a cluster job.
 """
 
@@ -147,8 +147,8 @@ class Workspace (object):
         default_path = os.path.join(self.root_dir, basename)
         return custom_path if os.path.exists(custom_path) else default_path
 
-    def required_paths(self):
-        return [
+    def check_paths(self):
+        required_paths = [
                 self.input_pdb_path,
                 self.loops_path,
                 self.resfile_path,
@@ -158,9 +158,16 @@ class Workspace (object):
                 self.validate_script_path,
                 self.flags_path,
         ]
+        for path in required_paths:
+            if not os.path.exists(path):
+                raise PathNotFound(path)
 
-    def check_paths(self):
-        for path in self.required_paths():
+    def check_rosetta(self):
+        required_paths = [
+                self.rosetta_database_path,
+                self.rosetta_scripts_path,
+        ]
+        for path in required_paths:
             if not os.path.exists(path):
                 raise PathNotFound(path)
 
@@ -210,7 +217,7 @@ class BigJobWorkspace (Workspace):
 
     @property
     def output_subdirs(self):
-        return [self.output_subdirs]
+        return [self.output_dir]
 
     @property
     def output_paths(self):
