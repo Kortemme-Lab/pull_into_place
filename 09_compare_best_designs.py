@@ -28,6 +28,14 @@ from tools import docopt, scripting
 from libraries import pipeline, structures
 
 class Design (object):
+    """
+    Represent a single validated design, or a single row in the spreadsheet 
+    produced by this script.  Each design is associated with 500 scores, 500 
+    restraint distances, and a "representative" (i.e. lowest scoring) model.  
+    The representative has its own score and restraint distance, plus a path to 
+    a PDB structure.  All of information is used to calculate the various 
+    metrics that are reported by this script.
+    """
 
     def __init__(self, directory):
         self.directory = directory
@@ -61,6 +69,29 @@ class Design (object):
 
 
 class Metric (object):
+    """
+    The metric classes each represent a way of comparing different validated 
+    designs, or a single column in the spreadsheet produced by this script.  
+    The script will begin by calling the load() method for each metric.  
+    Subclasses should overload this method and use it to calculate values for 
+    each design.  If each design can be considered separately, it may be easier 
+    to overload load_cell() instead of load() itself.  Once that is done, the 
+    remaining methods will be called to fill out the spreadsheet.  
+    
+    The face_value() method should reimplemented to return the value to 
+    display in the spreadsheet.  The score_value() method should return a 
+    value that can be used to sort the designs from best to worst.  Bigger 
+    numbers are taken to be better.  By default score_value() returns the same 
+    thing as face_value(), but metrics where smaller numbers are better (e.g. 
+    RMSD) may have to overload score_value() to flip the sign.  The compare() 
+    method calls score_value() to determine which of two designs is "better" by 
+    the metric in question.
+
+    The header_format() and cell_format() methods use a lot of the information 
+    that can be specified using the class variable defined below to return 
+    dictionaries describing how the metric's column should be formatted.  These 
+    methods can also be reimplemented, if so desired.
+    """
     title = "Unnamed Metric"
     align = "left"
     width = 18
@@ -100,6 +131,9 @@ class Metric (object):
 
 
 class DesignNameMetric (Metric):
+    """
+    Make a column that just lists the name of each design.
+    """
     title = "Design Name"
     align = 'left'
     width = 25
@@ -114,6 +148,10 @@ class DesignNameMetric (Metric):
 
 
 class ResfileSequenceMetric (Metric):
+    """
+    Make a column that shows the amino acid identities of the positions that 
+    were allowed to design.
+    """
     title = "Resfile Sequence"
     align = 'left'
     font_name = 'Monospace'
@@ -129,6 +167,14 @@ class ResfileSequenceMetric (Metric):
 
 
 class ClusterMetric (Metric):
+    """
+    Make a column that shows which designs are the most structurally similar.  
+    This metric works by creating a hierarchical clustering of all the design 
+    "representatives" based on loop backbone RMSD.  Clusters are then made such 
+    that every member in every closer is within a certain RMSD (1Å) of all its 
+    peers.  This column is nice because it makes it easier to compare apples to 
+    apples, as it were.
+    """
     title = "Cluster ID"
     progress_update = "Clustering designs..."
     align = 'center'
@@ -250,6 +296,9 @@ class ClusterMetric (Metric):
 
 
 class RestraintDistMetric (Metric):
+    """
+    Make a column that shows how well each design satisfies the design goal.
+    """
     title = u"Restraint Dist (Å)"
     progress_update = "Calculating quality metrics..."
     align = 'center'
@@ -267,6 +316,12 @@ class RestraintDistMetric (Metric):
 
 
 class ScoreGapMetric (Metric):
+    """
+    Make a column that shows the difference in score between the lowest scoring 
+    models with restraint distances less than and greater than 1Å and 2Å, 
+    respectively.  This is a rough way to get an idea for how deep the score 
+    vs. RMSD funnel is for each design.
+    """
     title = "Score Gap (REU)"
     align = 'center'
     num_format = '0.00'
@@ -289,6 +344,10 @@ class ScoreGapMetric (Metric):
 
 
 class PercentSubangstromMetric (Metric):
+    """
+    Make a column that shows what percent of the validation run predictions had 
+    sub-angstrom restraint distances.
+    """
     title = "% Subangstrom"
     align = 'center'
     num_format = '0.00'
@@ -304,6 +363,12 @@ class PercentSubangstromMetric (Metric):
 
 
 class BuriedUnsatHbondMetric (Metric):
+    """
+    Make a column that shows how many buried unsatisfied H-bonds each design 
+    has.  This is something that is not accounted for by the rosetta function, 
+    but can do a very good job discriminating reasonable backbones from 
+    horrible ones.
+    """
     title = "# Buried Unsats"
     align = 'center'
     num_format = '"+"0;"-"0'
@@ -321,6 +386,11 @@ class BuriedUnsatHbondMetric (Metric):
 
 
 class DunbrackScoreMetric (Metric):
+    """
+    Make a column that shows the Dunbrack score for each residue that was part 
+    of the design goal (i.e. was restrained in the building step).  High 
+    Dunbrack scores indicate unlikely sidechain conformations.
+    """
     title = "Dunbrack (REU)"
     align = 'center'
     num_format = '0.00'
@@ -339,6 +409,9 @@ class DunbrackScoreMetric (Metric):
 
 
 def find_validation_workspaces(name, round=None):
+    """
+    Find all the workspaces containing validated designs.
+    """
     workspaces = []
 
     for round in [round] if round else itertools.count(1):
@@ -352,6 +425,11 @@ def find_validation_workspaces(name, round=None):
     return workspaces
 
 def find_reasonable_designs(workspaces, threshold=None):
+    """
+    Return a list of design where the representative model has a restraint 
+    distance less that the given threshold.  The default threshold (1.2) is 
+    fairly lenient.
+    """
     print "Loading designs..."
 
     designs = []
@@ -368,6 +446,12 @@ def find_reasonable_designs(workspaces, threshold=None):
     return designs
 
 def calculate_quality_metrics(designs, verbose=False):
+    """
+    Have each metric calculate all the information it needs.  Any class that 
+    subclasses Metric is considered a metric, and some python magic is used to 
+    automatically identify all these subclasses.
+    """
+    
     # In the future, this function should look for more quality metrics in a 
     # python script that may optionally be placed in the root directory of the 
     # workspace in question.
@@ -381,9 +465,22 @@ def calculate_quality_metrics(designs, verbose=False):
     return metrics
 
 def find_pareto_optimal_designs(designs, metrics, verbose=False):
+    """
+    Prune designs that are not on the Pareto front.  In other words, we want to 
+    get rid of designs that are worse by every metric to at least one other 
+    design.  The idea is that we would never want to use these designs, because 
+    we would instead use the one that is better in every way.
+
+    Currently this method is a no-op, because I didn't have the energy to 
+    actually implement it.  If you really need this feature, you should be able 
+    to write it here and plug it in with no issue.
+    """
     return designs
 
 def report_quality_metrics(designs, metrics, path):
+    """
+    Create a nicely formatted spreadsheet showing all the designs and metrics.
+    """
     import xlsxwriter
     print "Reporting quality metrics..."
 
@@ -452,6 +549,11 @@ def report_quality_metrics(designs, metrics, path):
     workbook.close()
 
 def report_score_vs_rmsd_funnels(designs, path):
+    """
+    Create a PDF showing the score vs. RMSD funnels for all the reasonable 
+    designs.  This method was copied from an old version of this script, and 
+    does not currently work.
+    """
     from matplotlib.backends.backend_pdf import PdfPages
     import matplotlib.pyplot as plt
 
@@ -476,6 +578,11 @@ def report_score_vs_rmsd_funnels(designs, path):
     pdf.close()
 
 def report_pymol_sessions(designs, directory):
+    """
+    Create pymol session for each reasonable design representative.  This 
+    method was copied from an old version of this script, and does not 
+    currently work.
+    """
     print "Reporting pymol sessions..."
 
     if os.path.exists(directory): shutil.rmtree(directory)
@@ -503,6 +610,6 @@ with scripting.catch_and_print_errors():
     designs = find_pareto_optimal_designs(designs, metrics, args['--verbose'])
 
     report_quality_metrics(designs, metrics, prefix + 'quality_metrics.xlsx')
-    #report_score_vs_rmsd_funnels(designs, '{}score_vs_rmsd.pdf'.format(prefix))
-    #report_pymol_sessions(designs, '{}pymol_sessions'.format(prefix))
+    #report_score_vs_rmsd_funnels(designs, prefix + 'score_vs_rmsd.pdf')
+    #report_pymol_sessions(designs, prefix + 'pymol_sessions')
 
