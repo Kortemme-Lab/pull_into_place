@@ -446,6 +446,40 @@ def workspace_from_dir(directory, recurse=True):
 
     return workspace_class.from_directory(directory)
 
+def load_loops(directory, loops_path=None):
+    """
+    Return a list of tuples indicating the start and end points of the loops 
+    that were sampled in the given directory.
+    """
+
+    if loops_path is None:
+        workspace = workspace_from_dir(directory)
+        loops_path = workspace.loops_path
+
+    from tools.rosetta.input_files import LoopsFile
+    loops_parser = LoopsFile.from_filepath(loops_path)
+
+    # We have to account for some weird indexing behavior in the loops file 
+    # parser that I don't really understand.  It seems to shrink the loop by 
+    # one residue on each side.  At first I thought it might be trying to 
+    # convert the indices to python indexing, but on second thought I have no 
+    # idea what it's trying to do.
+
+    return [(x-1, y+1) for x, y in loops_parser.get_distinct_segments()]
+
+def load_resfile(directory, resfile_path=None):
+    """
+    Return a list of tuples indicating the start and end points of the loops 
+    that were sampled in the given directory.
+    """
+
+    if resfile_path is None:
+        workspace = workspace_from_dir(directory)
+        resfile_path = workspace.resfile_path
+
+    from tools.rosetta.input_files import Resfile
+    return Resfile(resfile_path)
+
 
 class PipelineError (IOError):
 
