@@ -76,7 +76,6 @@ class ModelGroup (object):
     def notes(self):
         return self._notes
 
-    @notes.setter
     def set_notes(self, notes):
         self._notes = notes
         self._save_notes()
@@ -123,6 +122,11 @@ class ModelGroup (object):
         else:
             raise ValueError, "Unknown distance metric '{}'.".format(metric)
 
+    def get_name(self):
+        round = re.search('round_(\d+)', self.directory).group(1)
+        name = re.search('(\d{4})', self.directory).group(1)
+        return 'round_{}.design_{}'.format(round, name)
+
 
     def _load_annotations(self):
         try:
@@ -141,7 +145,6 @@ class ModelGroup (object):
 
     def _load_scores_and_dists(self, restraints, use_cache):
         from libraries import structures
-
         self.structures = structures.load(self.directory, restraints, use_cache)
 
     def _save_notes(self):
@@ -785,7 +788,7 @@ class ModelView (gtk.Window):
             for group in self.get_interesting_groups():
                 decoy = group.representative
                 config = base_config + '; save ' + os.path.join(
-                        directory, group.get_fancy_path('.pse'))
+                        directory, group.get_name() + '.pse')
 
                 open_in_pymol(group, decoy, config, gui=False)
 
@@ -874,7 +877,7 @@ class ModelView (gtk.Window):
         axes.axvline(1, color='gray', linestyle='--')
 
         if xlim is None:
-            axes.set_xlim(0, 10 if distance_metric == 'Loop RMSD' else 25)
+            axes.set_xlim(0, 10 if distance_metric == 'Loop RMSD' else 15)
         else:
             axes.set_xlim(0, xlim)
 
@@ -1036,36 +1039,25 @@ def load_models(directories, restraints=None, use_cache=True):
 
 def open_in_pymol(group, decoy, config, gui=True):
     import subprocess
+    from libraries import pipeline
+    from tools.rosetta.input_files import LoopsFile
 
     path = os.path.join(group.directory, group.paths[decoy])
-    paths = path, '../data/original_structures/4UN3.pdb.gz'
+    paths = path, '../data/cleaned/4UN3_renumbered.pdb.gz'
 
-    wt_name = '4UN3'
-    group_name = os.path.basename(path)[:-len('.pdb.gz')]
-
-    #job_target, decoy = os.path.split(path); decoy = decoy[:-len('.pdb.gz')]
-    #job, target = os.path.split(job_target)
-    #target_path = os.path.join(job, 'inputs', target + '.pdb.gz')
-    #wt_path = os.path.join('..', 'structures', 'wt-lig-dimer.pdb')
-    #paths = path, wt_path, target_path
-    #group_name = group.fancy_path
-
-    #glu_match = re.search('glu_(\d+)', path)
-    #glu_position = int(glu_match.group(1)) if glu_match else 38
-
-    #delete_match = re.search('delete_(\d+)', path)
-    #num_deletions = int(delete_match.group(1)) if delete_match else 0
-
-    #loop_name = 'delete_{}.glu_{}'.format(num_deletions, glu_position)
-
-    #resfile = os.path.join('..', '05.fixbb_design', loop_name + '.res')
-    #loop_file = os.path.join(job, 'loops.dat')
-
-    #with open(loop_file) as file:
-    #    fields = file.read().split()
-    #    loop_start = int(fields[1])
-    #    loop_stop = int(fields[2])
+    try:
+        workspace = pipeline.workspace_from_dir(group.directory)
+        resfile = workspace.resfile_path
+        with open(workspace.loops_path) as file:
+            fields = file.read().split()
+            loop_start = int(fields[1])
+            loop_stop = int(fields[2])
     
+    except pipeline.WorkspaceNotFound:
+        resfile, loop_start, loop_stop = '', 0, 0
+
+    wt_name = '4UN3_renumbered'
+    group_name = os.path.basename(path)[:-len('.pdb.gz')]
     config = config.format(**locals())
 
     if gui:

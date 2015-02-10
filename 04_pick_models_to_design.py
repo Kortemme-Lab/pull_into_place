@@ -68,9 +68,16 @@ with scripting.catch_and_print_errors():
 
     predecessor = workspace.predecessor
     num_models, num_selected, num_duplicates = 0, 0, 0
+    
+   # import sys
+    #print predecessor.output_subdirs
+
+    #for i in predecessor.output_subdirs:
+    #    print i
+    #sys.exit()
+
 
     for input_subdir in predecessor.output_subdirs:
-
         # Find models meeting the criteria specified on the command line.
 
         all_score_dists = structures.load(
