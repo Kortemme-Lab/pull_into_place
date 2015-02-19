@@ -54,7 +54,7 @@ with scripting.catch_and_print_errors():
     # Launch the validation job.
 
     big_job.submit(
-            'kr_validate.py', workspace,
+            'pip_validate.py', workspace,
             inputs=inputs, nstruct=nstruct,
             max_runtime=args['--max-runtime'],
             max_memory=args['--max-memory'],

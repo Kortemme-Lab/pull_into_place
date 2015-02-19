@@ -39,8 +39,9 @@ with scripting.catch_and_print_errors():
     # Setup the workspace.
 
     workspace = pipeline.FixbbDesigns(args['<name>'], args['<round>'])
-    workspace.make_dirs()
     workspace.check_paths()
+    workspace.check_rosetta()
+    workspace.make_dirs()
 
     if args['--clear'] or args['--test-run']:
         workspace.clear_outputs()
@@ -57,7 +58,7 @@ with scripting.catch_and_print_errors():
     # Submit the design job.
 
     big_job.submit(
-            'kr_design.py', workspace,
+            'pip_design.py', workspace,
             inputs=inputs, nstruct=nstruct,
             max_runtime=args['--max-runtime'],
             max_memory=args['--max-memory'],

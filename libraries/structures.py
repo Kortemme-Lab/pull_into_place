@@ -13,6 +13,8 @@ import sys, os, re, glob, collections, gzip
 import numpy as np, scipy as sp, pandas as pd
 from . import pipeline
 
+cache_basename = 'distances.pkl'
+
 def load(pdb_dir, restraints_path=None, use_cache=True, job_report=None):
     """
     Return a variety of score and distance metrics for the structures found in 
@@ -34,7 +36,7 @@ def load(pdb_dir, restraints_path=None, use_cache=True, job_report=None):
 
     pdb_paths = glob.glob(os.path.join(pdb_dir, '*.pdb.gz'))
     base_pdb_names = set(os.path.basename(x) for x in pdb_paths)
-    cache_path = os.path.join(pdb_dir, 'distances.pkl')
+    cache_path = os.path.join(pdb_dir, cache_basename)
 
     if use_cache and os.path.exists(cache_path):
         cached_records = pd.read_pickle(cache_path).to_dict('records')
@@ -186,7 +188,7 @@ def read_and_calculate(pdb_paths, restraints_path):
                         restraint_distances.append(distance)
 
         record['sequence'] = sequence
-        record['dunbrack_score'] = np.mean(dunbrack_scores)
+        record['dunbrack_score'] = np.max(dunbrack_scores)
         record['restraint_dist'] = np.mean(restraint_distances)
         records.append(record)
 

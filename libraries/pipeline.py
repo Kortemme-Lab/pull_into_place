@@ -5,7 +5,7 @@ This module defines the Workspace classes that are central to every script.
 The role of these classes is to provide paths to all the data files used in any 
 part of the pipeline and to hide the organization of the directories containing 
 those files.  The base Workspace class deals with files in the root directory 
-of a design.  It subclasses deal with file in the different subdirectories of 
+of a design.  It's subclasses deal with file in the different subdirectories of 
 the design, each of which is related to a cluster job.
 """
 
@@ -147,8 +147,8 @@ class Workspace (object):
         default_path = os.path.join(self.root_dir, basename)
         return custom_path if os.path.exists(custom_path) else default_path
 
-    def required_paths(self):
-        return [
+    def check_paths(self):
+        required_paths = [
                 self.input_pdb_path,
                 self.loops_path,
                 self.resfile_path,
@@ -158,9 +158,16 @@ class Workspace (object):
                 self.validate_script_path,
                 self.flags_path,
         ]
+        for path in required_paths:
+            if not os.path.exists(path):
+                raise PathNotFound(path)
 
-    def check_paths(self):
-        for path in self.required_paths():
+    def check_rosetta(self):
+        required_paths = [
+                self.rosetta_database_path,
+                self.rosetta_scripts_path,
+        ]
+        for path in required_paths:
             if not os.path.exists(path):
                 raise PathNotFound(path)
 
@@ -210,11 +217,15 @@ class BigJobWorkspace (Workspace):
 
     @property
     def output_subdirs(self):
-        return [self.output_subdirs]
+        return [self.output_dir]
 
     @property
     def output_paths(self):
         return glob.glob(os.path.join(self.input_dir, '*.pdb.gz'))
+
+    @property
+    def pdb_dirs(self):
+        return [self.input_dir] + self.output_subdirs
 
     @property
     def stdout_dir(self):
@@ -445,6 +456,40 @@ def workspace_from_dir(directory, recurse=True):
         workspace_class = pickle.load(file)
 
     return workspace_class.from_directory(directory)
+
+def load_loops(directory, loops_path=None):
+    """
+    Return a list of tuples indicating the start and end points of the loops 
+    that were sampled in the given directory.
+    """
+
+    if loops_path is None:
+        workspace = workspace_from_dir(directory)
+        loops_path = workspace.loops_path
+
+    from tools.rosetta.input_files import LoopsFile
+    loops_parser = LoopsFile.from_filepath(loops_path)
+
+    # We have to account for some weird indexing behavior in the loops file 
+    # parser that I don't really understand.  It seems to shrink the loop by 
+    # one residue on each side.  At first I thought it might be trying to 
+    # convert the indices to python indexing, but on second thought I have no 
+    # idea what it's trying to do.
+
+    return [(x-1, y+1) for x, y in loops_parser.get_distinct_segments()]
+
+def load_resfile(directory, resfile_path=None):
+    """
+    Return a list of tuples indicating the start and end points of the loops 
+    that were sampled in the given directory.
+    """
+
+    if resfile_path is None:
+        workspace = workspace_from_dir(directory)
+        resfile_path = workspace.resfile_path
+
+    from tools.rosetta.input_files import Resfile
+    return Resfile(resfile_path)
 
 
 class PipelineError (IOError):

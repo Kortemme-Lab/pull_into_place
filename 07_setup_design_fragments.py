@@ -20,6 +20,7 @@ with scripting.catch_and_print_errors():
 
     workspace = pipeline.ValidatedDesigns(args['<name>'], args['<round>'])
     workspace.check_paths()
+    workspace.check_rosetta()
     workspace.make_dirs()
     workspace.clear_fragments()
 
