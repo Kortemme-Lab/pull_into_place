@@ -53,11 +53,16 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
     cache_path = os.path.join(pdb_dir, 'distances.pkl')
 
     if use_cache and os.path.exists(cache_path):
-        cached_records = pd.read_pickle(cache_path).to_dict('records')
-        cached_paths = set(x['path'] for x in cached_records)
-        uncached_paths = [
-                pdb_path for pdb_path in pdb_paths
-                if os.path.basename(pdb_path) not in cached_paths]
+        try:
+            cached_records = pd.read_pickle(cache_path).to_dict('records')
+            cached_paths = set(x['path'] for x in cached_records)
+            uncached_paths = [
+                    pdb_path for pdb_path in pdb_paths
+                    if os.path.basename(pdb_path) not in cached_paths]
+        except:
+            print "Couldn't load '{}'".format(cache_path)
+            cached_records = []
+            uncached_paths = pdb_paths
     else:
         cached_records = []
         uncached_paths = pdb_paths
