@@ -62,6 +62,10 @@ class Workspace (object):
         return self.root_dir
 
     @property
+    def io_dirs(self):
+        return []
+
+    @property
     def rosetta_dir(self):
         return self.find_path('rosetta')
 
@@ -224,7 +228,7 @@ class BigJobWorkspace (Workspace):
         return glob.glob(os.path.join(self.input_dir, '*.pdb.gz'))
 
     @property
-    def pdb_dirs(self):
+    def io_dirs(self):
         return [self.input_dir] + self.output_subdirs
 
     @property
@@ -438,6 +442,7 @@ def workspace_from_dir(directory, recurse=True):
     called 'workspace.pkl' to be present in each workspace directory, which can 
     unfortunately be a little fragile.
     """
+    directory = os.path.abspath(directory)
     pickle_path = os.path.join(directory, 'workspace.pkl')
 
     # Make sure the given directory contains a 'workspace' file.  This file is 
