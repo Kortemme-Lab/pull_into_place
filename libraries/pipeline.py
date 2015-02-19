@@ -224,6 +224,10 @@ class BigJobWorkspace (Workspace):
         return glob.glob(os.path.join(self.input_dir, '*.pdb.gz'))
 
     @property
+    def pdb_dirs(self):
+        return [self.input_dir] + self.output_subdirs
+
+    @property
     def stdout_dir(self):
         return os.path.join(self.focus_dir, 'stdout')
 
