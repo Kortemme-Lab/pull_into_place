@@ -29,14 +29,14 @@ def submit(script, workspace, **params):
 
     # Submit the job and put it immediately into the hold state.
 
-    qsub_command = 'qsub', '-h'
+    qsub_command = 'qsub', '-h', '-cwd'
     qsub_command += '-o', workspace.stdout_dir, '-e', workspace.stderr_dir,
     qsub_command += '-t', '1-{0}'.format(nstruct),
     qsub_command += '-l', 'h_rt={0}'.format(max_runtime),
     qsub_command += '-l', 'mem_free={0}'.format(max_memory),
     qsub_command += pipeline.big_job_path(script), workspace.focus_dir,
 
-    status = process.check_output(qsub_command)
+    status = process.check_output(qsub_command, cwd=pipeline.pipeline_dir())
     status_pattern = re.compile(r'Your job-array (\d+).[0-9:-]+ \(".*"\) has been submitted')
     status_match = status_pattern.match(status)
 

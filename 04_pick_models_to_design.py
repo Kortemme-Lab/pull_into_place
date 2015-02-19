@@ -81,7 +81,9 @@ with scripting.catch_and_print_errors():
         # Find models meeting the criteria specified on the command line.
 
         all_score_dists = structures.load(
-                input_subdir, predecessor.restraints_path, not args['--recalc'])
+                input_subdir,
+                use_cache=not args['--recalc'],
+        )
         best_score_dists = all_score_dists.query(query)
         best_inputs = set(best_score_dists['path'])
 
