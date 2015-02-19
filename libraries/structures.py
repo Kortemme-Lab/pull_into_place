@@ -77,14 +77,12 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
     
     expected_metrics = [
             'total_score',
-            'dunbrack_score',
-            'buried_unsat_score',
             'restraint_dist',
-            'loop_dist',
             'sequence',
     ]
     for metric in expected_metrics:
         if metric not in all_records:
+            print all_records.keys()
             raise IOError("'{}' wasn't calculated for the models in '{}'".format(metric, pdb_dir))
 
     # If everything else looks good, cache the data frame so we can load faster 
