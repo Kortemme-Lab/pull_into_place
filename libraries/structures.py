@@ -188,7 +188,7 @@ def read_and_calculate(pdb_paths, restraints_path):
                         restraint_distances.append(distance)
 
         record['sequence'] = sequence
-        record['dunbrack_score'] = np.mean(dunbrack_scores)
+        record['dunbrack_score'] = np.max(dunbrack_scores)
         record['restraint_dist'] = np.mean(restraint_distances)
         records.append(record)
 
