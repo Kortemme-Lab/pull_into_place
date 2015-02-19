@@ -31,7 +31,7 @@ rosetta_command = [
         '-packing:resfile', workspace.resfile_path,
         '-score:weights', 'talaris2013_cst',
         '-constraints:cst_fa_file', workspace.restraints_path,
-        workspace.fragments_flags(workspace.input_pdb_path) + [
+        ] + workspace.fragments_flags(workspace.input_pdb_path) + [
         '@', workspace.flags_path,
 ]
 
