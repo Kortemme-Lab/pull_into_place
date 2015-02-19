@@ -10,7 +10,6 @@
 import os, sys; sys.path.append(os.getcwd())
 import subprocess
 from libraries import big_job
-from libraries import workspaces
 
 workspace, job_id, task_id, parameters = big_job.initiate()
 
