@@ -23,7 +23,8 @@ Options:
         Recalculate all the metrics that will be used to choose designs.
 
     --dry-run
-
+        Don't actually fill in the input directory of the validation workspace.  
+        Instead just report how many designs would be picked.
 """
 
 import os, sys, pylab
@@ -51,8 +52,8 @@ with scripting.catch_and_print_errors():
 
     seqs_scores = structures.load(
             predecessor.output_dir,
-            predecessor.restraints_path,
-            not args['--recalc'])
+            use_cache=not args['--recalc'],
+    )
     seqs_scores.dropna(inplace=True)
     print 'Total number of designs:      ', len(seqs_scores)
 

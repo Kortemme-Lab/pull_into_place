@@ -10,6 +10,7 @@ Usage: fetch_and_cache_models.py <directories>... [options]
 
 Options:
     --remote URL
+    --include-logs
     --restraints PATH
     --loop
 """
@@ -32,6 +33,6 @@ with scripting.catch_and_print_errors():
 
     while keep_going:
         for directory in directories:
-            fetch_data(directory, args['--remote'])
+            fetch_data(directory, args['--remote'], args['--include-logs'])
             structures.load(directory, args['--restraints'])
         keep_going = args['--loop']

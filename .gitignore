@@ -10,7 +10,7 @@
 !/07_setup_design_fragments.py
 !/08_validate_designs.py
 !/09_compare_best_designs.py
-!/view_models.py
+!/show_my_designs.py
 !/big_jobs/
 !/big_jobs/*
 !/libraries/

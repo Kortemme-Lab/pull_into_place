@@ -12,6 +12,11 @@ def submit(script, workspace, **params):
     if not os.path.exists(workspace.rosetta_dir):
         raise pipeline.RosettaNotFound(workspace)
 
+    # Make sure the current working directory is the PIP root.
+
+    if not os.path.samefile(os.getcwd(), pipeline.pipeline_dir()):
+        raise MustSubmitFromPipRoot()
+
     # Parse some job parameters for the keyword arguments.
 
     params = dict((k, v) for k, v in params.items() if v is not None)
@@ -29,12 +34,14 @@ def submit(script, workspace, **params):
 
     # Submit the job and put it immediately into the hold state.
 
-    qsub_command = 'qsub', '-h'
-    qsub_command += '-o', workspace.stdout_dir, '-e', workspace.stderr_dir,
+    qsub_command = 'qsub', '-h', '-cwd'
+    qsub_command += '-o', workspace.stdout_dir
+    qsub_command += '-e', workspace.stderr_dir
     qsub_command += '-t', '1-{0}'.format(nstruct),
     qsub_command += '-l', 'h_rt={0}'.format(max_runtime),
     qsub_command += '-l', 'mem_free={0}'.format(max_memory),
-    qsub_command += pipeline.big_job_path(script), workspace.focus_dir,
+    qsub_command += pipeline.big_job_path(script),
+    qsub_command += workspace.focus_dir,
 
     status = process.check_output(qsub_command)
     status_pattern = re.compile(r'Your job-array (\d+).[0-9:-]+ \(".*"\) has been submitted')
@@ -69,4 +76,10 @@ def read_params(params_path):
     with open(params_path) as file:
         return json.load(file)
 
+
+class MustSubmitFromPipRoot (IOError):
+
+    def __init__(self):
+        IOError.__init__(self, "Cluster jobs must be submitted from '{0}'.".format(pipeline.pipeline_dir()))
+        self.no_stack_trace = True
 
