@@ -8,9 +8,13 @@ Usage: push_to_cluster.py <directory> [options]
 
 Options:
     --remote URL, -r URL
+        Specify the URL to push data to.
+
+    --dry-run, -d
+        Output rsync command that would be used to push data.
 """
 
-def push_data(directory, remote_url=None):
+def push_data(directory, remote_url=None, dry_run=False):
     import os, subprocess
     from libraries import pipeline
 
@@ -24,11 +28,15 @@ def push_data(directory, remote_url=None):
             '--exclude', 'stdout', '--exclude', 'stderr',
             directory + '/', os.path.join(remote_url, directory),
     ]
-    subprocess.call(rsync_command)
+
+    if dry_run:
+        print ' '.join(rsync_command)
+    else:
+        subprocess.call(rsync_command)
 
 if __name__ == '__main__':
     from tools import docopt, scripting
     with scripting.catch_and_print_errors():
         args = docopt.docopt(__doc__)
-        push_data(args['<directory>'], args['--remote'])
+        push_data(args['<directory>'], args['--remote'], args['--dry-run'])
 
