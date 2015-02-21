@@ -7,6 +7,7 @@
 !/04_pick_models_to_design.py
 !/05_design_models.py
 !/06_pick_designs_to_validate.py
+!/06_pick_manual_designs.py
 !/07_setup_design_fragments.py
 !/08_validate_designs.py
 !/09_compare_best_designs.py
