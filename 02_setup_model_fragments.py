@@ -21,7 +21,6 @@ Options:
     -d, --dry-run
         Print out the command-line that would be used to generate fragments, 
         but don't actually run it.
-        
 """
 
 import subprocess

@@ -6,7 +6,18 @@ different sequence, so each input needs its own fragment library.  You can skip
 this step if you don't plan to use fragments in your validation simulations, 
 but other algorithms may not perform as well on long loops.
 
-Usage: 07_setup_design_fragments.py <name> <round> <chain>
+Usage: 07_setup_design_fragments.py <name> <round> [options]
+
+Options:
+    -m, --mem-free=MEM  [default: 2]
+        The amount of memory (GB) to request from the cluster.  Bigger systems 
+        may need more memory, But making large memory requests can make jobs 
+        take much longer to come off the queue (since there may only be a few 
+        nodes with enough memory to meet the request).
+
+    -d, --dry-run
+        Print out the command-line that would be used to generate fragments, 
+        but don't actually run it.
 """
 
 import subprocess
@@ -28,11 +39,14 @@ with scripting.catch_and_print_errors():
 
     generate_fragments = [
             'tools/bio/fragments/generate_fragments.py',
-            '--chain', args['<chain>'],
             '--loops_file', workspace.loops_path,
             '--outdir', workspace.fragments_dir,
-            '--queue', 'lab.q,long.q',
+            '--memfree', args['--mem-free'],
             workspace.input_dir,
     ]
-    subprocess.call(generate_fragments)
+
+    if args['--dry-run']:
+        print ' '.join(generate_fragments)
+    else:
+        subprocess.call(generate_fragments)
 
