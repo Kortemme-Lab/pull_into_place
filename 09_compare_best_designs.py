@@ -19,13 +19,20 @@ Options:
 
     -v --verbose
         Output sanity checks and debugging information for each calculation.
+
+    -c NUMCLUST --cluster NUMCLUST [default: 0]
+        Perform a sequence clustering on the final designs. Must specify -t;
+        Only clusters designs below theshold. Default value samples  
+
 """
 
 from __future__ import division
 
-import os, re, string, itertools, numpy as np
+import os, re, sys, string, itertools, numpy as np
 from tools import docopt, scripting
 from libraries import pipeline, structures
+
+import cluster
 
 class Design (object):
     """
@@ -477,7 +484,7 @@ def find_pareto_optimal_designs(designs, metrics, verbose=False):
     """
     return designs
 
-def report_quality_metrics(designs, metrics, path):
+def report_quality_metrics(designs, metrics, path, clustering=False):
     """
     Create a nicely formatted spreadsheet showing all the designs and metrics.
     """
@@ -600,16 +607,106 @@ def report_pymol_sessions(designs, directory):
         score_vs_distance.open_in_pymol(design, decoy, config, gui=False)
 
 
+#######
+#####
+###  Sequence Clustering Accessories
+    
+## Class for each design where its representative metric, sequence and
+## path is saved. Can be used to pick/find best scoring model from cluster
+class miniDesign:
+    def __init__( self, path):
+        self.score = 0.0
+        self.path = path
+        self.sequence = '' 
+    def __repr__( self ):
+        return self.path 
+
+def clustering_Seqs( numClust, designs, metrics, dirPath, verbose=False ):
+    
+    # Create list of miniDesign objects by finding metrics of each design
+        miniDesigns=[]
+        for i in metrics:
+            step=0
+            for j in designs:
+
+                if 'DesignNameMetric' in str(i):
+                    miniDesigns.append( miniDesign( i.face_value(j).split(':')[-1] ) )
+
+                if 'ResfileSequenceMetric' in str(i):
+                    miniDesigns[step].sequence += i.face_value(j).rstrip()
+                    miniDesigns[step].score = j.rep_score
+                    step += 1
+
+    # Take "reasonable" selected designs (as miniDesigns)
+    # First, print out quick sequence variability assessment
+        if verbose:
+            cluster.seq_varianceDesigns( miniDesigns )
+
+    # Then cluster them by sequence, using 'cluster.py' script in libraries/
+    # Using BLOSUM 80 and k-mediods, finds best cluster number
+    # Clusters are saved as hash, key: centroid sequence
+        clustering = cluster.finalClusters(miniDesigns, numClust, dirPath, verbose )
+
+    # Write out results
+    # make a hash table to look up cluster number by design's path/ID
+        numbering = 1
+        outString = ''
+        clustDict = {}
+        for i ,j in sorted( clustering.items(), key=lambda x: len( x[1] ), reverse=True ):
+            outString += i.sequence + " medoid\n"
+            clustDict[i.path] = str( numbering+'_medoid')
+            for k in j: 
+                if k!= i: 
+                    outString += k.sequence +'\n'
+                    clustDict[ k.path ] = str( numbering )
+            numbering += 1
+            outString += '\n'
+
+        output_file = open( os.path.join( dirPath, 'clusterLog.txt') ,'w')
+        if verbose: print outString
+        output_file.write( outString )
+
+        return clustDict 
+
+
+
+
 with scripting.catch_and_print_errors():
+
+
     args = docopt.docopt(__doc__)
     prefix = args['--prefix'] or ''
 
-    workspaces = find_validation_workspaces(args['<name>'], args['<round>'])
-    designs = find_reasonable_designs(workspaces, args['--threshold'])
-    metrics = calculate_quality_metrics(designs, args['--verbose'])
-    designs = find_pareto_optimal_designs(designs, metrics, args['--verbose'])
+    import cPickle as pic
 
-    report_quality_metrics(designs, metrics, prefix + 'quality_metrics.xlsx')
+    workspaces = find_validation_workspaces(args['<name>'], args['<round>'])
+    #designs = find_reasonable_designs(workspaces, args['--threshold'])
+    #metrics = calculate_quality_metrics(designs, args['--verbose'])
+    #designs = find_pareto_optimal_designs(designs, metrics, args['--verbose'])
+
+    #designMetrics = (designs, metrics)
+    #pic.dump(designMetrics, open('designMetrics.pkl', 'wb') )
+
+
+    ### KALE will hate that I'm using command line arguments v.s. workspace
+    dirPath = sys.argv[1]       # Directory of project
+
+
+    # This step is just Marco's cache of the designs, since loading data frame 
+    # takes fo'eva
+    designs, metrics = pic.load( open('designMetrics.pkl', 'rb'))
+    if args['--cluster']:
+        clustering = clustering_Seqs( int( args['--cluster'] ), designs, metrics , dirPath, args['--verbose'] )
+        
+
+        ##### CANNOT INCLUDE OPTIONAL CLUSTERING OPTION INTO SPREADSHEET
+        ##### SINCE line 466 GROUPS ALL METRIC CLASSES, not optional 
+        sys.exit()
+        report_quality_metrics(designs, metrics,  prefix + 'quality_metrics.xlsx', clustering,)
+    else: 
+        report_quality_metrics(designs, metrics, prefix + 'quality_metrics.xlsx')
+    
+
     #report_score_vs_rmsd_funnels(designs, prefix + 'score_vs_rmsd.pdf')
     #report_pymol_sessions(designs, prefix + 'pymol_sessions')
 
