@@ -9,7 +9,9 @@ Usage: fetch_data.py [options] <directory>
 
 Options:
     --remote URL, -r URL
-        Specify the URL to fetch data from.
+        Specify the URL to fetch data from.  You can put this value in a file 
+        called "rsync_url" in the local workspace if you don't want to specify 
+        it on the command-line every time.
 
     --include-logs, -i
         Fetch log files (i.e. stdout and stderr) in addition to everything 
@@ -25,9 +27,25 @@ def fetch_data(directory, remote_url=None, include_logs=False, dry_run=False):
     import os, subprocess
     from libraries import pipeline
 
+    # Try to figure out the remote URL from the given directory, if a 
+    # particular URL wasn't given.
+
     if remote_url is None:
-        workspace = pipeline.workspace_from_dir(directory)
-        remote_url = workspace.rsync_url
+        try:
+            workspace = pipeline.workspace_from_dir(directory)
+            remote_url = workspace.rsync_url
+        except pipeline.WorkspaceNotFound:
+            print "No remote URL specified."
+
+    # Make sure the given directory is actually a directory.  (It's ok if it 
+    # doesn't exist; rsync will create it.)
+
+    if os.path.exists(directory) and not os.path.isdir(directory):
+        print "Skipping {}: not a directory.".format(directory)
+        return
+
+    # Compose an rsync command to copy the files in question.  Then either run 
+    # or print that command, depending on what the user asked for.
 
     rsync_command = [
             'rsync', '-avr',
