@@ -27,7 +27,7 @@ def ensure_path_is_rosetta(path):
 
     rosetta_paths = [
             os.path.join(path, 'database'),
-            os.path.join(path, 'test'),
+            os.path.join(path, 'tests'),
             os.path.join(path, 'source'),
             os.path.join(path, 'source', 'bin'),
     ]
@@ -35,7 +35,7 @@ def ensure_path_is_rosetta(path):
             os.path.exists, rosetta_paths)
 
     if not all(rosetta_paths_exist):
-        print "'{0}' does not appear to be the main rosetta directory."
+        print "'{0}' does not appear to be the main rosetta directory.".format(path)
         raise ValueError
 
 def ensure_path_is_pdb(path):
