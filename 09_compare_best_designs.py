@@ -13,7 +13,7 @@ Options:
         Only consider designs where the lowest scoring decoy has a restraint 
         satisfaction distance less than the given threshold.
 
-    -u, --structure-threshold LOOP_RMSD   [default: 1.0]
+    -u, --structure-threshold LOOP_RMSD
         Limit how different two loops can be before they are placed in 
         different clusters by the structural clustering algorithm.  
 
@@ -41,7 +41,7 @@ Options:
 
 from __future__ import division
 
-import os, re, sys, string, itertools, numpy as np
+import os, re, sys, string, itertools, numpy as np, cPickle as pickle
 from tools import docopt, scripting
 from libraries import pipeline, structures
 
@@ -320,7 +320,7 @@ class StructureClusterMetric (Metric):
     align = 'center'
     num_format = '0'
 
-    def __init__(self, threshold):
+    def __init__(self, threshold=None):
         self.threshold = threshold
 
     def load(self, designs, verbose=False):
@@ -328,7 +328,7 @@ class StructureClusterMetric (Metric):
         self.cluster_loop_coords(designs, verbose)
 
     def face_value(self, design):
-        return design.structure_cluster_id
+        return design.structure_cluster
 
     def read_loop_coords(self, design):
         if design.rep_path.endswith('.gz'):
@@ -384,12 +384,13 @@ class StructureClusterMetric (Metric):
         # 1.0Å is arbitrary, but it seems to work well for most cases.
 
         dist_vector = sp_dist.squareform(dist_matrix)
+        mean_dist = np.mean(dist_vector)
         hierarchy = sp_clust.complete(dist_vector)
         clusters = sp_clust.fcluster(
-                hierarchy, self.threshold, criterion='distance')
+                hierarchy, self.threshold or mean_dist, criterion='distance')
 
         for cluster, design in zip(clusters, designs):
-            design.structure_cluster_id = cluster
+            design.structure_cluster = cluster
 
         # Print some debugging information, if requested.
 
@@ -669,7 +670,6 @@ def report_quality_metrics(designs, metrics, path, clustering=False):
     designs = designs[:]
     designs.sort(key=lambda x: x.restraint_dist)
     designs.sort(key=lambda x: x.buried_unsats)
-    #designs.sort(key=lambda x: x.structure_cluster_id)
     designs.sort(key=lambda x: x.sequence_cluster)
 
     for col, metric in enumerate(metrics):
@@ -747,6 +747,36 @@ def report_pymol_sessions(designs, directory):
 
         score_vs_distance.open_in_pymol(design, decoy, config, gui=False)
 
+def annotate_designs(designs):
+    for design in designs:
+        annotation = '+ seq{} struct{}'.format(
+                design.sequence_cluster, design.structure_cluster)
+
+        # Find any existing annotations.
+
+        annotation_path = os.path.join(design.directory, 'notes.txt')
+
+        try:
+            with open(annotation_path) as file:
+                annotation_lines = file.readlines()
+        except IOError:
+            annotation_lines = []
+
+        # If there are existing annotations and the first line starts with a 
+        # plus, assume that the line was previously inserted by this function 
+        # and should now be updated with the most recent information.
+        
+        if annotation_lines and annotation_lines[0].startswith('#'):
+            annotation_lines[0] = annotation
+
+        # Otherwise, insert the annotation above the existing lines.
+
+        else:
+            annotation_lines.insert(0, annotation)
+
+        with open(annotation_path, 'w') as file:
+            file.write('\n'.join(annotation_lines))
+
 
 #######
 #####
@@ -810,26 +840,16 @@ def clustering_Seqs( numClust, designs, metrics, dirPath, verbose=False ):
     return clustDict 
 
 
-
-import cPickle as pickle
-
-
 with scripting.catch_and_print_errors():
     args = docopt.docopt(__doc__)
     prefix = args['--prefix'] or ''
-    #workspaces = find_validation_workspaces(args['<name>'], args['<round>'])
-    #designs = find_reasonable_designs(workspaces, args['--threshold'], args['--verbose'])
-    #with open('design_metrics.pkl', 'w') as file:
-    #    pickle.dump(designs, file)
-    #sys.exit()
-
-    with open('design_metrics.pkl') as file:
-        designs = pickle.load(file)
+    workspaces = find_validation_workspaces(args['<name>'], args['<round>'])
+    designs = find_reasonable_designs(workspaces, args['--threshold'], args['--verbose'])
     metrics = [
             DesignNameMetric(),
             ResfileSequenceMetric(),
             SequenceClusterMetric(args['--subs-matrix']),
-            #StructureClusterMetric(args['--structure-threshold']),
+            StructureClusterMetric(args['--structure-threshold']),
             RestraintDistMetric(),
             ScoreGapMetric(),
             PercentSubangstromMetric(),
@@ -844,18 +864,16 @@ with scripting.catch_and_print_errors():
     ### KALE will hate that I'm using command line arguments v.s. workspace
     dirPath = sys.argv[1]       # Directory of project
 
-
     if args['--cluster']:
         clustering = clustering_Seqs( int( args['--cluster'] ), designs, metrics , dirPath, args['--verbose'] )
         
         ##### CANNOT INCLUDE OPTIONAL CLUSTERING OPTION INTO SPREADSHEET
         ##### SINCE line 466 GROUPS ALL METRIC CLASSES, not optional 
         sys.exit()
-        report_quality_metrics(designs, metrics,  prefix + 'quality_metrics.xlsx', clustering,)
-    else: 
-        report_quality_metrics(designs, metrics, prefix + 'quality_metrics.xlsx')
-    
 
+
+    report_quality_metrics(designs, metrics, prefix + 'quality_metrics.xlsx')
     #report_score_vs_rmsd_funnels(designs, prefix + 'score_vs_rmsd.pdf')
     #report_pymol_sessions(designs, prefix + 'pymol_sessions')
+    annotate_designs(designs)
 
