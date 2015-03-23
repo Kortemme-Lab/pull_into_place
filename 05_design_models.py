@@ -52,7 +52,9 @@ with scripting.catch_and_print_errors():
     nstruct = len(inputs) * int(args['--nstruct'])
 
     if not inputs:
-        print "No inputs available."
+        print """\
+All the input structures have already been (or are already being) designed.  If 
+you want to rerun all the inputs from scratch, use the --clear flag."""
         raise SystemExit
 
     # Submit the design job.

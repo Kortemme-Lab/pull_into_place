@@ -13,7 +13,7 @@ import sys, os, re, glob, collections, gzip
 import numpy as np, scipy as sp, pandas as pd
 from . import pipeline
 
-def load(pdb_dir, restraints_path=None, use_cache=True, job_report=None):
+def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
     """
     Return a variety of score and distance metrics for the structures found in 
     the given directory.  As much information as possible will be cached.  Note 
@@ -22,12 +22,28 @@ def load(pdb_dir, restraints_path=None, use_cache=True, job_report=None):
     updated to reflect this and you may be presented with stale data.
     """
 
-    # If no restraints are explicitly provided, the given directory must be a 
-    # workspace.  (Every workspace can provide a path to a restraints file.)
+    # Make sure the given directory seems to be a reasonable place to look for 
+    # data, i.e. it exists and contains PDB files.
 
-    if restraints_path is None:
+    if not os.path.exists(pdb_dir):
+        raise IOError("'{}' does not exist".format(pdb_dir))
+    if not os.path.isdir(pdb_dir):
+        raise IOError("'{}' is not a directory".format(pdb_dir))
+    if not os.listdir(pdb_dir):
+        raise IOError("'{}' is empty".format(pdb_dir))
+    if not glob.glob(os.path.join(pdb_dir, '*.pdb*')):
+        raise IOError("'{}' doesn't contain any PDB files".format(pdb_dir))
+
+    # The given directory must also be a workspace, so that the restraint file 
+    # can be found and used to calculate the "restraint_dist" metric later on.
+
+    try:
         workspace = pipeline.workspace_from_dir(pdb_dir)
-        restraints_path = workspace.restraints_path
+    except pipeline.WorkspaceNotFound:
+        raise IOError("'{}' is not a workspace".format(pdb_dir))
+    if require_io_dir and not any(
+            os.path.samefile(pdb_dir, x) for x in workspace.io_dirs):
+        raise IOError("'{}' is not an input or output directory".format(pdb_dir))
 
     # Find all the structures in the given directory, then decide which have 
     # already been cached and which haven't.
@@ -37,33 +53,53 @@ def load(pdb_dir, restraints_path=None, use_cache=True, job_report=None):
     cache_path = os.path.join(pdb_dir, 'distances.pkl')
 
     if use_cache and os.path.exists(cache_path):
-        cached_records = pd.read_pickle(cache_path).to_dict('records')
-        cached_paths = set(x['path'] for x in cached_records)
-        uncached_paths = [
-                pdb_path for pdb_path in pdb_paths
-                if os.path.basename(pdb_path) not in cached_paths]
+        try:
+            cached_records = pd.read_pickle(cache_path).to_dict('records')
+            cached_paths = set(x['path'] for x in cached_records)
+            uncached_paths = [
+                    pdb_path for pdb_path in pdb_paths
+                    if os.path.basename(pdb_path) not in cached_paths]
+        except:
+            print "Couldn't load '{}'".format(cache_path)
+            cached_records = []
+            uncached_paths = pdb_paths
     else:
         cached_records = []
         uncached_paths = pdb_paths
 
-    # Calculate socre and distance metrics for the uncached paths.
+    # Calculate score and distance metrics for the uncached paths, then combine 
+    # the cached and uncached data into a single data frame.
 
-    uncached_records = read_and_calculate(uncached_paths, restraints_path)
+    uncached_records = read_and_calculate(workspace, uncached_paths)
+    all_records = pd.DataFrame(cached_records + uncached_records)
 
-    # Report how much work had to be done.
+    # Make sure all the expected metrics were calculated.
+    
+    expected_metrics = [
+            'total_score',
+            'restraint_dist',
+            'sequence',
+    ]
+    for metric in expected_metrics:
+        if metric not in all_records:
+            print all_records.keys()
+            raise IOError("'{}' wasn't calculated for the models in '{}'".format(metric, pdb_dir))
+
+    # If everything else looks good, cache the data frame so we can load faster 
+    # next time.
+
+    all_records.to_pickle(cache_path)
+
+    # Report how many structures had to be cached, in case the caller is 
+    # interested, and return to loaded data frame.
 
     if job_report is not None:
         job_report['new_records'] = len(uncached_records)
         job_report['old_records'] = len(cached_records)
 
-    # Combine the cached and uncached data into a single data frame, use it to 
-    # update the cache, then return the data frame.
+    return all_records
 
-    distances = pd.DataFrame(cached_records + uncached_records)
-    if len(distances) > 0: distances.to_pickle(cache_path)
-    return distances
-
-def read_and_calculate(pdb_paths, restraints_path):
+def read_and_calculate(workspace, pdb_paths):
     """
     Calculate a variety of score and distance metrics for the given structures.
     """
@@ -78,7 +114,7 @@ def read_and_calculate(pdb_paths, restraints_path):
     Restraint = collections.namedtuple('R', 'atom_name residue_id position')
     restraints = []
 
-    with open(restraints_path) as file:
+    with open(workspace.restraints_path) as file:
         for line in file:
             if line.startswith('CoordinateConstraint'):
                 fields = line.split()
@@ -198,4 +234,6 @@ def read_and_calculate(pdb_paths, restraints_path):
 def xyz_to_array(xyz):
     return np.array([float(x) for x in xyz])
 
+class IOError (IOError):
+    no_stack_trace = True
 
