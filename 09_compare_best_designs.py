@@ -762,11 +762,13 @@ def annotate_designs(designs):
         except IOError:
             annotation_lines = []
 
+        print annotation_lines
+
         # If there are existing annotations and the first line starts with a 
         # plus, assume that the line was previously inserted by this function 
         # and should now be updated with the most recent information.
         
-        if annotation_lines and annotation_lines[0].startswith('#'):
+        if annotation_lines and annotation_lines[0].startswith('+'):
             annotation_lines[0] = annotation
 
         # Otherwise, insert the annotation above the existing lines.
