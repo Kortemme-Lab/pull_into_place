@@ -100,5 +100,3 @@ tools.scripting:
     more convenient.  Many of these are basically just implementations of the  
     standard shell commands.
 
-
-...
