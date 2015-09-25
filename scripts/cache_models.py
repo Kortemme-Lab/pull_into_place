@@ -5,7 +5,7 @@ Cache various distance and score metrics for each model in the given directory.
 After being cached, a handful of these metrics are printed to the terminal to 
 show that things are working as expected.
 
-Usage: show_distances.py <directory> [options]
+Usage: cache_models.py <directory> [options]
 
 Options:
     -r PATH, --restraints PATH
