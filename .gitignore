@@ -12,6 +12,9 @@
 !/08_validate_designs.py
 !/09_compare_best_designs.py
 !/show_my_designs.py
+!/compare_to_4UN3.sho
+!/mount_guybrush.sh
+!/umount_guybrush.sh
 !/big_jobs/
 !/big_jobs/*
 !/libraries/

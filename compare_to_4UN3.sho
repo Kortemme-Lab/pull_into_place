@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+model_path=$1
+model_sele=$(basename ${model_path%.pdb.gz})
+model_name="design_${model_sele}"
+wt_path="designs/cas9_qq/4un3.pdb"
+wt_sele=$(basename ${wt_path%.pdb})
+
+echo $model_path
+echo $model_sele
+echo $wt_path
+echo $wt_sele
+
+pymol -qx $wt_path $model_path                                              \
+    -d "color green, $model_sele"                                           \
+    -d "color cyan, $wt_sele"                                               \
+    -d "select qq, $model_sele and resi 1356+1358 and not name n+c+o"		\
+    -d "select loop, $model_sele and resi 1339-1369"		                \
+    -d "select wt_loop, $wt_sele and resi 1339-1369"		                \
+    -d "select dna_aa, $model_sele and resi 1393+1394+1420+1421"		    \
+    -d "select view, byres not resi 804-805+866-867+1139-1141+1149-1151+1215-1216 within 15 of loop"		\
+    -d "remove resn hoh; remove resn mg"		                            \
+    -d "select none"		                                                \
+    -d "zoom view"		                                                    \
+    -d "center qq"		                                                    \
+    -d "hide everything"		                                            \
+    -d "show cartoon, view"		                                            \
+    -d "show sticks, dna_aa and not (elem h and (neighbor elem c))"		    \
+    -d "cartoon loop, loop"		                                            \
+    -d "hide cartoon, dna_aa and name N1"		                            \
+    -d "hide everything, $wt_sele and not chain b"		                    \
+    -d "dist hbonds, loop_bb, loop_bb, mode=2"		                        \
+    -d "hide labels, hbonds"		                                        \
+    -d "util.cnc"		                                                    \
+    -d "set cartoon_rect_length, 0.9"		                                \
+    -d "set cartoon_oval_length, 0.9"		                                \
+    -d "set stick_radius, 0.2"		                                        \
+    -d "set_name $wt_sele, wildtype" 		                                \
+    -d "set_name $model_sele, $model_name" 		                            \
+    -d "alias ww, wt_vs_mut wildtype, $model_name"                          \
+
