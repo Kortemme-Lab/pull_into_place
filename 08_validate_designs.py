@@ -12,7 +12,7 @@ Options:
     --nstruct NUM, -n NUM   [default: 500]
         The number of simulations to run per design.
         
-    --max-runtime TIME      [default: 12:00:00]
+    --max-runtime TIME      [default: 24:00:00]
         The runtime limit for each validation job.
 
     --max-memory MEM        [default: 1G]

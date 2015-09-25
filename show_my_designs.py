@@ -10,6 +10,7 @@ class PipDesign (smd.Design):
         self._models = structures.load(
                 self.directory,
                 use_cache=use_cache,
+                require_io_dir=False,
         )
 
 

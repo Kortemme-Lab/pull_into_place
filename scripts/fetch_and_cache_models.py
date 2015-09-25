@@ -6,33 +6,48 @@ metrics for each one.  This script is meant to be called periodically during
 long running jobs, to reduce the amount of time you have to spend waiting to 
 build the cache at the end.
 
-Usage: fetch_and_cache_models.py <directories>... [options]
+Usage: fetch_and_cache_models.py <directory> [options]
 
 Options:
-    --remote URL
-    --include-logs
-    --restraints PATH
-    --loop
+    --remote URL, -r URL
+        Specify the URL to fetch data from.  You can put this value in a file 
+        called "rsync_url" in the local workspace if you don't want to specify 
+        it on the command-line every time.
+
+    --include-logs, -i
+        Fetch log files (i.e. stdout and stderr) in addition to everything 
+        else.  Note that these files are often quite large, so this may take 
+        significantly longer.
+
+    --keep-going, -k
+        Keep attempting to fetch and cache new models until you press Ctrl-C.  
+        You can run this command with this flag at the start of a long job, and 
+        it will incrementally cache new models as they are produced.
 """
 
-from __future__ import division
+def fetch_and_cache_data(directory, remote_url=None, include_logs=False):
+    from libraries import structures
+    from fetch_data import fetch_data
 
-import os
-from tools import docopt, scripting
-from libraries import structures
-from fetch_data import fetch_data
+    fetch_data(directory, remote_url, include_logs)
+    structures.load(directory)
 
-with scripting.catch_and_print_errors():
-    args = docopt.docopt(__doc__)
-    directories = []
-    keep_going = True
+if __name__ == '__main__':
+    from tools import docopt, scripting
+    with scripting.catch_and_print_errors():
+        args = docopt.docopt(__doc__)
+        directories = []
 
-    for directory in args['<directories>']:
-        if os.path.isdir(directory): directories.append(directory)
-        else: print "Skipping '{}': not a directory.".format(directory)
-
-    while keep_going:
-        for directory in directories:
-            fetch_data(directory, args['--remote'], args['--include-logs'])
-            structures.load(directory, args['--restraints'])
-        keep_going = args['--loop']
+        if args['keep_going']:
+            while True:
+                fetch_and_cache_data(
+                        args['<directory>'],
+                        args['--remote'],
+                        args['--include-logs'],
+                )
+        else:
+            fetch_and_cache_data(
+                    args['<directory>'],
+                    args['--remote'],
+                    args['--include-logs'],
+            )
