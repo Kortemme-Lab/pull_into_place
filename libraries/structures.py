@@ -234,6 +234,7 @@ def read_and_calculate(workspace, pdb_paths):
 def xyz_to_array(xyz):
     return np.array([float(x) for x in xyz])
 
+
 class IOError (IOError):
     no_stack_trace = True
 

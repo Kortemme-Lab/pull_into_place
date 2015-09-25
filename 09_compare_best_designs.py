@@ -207,8 +207,7 @@ class SequenceClusterMetric (Metric):
         return design.sequence_cluster
 
     def _cluster_by_k_mediods(self, designs, verbose=False):
-        num_designs = len(designs)
-        if num_designs < 2: return
+        raise NotImplementedError
 
     def _cluster_hierarchically(self, designs, verbose=False):
         import scipy.spatial.distance as sp_dist
