@@ -496,6 +496,73 @@ def load_resfile(directory, resfile_path=None):
     from tools.rosetta.input_files import Resfile
     return Resfile(resfile_path)
 
+def fetch_data(directory, remote_url=None, include_logs=False, dry_run=False):
+    import os, subprocess
+
+    # Try to figure out the remote URL from the given directory, if a 
+    # particular URL wasn't given.
+
+    if remote_url is None:
+        try:
+            workspace = workspace_from_dir(directory)
+            remote_url = workspace.rsync_url
+        except WorkspaceNotFound:
+            print "No remote URL specified."
+
+    # Make sure the given directory is actually a directory.  (It's ok if it 
+    # doesn't exist; rsync will create it.)
+
+    if os.path.exists(directory) and not os.path.isdir(directory):
+        print "Skipping {}: not a directory.".format(directory)
+        return
+
+    # Compose an rsync command to copy the files in question.  Then either run 
+    # or print that command, depending on what the user asked for.
+
+    rsync_command = [
+            'rsync', '-avr',
+            '--exclude', 'rosetta',
+            '--exclude', 'rsync_url',
+            '--exclude', 'core.*',
+    ]
+    if not include_logs:
+        rsync_command += [
+                '--exclude', 'stdout',
+                '--exclude', 'stderr',
+                '--exclude', '*.sc',
+        ]
+    rsync_command += [
+            os.path.join(remote_url, directory) + '/', directory
+    ]
+    if dry_run:
+        print ' '.join(rsync_command)
+    else:
+        subprocess.call(rsync_command)
+
+def fetch_and_cache_data(directory, remote_url=None, include_logs=False):
+    from libraries import structures
+    fetch_data(directory, remote_url, include_logs)
+    structures.load(directory)
+
+def push_data(directory, remote_url=None, dry_run=False):
+    import os, subprocess
+
+    if remote_url is None:
+        workspace = workspace_from_dir(directory)
+        remote_url = workspace.rsync_url
+
+    rsync_command = [
+            'rsync', '-avr',
+            '--exclude', 'rosetta', '--exclude', 'rsync_url',
+            '--exclude', 'stdout', '--exclude', 'stderr',
+            directory + '/', os.path.join(remote_url, directory),
+    ]
+
+    if dry_run:
+        print ' '.join(rsync_command)
+    else:
+        subprocess.call(rsync_command)
+
 
 class PipelineError (IOError):
 

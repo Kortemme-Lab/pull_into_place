@@ -23,53 +23,13 @@ Options:
         
 """
 
-def fetch_data(directory, remote_url=None, include_logs=False, dry_run=False):
-    import os, subprocess
-    from libraries import pipeline
-
-    # Try to figure out the remote URL from the given directory, if a 
-    # particular URL wasn't given.
-
-    if remote_url is None:
-        try:
-            workspace = pipeline.workspace_from_dir(directory)
-            remote_url = workspace.rsync_url
-        except pipeline.WorkspaceNotFound:
-            print "No remote URL specified."
-
-    # Make sure the given directory is actually a directory.  (It's ok if it 
-    # doesn't exist; rsync will create it.)
-
-    if os.path.exists(directory) and not os.path.isdir(directory):
-        print "Skipping {}: not a directory.".format(directory)
-        return
-
-    # Compose an rsync command to copy the files in question.  Then either run 
-    # or print that command, depending on what the user asked for.
-
-    rsync_command = [
-            'rsync', '-avr',
-            '--exclude', 'rosetta', '--exclude', 'rsync_url',
-    ]
-    if not include_logs:
-        rsync_command += [
-                '--exclude', 'stdout',
-                '--exclude', 'stderr',
-                '--exclude', '*.sc',
-        ]
-    rsync_command += [
-            os.path.join(remote_url, directory) + '/', directory
-    ]
-    if dry_run:
-        print ' '.join(rsync_command)
-    else:
-        subprocess.call(rsync_command)
-
 if __name__ == '__main__':
     from tools import docopt, scripting
+    from libraries import pipeline
+
     with scripting.catch_and_print_errors():
         args = docopt.docopt(__doc__)
-        fetch_data(
+        pipeline.fetch_data(
                 args['<directory>'],
                 args['--remote'],
                 args['--include-logs'],

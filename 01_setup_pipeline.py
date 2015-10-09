@@ -7,9 +7,15 @@ that will be allowed to design, and more.  A brief description of each field is
 given below.  This information is used to build a workspace for this design 
 that will be used by the rest of the scripts in this pipeline.  
 
-Usage: 01_setup_pipeline.py <name> [--overwrite]
+Usage:
+    01_setup_pipeline.py <name> [--remote] [--overwrite]
 
 Options:
+    --remote, -r
+        Setup a link to a design directory on a remote machine, to help with 
+        transferring data between a workstation and a cluster.  Note: the 
+        remote and local design directories must have the same name.
+
     --overwrite, -o
         If a design with the given name already exists, remove it and replace 
         it with the new design created by this script.
@@ -36,6 +42,10 @@ def ensure_path_is_rosetta(path):
 
     if not all(rosetta_paths_exist):
         print "'{0}' does not appear to be the main rosetta directory.".format(path)
+        print "The following subdirectories are missing:"
+        for path in rosetta_paths:
+            if not os.path.exists(path):
+                print "    " + path
         raise ValueError
 
 def ensure_path_is_pdb(path):
@@ -55,7 +65,6 @@ keys = (   # (fold)
         'design_script',
         'validate_script',
         'flags_path',
-        'rsync_url',
 )
 
 prompts = {   # (fold)
@@ -68,7 +77,7 @@ prompts = {   # (fold)
         'design_script': "Path to design script [optional]: ",
         'validate_script': "Path to validate script [optional]: ",
         'flags_path': "Path to flags file [optional]: ",
-        'rsync_url': "Path to project on cluster [optional]: ",
+        'rsync_url': "Path to project on remote host: ",
 }
 descriptions = {   # (fold)
         'rosetta_path': """\
@@ -150,6 +159,11 @@ with scripting.catch_and_print_errors():
         if arguments['--overwrite']: shutil.rmtree(workspace.root_dir)
         else: scripting.print_error_and_die("Design '{0}' already exists.", workspace.root_dir)
 
+    # Ask fewer questions if we're setting up a remote directory.
+
+    if arguments['--remote']:
+        keys = ('rosetta_path', 'rsync_url')
+
     # Get the necessary paths from the user.
 
     print "Please provide the following pieces of information:"
@@ -182,42 +196,44 @@ with scripting.catch_and_print_errors():
     rosetta_path = os.path.abspath(settings['rosetta_path'])
     os.symlink(rosetta_path, workspace.rosetta_dir)
 
-    if settings['input_pdb'].endswith('.pdb.gz'):
-        shutil.copyfile(settings['input_pdb'], workspace.input_pdb_path)
-    else:
-        subprocess.call('gzip -c {} > {}'.format(
-                settings['input_pdb'], workspace.input_pdb_path), shell=True)
-
-    shutil.copyfile(settings['loops_path'], workspace.loops_path)
-    shutil.copyfile(settings['resfile_path'], workspace.resfile_path)
-    shutil.copyfile(settings['restraints_path'], workspace.restraints_path)
-
-    if settings['build_script']:
-        shutil.copyfile(settings['build_script'], workspace.build_script_path)
-    else:
-        default_path = pipeline.big_job_path('build_models.xml')
-        shutil.copyfile(default_path, workspace.build_script_path)
-
-    if settings['design_script']:
-        shutil.copyfile(settings['design_script'], workspace.design_script_path)
-    else:
-        default_path = pipeline.big_job_path('design_models.xml')
-        shutil.copyfile(default_path, workspace.design_script_path)
-
-    if settings['validate_script']:
-        shutil.copyfile(settings['validate_script'], workspace.validate_script_path)
-    else:
-        default_path = pipeline.big_job_path('validate_designs.xml')
-        shutil.copyfile(default_path, workspace.validate_script_path)
-
-    if settings['flags_path']:
-        shutil.copyfile(settings['flags_path'], workspace.flags_path)
-    else:
-        scripting.touch(workspace.flags_path)
-
-    if settings['rsync_url']:
+    if arguments['--remote']:
         with open(workspace.rsync_url_path, 'w') as file:
             file.write(settings['rsync_url'].strip() + '\n')
+        pipeline.fetch_data(workspace.root_dir)
 
-    print "Setup successful for design '{0}'.".format(workspace.root_dir)
+    else:
+        if settings['input_pdb'].endswith('.pdb.gz'):
+            shutil.copyfile(settings['input_pdb'], workspace.input_pdb_path)
+        else:
+            subprocess.call('gzip -c {} > {}'.format(
+                    settings['input_pdb'], workspace.input_pdb_path), shell=True)
+
+        shutil.copyfile(settings['loops_path'], workspace.loops_path)
+        shutil.copyfile(settings['resfile_path'], workspace.resfile_path)
+        shutil.copyfile(settings['restraints_path'], workspace.restraints_path)
+
+        if settings['build_script']:
+            shutil.copyfile(settings['build_script'], workspace.build_script_path)
+        else:
+            default_path = pipeline.big_job_path('build_models.xml')
+            shutil.copyfile(default_path, workspace.build_script_path)
+
+        if settings['design_script']:
+            shutil.copyfile(settings['design_script'], workspace.design_script_path)
+        else:
+            default_path = pipeline.big_job_path('design_models.xml')
+            shutil.copyfile(default_path, workspace.design_script_path)
+
+        if settings['validate_script']:
+            shutil.copyfile(settings['validate_script'], workspace.validate_script_path)
+        else:
+            default_path = pipeline.big_job_path('validate_designs.xml')
+            shutil.copyfile(default_path, workspace.validate_script_path)
+
+        if settings['flags_path']:
+            shutil.copyfile(settings['flags_path'], workspace.flags_path)
+        else:
+            scripting.touch(workspace.flags_path)
+
+        print "Setup successful for design '{0}'.".format(workspace.root_dir)
 

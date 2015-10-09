@@ -25,28 +25,23 @@ Options:
         it will incrementally cache new models as they are produced.
 """
 
-def fetch_and_cache_data(directory, remote_url=None, include_logs=False):
-    from libraries import structures
-    from fetch_data import fetch_data
-
-    fetch_data(directory, remote_url, include_logs)
-    structures.load(directory)
-
 if __name__ == '__main__':
     from tools import docopt, scripting
+    from libraries import pipeline
+
     with scripting.catch_and_print_errors():
         args = docopt.docopt(__doc__)
         directories = []
 
-        if args['keep_going']:
+        if args['--keep-going']:
             while True:
-                fetch_and_cache_data(
+                pipeline.fetch_and_cache_data(
                         args['<directory>'],
                         args['--remote'],
                         args['--include-logs'],
                 )
         else:
-            fetch_and_cache_data(
+            pipeline.fetch_and_cache_data(
                     args['<directory>'],
                     args['--remote'],
                     args['--include-logs'],
