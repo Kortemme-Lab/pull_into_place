@@ -55,7 +55,7 @@ def ensure_path_is_pdb(path):
         raise ValueError
 
 
-keys = (   # (fold)
+local_keys = (   # (fold)
         'rosetta_path',
         'input_pdb',
         'loops_path',
@@ -65,6 +65,11 @@ keys = (   # (fold)
         'design_script',
         'validate_script',
         'flags_path',
+)
+
+remote_keys = (  # (fold)
+        'rosetta_path',
+        'rsync_url',
 )
 
 prompts = {   # (fold)
@@ -149,8 +154,7 @@ from tools import docopt, scripting
 from libraries import pipeline
 
 with scripting.catch_and_print_errors():
-    help = __doc__ + '\n' + '\n\n'.join(descriptions[x] for x in keys)
-    arguments = docopt.docopt(help)
+    arguments = docopt.docopt(__doc__)
     workspace = pipeline.Workspace(arguments['<name>'])
 
     # Make sure this design doesn't already exist.
@@ -159,10 +163,12 @@ with scripting.catch_and_print_errors():
         if arguments['--overwrite']: shutil.rmtree(workspace.root_dir)
         else: scripting.print_error_and_die("Design '{0}' already exists.", workspace.root_dir)
 
-    # Ask fewer questions if we're setting up a remote directory.
+    # Decide which questions to ask based on the command line arguments.
 
     if arguments['--remote']:
-        keys = ('rosetta_path', 'rsync_url')
+        keys = remote_keys
+    else:
+        keys = local_keys
 
     # Get the necessary paths from the user.
 
@@ -178,6 +184,11 @@ with scripting.catch_and_print_errors():
 
         while True:
             settings[key] = raw_input(prompts[key])
+
+            # This is a hack that only works because all the parameters I'm 
+            # asking for are paths.  If I ever add a non-parameter path, I'll 
+            # have to make a more generalized "preprocessing" step.
+            settings[key] = os.path.expanduser(settings[key])
 
             if settings[key] == '' and 'optional' in prompts[key]:
                 print "Skipping optional input."
