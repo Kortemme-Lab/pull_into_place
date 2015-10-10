@@ -132,8 +132,9 @@ invocation of rosetta for this design.  For example, if your design involves a
 ligand, put flags related to the ligand parameter files in this file.""",
 
         'rsync_url': """\
-Rsync path: An rsync path to your project files on a remote host.  This 
-setting is used by scripts that keep the two locations in sync.""",
+Rsync URL: An ssh-style path to a remote directory containing a copy of this 
+design project (e.g. hostname:path/to/parent).  The local and remote projects 
+must have the same name, otherwise they won't be able to find each other.""",
 
 }
 
