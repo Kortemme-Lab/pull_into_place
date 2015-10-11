@@ -24,39 +24,96 @@ Options:
 import os, re, shutil, subprocess
 
 def ensure_path_exists(path):
+    path = os.path.expanduser(path)
+
     if not os.path.exists(path):
         print "'{0}' does not exist.".format(path)
         raise ValueError
 
-def ensure_path_is_rosetta(path):
-    ensure_path_exists(path)
+    return path
 
-    rosetta_paths = [
-            os.path.join(path, 'database'),
-            os.path.join(path, 'tests'),
-            os.path.join(path, 'source'),
-            os.path.join(path, 'source', 'bin'),
+
+def install_rosetta_dir(workspace, rosetta_dir):
+    rosetta_dir = ensure_path_exists(rosetta_dir)
+    rosetta_subdirs = [
+            os.path.join(rosetta_dir, 'database'),
+            os.path.join(rosetta_dir, 'tests'),
+            os.path.join(rosetta_dir, 'source'),
+            os.path.join(rosetta_dir, 'source', 'bin'),
     ]
-    rosetta_paths_exist = map(
-            os.path.exists, rosetta_paths)
+    rosetta_subdirs_exist = map(os.path.exists, rosetta_subdirs)
 
-    if not all(rosetta_paths_exist):
-        print "'{0}' does not appear to be the main rosetta directory.".format(path)
+    if not all(rosetta_subdirs_exist):
+        print "'{0}' does not appear to be the main rosetta directory.".format(rosetta_dir)
         print "The following subdirectories are missing:"
-        for path in rosetta_paths:
+        for path in rosetta_subdirs:
             if not os.path.exists(path):
                 print "    " + path
         raise ValueError
 
-def ensure_path_is_pdb(path):
-    ensure_path_exists(path)
-    if not re.match('.+(\.pdb|\.pdb\.gz)$', path):
-        print "'{0}' is not a PDB file.".format(path)
+    os.symlink(rosetta_dir, workspace.rosetta_dir)
+
+def install_input_pdb(workspace, pdb_path):
+    pdb_path = ensure_path_exists(pdb_path)
+    if pdb_path.endswith('.pdb.gz'):
+        shutil.copyfile(pdb_path, workspace.input_pdb_path)
+    elif pdb_path.endswith('.pdb'):
+        subprocess.call('gzip -c {} > {}'.format(
+                pdb_path, workspace.input_pdb_path), shell=True)
+    else:
+        print "'{0}' is not a PDB file.".format(pdb_path)
         raise ValueError
+
+def install_loops_file(workspace, loops_path):
+    loops_path = ensure_path_exists(loops_path)
+    shutil.copyfile(loops_path, workspace.loops_path)
+
+def install_resfile(workspace, resfile_path):
+    resfile_path = ensure_path_exists(resfile_path)
+    shutil.copyfile(resfile_path, workspace.resfile_path)
+
+def install_restraints_file(workspace, restraints_path):
+    restraints_path = ensure_path_exists(restraints_path)
+    shutil.copyfile(restraints_path, workspace.restraints_path)
+
+def install_build_script(workspace, script_path):
+    if script_path:
+        script_path = ensure_path_exists(script_path)
+        shutil.copyfile(script_path, workspace.build_script_path)
+    else:
+        default_path = pipeline.big_job_path('build_models.xml')
+        shutil.copyfile(default_path, workspace.build_script_path)
+
+def install_design_script(workspace, script_path):
+    if script_path:
+        script_path = ensure_path_exists(script_path)
+        shutil.copyfile(script_path, workspace.design_script_path)
+    else:
+        default_path = pipeline.big_job_path('design_models.xml')
+        shutil.copyfile(default_path, workspace.design_script_path)
+
+def install_validate_script(workspace, script_path):
+    if script_path:
+        script_path = ensure_path_exists(script_path)
+        shutil.copyfile(script_path, workspace.validate_script_path)
+    else:
+        default_path = pipeline.big_job_path('validate_designs.xml')
+        shutil.copyfile(default_path, workspace.validate_script_path)
+
+def install_flags_file(workspace, flags_path):
+    if flags_path:
+        flags_path = ensure_path_exists(flags_path)
+        shutil.copyfile(flags_path, workspace.flags_path)
+    else:
+        scripting.touch(workspace.flags_path)
+
+def install_rsync_url(workspace, rsync_url):
+    with open(workspace.rsync_url_path, 'w') as file:
+        file.write(rsync_url.strip() + '\n')
 
 
 local_keys = (   # (fold)
-        'rosetta_path',
+        'rosetta_dir',
         'input_pdb',
         'loops_path',
         'resfile_path',
@@ -68,12 +125,12 @@ local_keys = (   # (fold)
 )
 
 remote_keys = (  # (fold)
-        'rosetta_path',
+        'rosetta_dir',
         'rsync_url',
 )
 
 prompts = {   # (fold)
-        'rosetta_path': "Path to rosetta: ",
+        'rosetta_dir': "Path to rosetta: ",
         'input_pdb': "Path to the input PDB file: ",
         'loops_path': "Path to the loops file: ",
         'resfile_path': "Path to resfile: ",
@@ -85,7 +142,7 @@ prompts = {   # (fold)
         'rsync_url': "Path to project on remote host: ",
 }
 descriptions = {   # (fold)
-        'rosetta_path': """\
+        'rosetta_dir': """\
 Rosetta checkout: Path to the main directory of a Rosetta source code checkout.  
 This is the directory called 'main' in a normal rosetta checkout.  Rosetta is 
 used both locally and on the cluster, but the path you specify here probably 
@@ -95,7 +152,7 @@ the symlink called 'rosetta' in the workspace directory.""",
         'input_pdb': """\
 Input PDB file: A structure containing the functional groups to be positioned.  
 This file should already be parse-able by rosetta, which often means it must be 
-stripped of waters and miscellaneous ions.""",
+stripped of waters and extraneous ligands.""",
 
         'loops_path': """\
 Loops file: A file specifying which backbone regions will be allowed to move.  
@@ -124,7 +181,8 @@ script uses fixbb.""",
         'validate_script': """\
 Validate script: An XML rosetta script that samples the designed loop to 
 determine whether the desired geometry is really the global score minimum.  The 
-default version of this script uses rama KIC in "ensemble-generation mode".""",
+default version of this script uses KIC with fragments in "ensemble-generation 
+mode" (i.e. no initial build step).""",
 
         'flags_path': """\
 Flags file: A file containing command line flags that should be passed to every 
@@ -132,22 +190,24 @@ invocation of rosetta for this design.  For example, if your design involves a
 ligand, put flags related to the ligand parameter files in this file.""",
 
         'rsync_url': """\
-Rsync URL: An ssh-style path to a remote directory containing a copy of this 
-design project (e.g. hostname:path/to/parent).  The local and remote projects 
-must have the same name, otherwise they won't be able to find each other.""",
+Rsync URL: An ssh-style path to the directory that contains (i.e. is one level 
+above) the remote workspace.  This workspace must have the same name as the 
+remote one.  For example, to link to "/path/to/my_design" on chef, name this 
+workspace "my_design" and set its rsync URL to "chef:path/to".""",
 
 }
 
-validators = {   # (fold)
-        'rosetta_path': ensure_path_is_rosetta,
-        'input_pdb': ensure_path_is_pdb,
-        'loops_path': ensure_path_exists,
-        'resfile_path': ensure_path_exists,
-        'restraints_path': ensure_path_exists,
-        'build_script': ensure_path_exists,
-        'design_script': ensure_path_exists,
-        'validate_script': ensure_path_exists,
-        'flags_path': ensure_path_exists,
+installers = {   # (fold)
+        'rosetta_dir': install_rosetta_dir,
+        'input_pdb': install_input_pdb,
+        'loops_path': install_loops_file,
+        'resfile_path': install_resfile,
+        'restraints_path': install_restraints_file,
+        'build_script': install_build_script,
+        'design_script': install_design_script,
+        'validate_script': install_validate_script,
+        'flags_path': install_flags_file,
+        'rsync_url': install_rsync_url,
 }
 
 
@@ -158,20 +218,23 @@ with scripting.catch_and_print_errors():
     arguments = docopt.docopt(__doc__)
     workspace = pipeline.Workspace(arguments['<name>'])
 
-    # Make sure this design doesn't already exist.
+    # Make a new workspace.
 
     if workspace.exists():
         if arguments['--overwrite']: shutil.rmtree(workspace.root_dir)
         else: scripting.print_error_and_die("Design '{0}' already exists.", workspace.root_dir)
 
-    # Decide which questions to ask based on the command line arguments.
+    workspace.make_dirs()
+
+    # Decide which settings to ask for.
 
     if arguments['--remote']:
         keys = remote_keys
     else:
         keys = local_keys
 
-    # Get the necessary paths from the user.
+    # Get the necessary settings from the user and use them to fill in the 
+    # workspace.
 
     print "Please provide the following pieces of information:"
     print
@@ -184,68 +247,21 @@ with scripting.catch_and_print_errors():
         print
 
         while True:
-            settings[key] = raw_input(prompts[key])
-
-            # This is a hack that only works because all the parameters I'm 
-            # asking for are paths.  If I ever add a non-parameter path, I'll 
-            # have to make a more generalized "preprocessing" step.
-            settings[key] = os.path.expanduser(settings[key])
-
-            if settings[key] == '' and 'optional' in prompts[key]:
-                print "Skipping optional input."
+            try:
+                settings[key] = raw_input(prompts[key])
+                installers[key](workspace, settings[key])
+            except ValueError:
+                continue
+            else:
                 break
-
-            try: key in validators and validators[key](settings[key])
-            except ValueError: continue
-            else: break
 
         print
 
-    # Fill in the design directory.
-
-    workspace.make_dirs()
-
-    rosetta_path = os.path.abspath(settings['rosetta_path'])
-    os.symlink(rosetta_path, workspace.rosetta_dir)
+    # If we made a link to a remote workspace, immediately try to synchronize 
+    # with it.  Rsync will say whether or not it succeeded.  Otherwise just 
+    # print a success message.
 
     if arguments['--remote']:
-        with open(workspace.rsync_url_path, 'w') as file:
-            file.write(settings['rsync_url'].strip() + '\n')
         pipeline.fetch_data(workspace.root_dir)
-
     else:
-        if settings['input_pdb'].endswith('.pdb.gz'):
-            shutil.copyfile(settings['input_pdb'], workspace.input_pdb_path)
-        else:
-            subprocess.call('gzip -c {} > {}'.format(
-                    settings['input_pdb'], workspace.input_pdb_path), shell=True)
-
-        shutil.copyfile(settings['loops_path'], workspace.loops_path)
-        shutil.copyfile(settings['resfile_path'], workspace.resfile_path)
-        shutil.copyfile(settings['restraints_path'], workspace.restraints_path)
-
-        if settings['build_script']:
-            shutil.copyfile(settings['build_script'], workspace.build_script_path)
-        else:
-            default_path = pipeline.big_job_path('build_models.xml')
-            shutil.copyfile(default_path, workspace.build_script_path)
-
-        if settings['design_script']:
-            shutil.copyfile(settings['design_script'], workspace.design_script_path)
-        else:
-            default_path = pipeline.big_job_path('design_models.xml')
-            shutil.copyfile(default_path, workspace.design_script_path)
-
-        if settings['validate_script']:
-            shutil.copyfile(settings['validate_script'], workspace.validate_script_path)
-        else:
-            default_path = pipeline.big_job_path('validate_designs.xml')
-            shutil.copyfile(default_path, workspace.validate_script_path)
-
-        if settings['flags_path']:
-            shutil.copyfile(settings['flags_path'], workspace.flags_path)
-        else:
-            scripting.touch(workspace.flags_path)
-
         print "Setup successful for design '{0}'.".format(workspace.root_dir)
-
