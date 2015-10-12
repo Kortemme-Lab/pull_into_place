@@ -24,7 +24,7 @@ Options:
 import os, re, shutil, subprocess
 
 def ensure_path_exists(path):
-    path = os.path.expanduser(path)
+    path = os.path.abspath(os.path.expanduser(path))
 
     if not os.path.exists(path):
         print "'{0}' does not exist.".format(path)
