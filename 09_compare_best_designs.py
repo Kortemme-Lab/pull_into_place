@@ -598,7 +598,7 @@ def discover_custom_metrics(metrics, workspaces):
     any of the given workspaces.  Only scripts named 'custom_metrics.py' will 
     be searched.
 
-    What will the API os custom_metrics.py be?
+    What will the API of custom_metrics.py be?
     How will command-line arguments be passed to these metrics?
     """
     pass
@@ -608,7 +608,8 @@ def calculate_quality_metrics(metrics, designs, verbose=False):
     Have each metric calculate all the information it needs.
     """
     for metric in metrics:
-        if metric.progress_update: print metric.progress_update
+        if metric.progress_update:
+            print metric.progress_update
         metric.load(designs, verbose)
 
 def find_pareto_optimal_designs(designs, metrics, verbose=False):
@@ -747,6 +748,12 @@ def report_pymol_sessions(designs, directory):
         score_vs_distance.open_in_pymol(design, decoy, config, gui=False)
 
 def annotate_designs(designs):
+    """
+    Automatically annotate the sequence and structure cluster for all the 
+    reasonable designs identified by this script.  These annotations make it 
+    easier to quickly focus on interesting subsets of design in the "Show My 
+    Designs" GUI.
+    """
     for design in designs:
         annotation = '+ seq{} struct{}'.format(
                 design.sequence_cluster, design.structure_cluster)
