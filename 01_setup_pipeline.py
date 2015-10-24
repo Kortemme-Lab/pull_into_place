@@ -25,13 +25,10 @@ import os, re, shutil, subprocess
 
 def ensure_path_exists(path):
     path = os.path.abspath(os.path.expanduser(path))
-
     if not os.path.exists(path):
         print "'{0}' does not exist.".format(path)
         raise ValueError
-
     return path
-
 
 def install_rosetta_dir(workspace, rosetta_dir):
     rosetta_dir = ensure_path_exists(rosetta_dir)
