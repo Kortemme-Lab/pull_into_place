@@ -26,8 +26,7 @@ import os, re, shutil, subprocess
 def ensure_path_exists(path):
     path = os.path.abspath(os.path.expanduser(path))
     if not os.path.exists(path):
-        print "'{0}' does not exist.".format(path)
-        raise ValueError
+        raise ValueError("'{0}' does not exist.".format(path))
     return path
 
 def install_rosetta_dir(workspace, rosetta_dir):
@@ -41,12 +40,14 @@ def install_rosetta_dir(workspace, rosetta_dir):
     rosetta_subdirs_exist = map(os.path.exists, rosetta_subdirs)
 
     if not all(rosetta_subdirs_exist):
-        print "'{0}' does not appear to be the main rosetta directory.".format(rosetta_dir)
-        print "The following subdirectories are missing:"
+        message = [
+                "'{0}' does not appear to be the main rosetta directory.".format(rosetta_dir),
+                "The following subdirectories are missing:"
+        ]
         for path in rosetta_subdirs:
             if not os.path.exists(path):
-                print "    " + path
-        raise ValueError
+                message.append('    ' + path)
+        raise ValueError('\n'.join(message))
 
     os.symlink(rosetta_dir, workspace.rosetta_dir)
 
@@ -58,8 +59,7 @@ def install_input_pdb(workspace, pdb_path):
         subprocess.call('gzip -c {} > {}'.format(
                 pdb_path, workspace.input_pdb_path), shell=True)
     else:
-        print "'{0}' is not a PDB file.".format(pdb_path)
-        raise ValueError
+        raise ValueError("'{0}' is not a PDB file.".format(pdb_path))
 
 def install_loops_file(workspace, loops_path):
     loops_path = ensure_path_exists(loops_path)
@@ -247,7 +247,8 @@ with scripting.catch_and_print_errors():
             try:
                 settings[key] = raw_input(prompts[key])
                 installers[key](workspace, settings[key])
-            except ValueError:
+            except Exception as problem:
+                print problem
                 continue
             else:
                 break
