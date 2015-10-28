@@ -9,7 +9,7 @@ of a design.  It's subclasses deal with file in the different subdirectories of
 the design, each of which is related to a cluster job.
 """
 
-import os, glob, pickle
+import os, glob, pickle, re
 from tools import scripting
 
 class Workspace (object):
@@ -52,6 +52,10 @@ class Workspace (object):
     @property
     def root_dir(self):
         return os.path.join(self._root_dirname, self._root_basename)
+
+    @property
+    def abs_root_dir(self):
+        return os.path.abspath(self.root_dir)
 
     @property
     def focus_dir(self):
@@ -174,6 +178,10 @@ class Workspace (object):
         for path in required_paths:
             if not os.path.exists(path):
                 raise PathNotFound(path)
+
+    @property
+    def incompatible_with_fragments_script(self):
+        return re.search('[^a-zA-Z0-9_/.]', self.abs_root_dir)
 
     def make_dirs(self):
         scripting.mkdir(self.focus_dir)
