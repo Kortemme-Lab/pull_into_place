@@ -1,0 +1,72 @@
+Regarding custom score functions
+================================
+Change the 01_setup script to accept and save a 'scorefxn.wts' file.  It should 
+also simply accept the name of a standard rosetta score function, which it will 
+then find and copy into the workspace.  The default can be talaris2013.
+
+Change the various job scripts to use 'scorefxn.wts'.  The build and design 
+scripts will have to modify this score function to turn on constraints.  I 
+thought about giving the user a way to control the constraint term weights, but 
+I decided that the restraint file already gives that knob.
+
+Do a small test run to make sure that all the scripts are using the correct 
+score function.  In particular, I have to make sure that the design script is 
+respecting the constraints, because I don't know that I've ever gotten that to 
+work properly.
+
+In 01_setup_pipeline.py
+=======================
+Save input pdb as 'wildtype.pdb.gz'
+
+Generate 'input.pdb.gz' or 'design.pdb.gz' or 'mutant.pdb.gz' by running fixbb 
+on the given structure.  First, parse the restraint file to figure out which 
+residues are restrained.  Second, parse the lines from resfile that pertain to 
+those residues.  Make sure that those lines are of the form 'PIKAA .', i.e. 
+make sure that each restrained position can only be one type of residue and 
+that that type of residue is specified in the resfile.  Combine the parsed 
+resfile lines to make a mini-resfile and feed that mini-resfile to fixbb to 
+generate the input pdb.
+
+In view_models.py
+=================
+This script is very nearly a general utility for viewing directories full of 
+structures, but it's got a few things making it PIP-specific (and even 
+Kale-specific).  I should get rid of these things and make it a general 
+utility, then I can include it in PIP as a submodule.
+
+To decide which axes to plot, I should looks for look for particular comments 
+in the PDB.  It's possible that not all the PDBs will have the same comments.  
+I should add a status bar along the bottom to inform the user when not every 
+PDB in the directory could be plotted.  It's also possible (even likely) that 
+there will be no PDBs with scores or RMSDs in the directory.  What should I do 
+in that case?  I pretty much have to crash nicely.  I'm not sure there's a way 
+to recognize axes in a general way.  I can have a general format that I expect 
+(so that tools like PIP can feed me axes), but to be useful I'll also need to 
+recognize loopmodel output.  There probably isn't a way to recognize general 
+rosetta output.  General axis info format ideas:
+
+REMARK AXIS Total Score -352.53     # Split at right-most space
+
+The default previewer (I like the term "previewer") should just open the model 
+in pymol.  Maybe I can also have a default previewer that opens the model in 
+chimera.  Users should be able to add their own previewers by specifying 
+arbitrary scripts.  The script will be called with the absolute path to a PDB 
+as its first and only argument.  For the Cas9 project, I would have written a 
+script that runs pymol, loads the given PDB, loads the wildtype PDB (hardcoded 
+path), formats things nicely, and launches wt_vs_mut.  The question is how 
+should view models remember that script?  Also, how should it decide what to 
+call it?  Regarding the second question, we can look for a magic comment and 
+fall back on the file name if necessary.  Regarding the first, We either need a 
+config file or a magic naming scheme.  I want to be able to easily use the same 
+script for multiple directories, like I would for Cas9 project.  If I'm going 
+to use a magic name, I can get rid of the 'Add Custom Previewer' button.  Or I 
+can keep it and just have it describe the magic naming rules.
+
+Right now the previewer knows the loop and the resfile from the workspace.  
+That logic would have to be moved into a one-off script, that actually could be 
+included with PIP if I use the magic naming convention.
+
+The view_models.py script should accept any number of paths on the command 
+line.  Directory paths must contain at least one PDB file, and file paths must 
+be PDB files.
+
