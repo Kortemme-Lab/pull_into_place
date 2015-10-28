@@ -101,6 +101,10 @@ class Workspace (object):
         return self.find_path('restraints')
 
     @property
+    def scorefxn_path(self):
+        return self.find_path('scorefxn.wts')
+
+    @property
     def build_script_path(self):
         return self.find_path('build_models.xml')
 

@@ -1,7 +1,7 @@
 *
 !/README
 !/LICENSE
-!/01_setup_pipeline.py
+!/01_setup_workspace.py
 !/02_setup_model_fragments.py
 !/03_build_models.py
 !/04_pick_models_to_design.py
