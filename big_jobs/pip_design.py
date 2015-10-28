@@ -28,7 +28,10 @@ rosetta_command = [
         '-out:overwrite',
         '-out:pdb_gz', 
         '-parser:protocol', workspace.design_script_path,
-        '-parser:script_vars', 'cst_file=' + workspace.restraints_path,
+        '-parser:script_vars',
+            'shared_defs=' + big_jobs.shared_defs_path,
+            'wts_file=' + workspace.scorefxn_path,
+            'cst_file=' + workspace.restraints_path,
         '-packing:resfile', workspace.resfile_path,
         '@', workspace.flags_path,
 ]

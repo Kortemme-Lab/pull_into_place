@@ -1,16 +1,19 @@
 <ROSETTASCRIPTS>
 
-    <MOVERS>
-        <LoopModeler name="modeler"
-          config="kic_with_frags"
-          loops_file="%%loop_file%%"
-          fast="%%fast%%">
-            <Build skip="yes"/>
-        </LoopModeler>
-    </MOVERS>
+  <INCLUDES file="%%shared_defs%%"/>
 
-    <PROTOCOLS>
-        <Add mover_name=modeler/>
-    </PROTOCOLS>
+  <MOVERS>
+    <LoopModeler name="modeler"
+      config="kic_with_frags"
+      scorefxn="scorefxn"
+      loops_file="%%loop_file%%"
+      fast="%%fast%%">
+        <Build skip="yes"/>
+    </LoopModeler>
+  </MOVERS>
+
+  <PROTOCOLS>
+    <Add mover_name=modeler/>
+  </PROTOCOLS>
 
 </ROSETTASCRIPTS>

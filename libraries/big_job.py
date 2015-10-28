@@ -3,6 +3,8 @@
 import sys, os, re, json, subprocess
 from . import pipeline
 
+shared_defs_path = pipeline.big_job_path('shared_defs.xml')
+
 def submit(script, workspace, **params):
     """Submit a job with the given parameters."""
     from tools import cluster, process
@@ -75,7 +77,6 @@ def initiate():
 def read_params(params_path):
     with open(params_path) as file:
         return json.load(file)
-
 
 class MustSubmitFromPipRoot (IOError):
 

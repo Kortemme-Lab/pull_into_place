@@ -1,27 +1,17 @@
 <ROSETTASCRIPTS>
 
-    <TASKOPERATIONS>
-      <ReadResfile name="resfile"/>
-      <ExtraRotamersGeneric name="ex"
-          ex1="yes" ex2="yes" extrachi_cutoff="0"/>
-    </TASKOPERATIONS>
+  <INCLUDES file="%%shared_defs%%"/>
 
-    <SCOREFXNS>
-      <talaris2013_cst weights="talaris2013_cst"/>
-    </SCOREFXNS>
+  <MOVERS>
+    <ConstraintSetMover name="cst" cst_fa_file="%%cst_file%%"/>
+    <PackRotamersMover name="fixbb"
+        task_operations="resfile,ex" scorefxn="scorefxn_cst"/>
+  </MOVERS>
 
-    <MOVERS>
-      <ConstraintSetMover name="cst" cst_fa_file="%%cst_file%%"/>
-      <PackRotamersMover name="fixbb"
-          task_operations="resfile,ex" scorefxn="talaris2013_cst"/>
-    </MOVERS>
-
-    <PROTOCOLS>
-      <Add mover_name=cst/>
-      <Add mover_name=fixbb/>
-    </PROTOCOLS>
-
-    <OUTPUT scorefxn="talaris2013"/>
+  <PROTOCOLS>
+    <Add mover_name=cst/>
+    <Add mover_name=fixbb/>
+  </PROTOCOLS>
 
 </ROSETTASCRIPTS>
 
