@@ -76,7 +76,7 @@ stripped of waters and extraneous ligands."""
         if pdb_path.endswith('.pdb.gz'):
             shutil.copyfile(pdb_path, workspace.input_pdb_path)
         elif pdb_path.endswith('.pdb'):
-            subprocess.call('gzip -c {} > {}'.format(
+            subprocess.call('gzip -c {0} > {1}'.format(
                     pdb_path, workspace.input_pdb_path), shell=True)
         else:
             raise ValueError("'{0}' is not a PDB file.".format(pdb_path))
