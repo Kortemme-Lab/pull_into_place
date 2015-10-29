@@ -1,11 +1,13 @@
 <ROSETTASCRIPTS>
 
-  <INCLUDES file="%%shared_defs%%"/>
+  <INCLUDES>
+    <XML file="%%shared_defs%%"/>
+  </INCLUDES>
 
   <MOVERS>
     <LoopModeler name="modeler"
       config="kic_with_frags"
-      scorefxn="scorefxn"
+      scorefxn_fa="scorefxn"
       loops_file="%%loop_file%%"
       fast="%%fast%%">
         <Build skip="yes"/>

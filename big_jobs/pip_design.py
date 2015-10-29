@@ -7,7 +7,7 @@
 #$ -l h_core=0
 #$ -cwd
 
-import os, sys; sys.path.append(os.getcwd())
+import os, sys; sys.path.append(sys.argv[1])
 import subprocess
 from libraries import big_job
 
@@ -29,11 +29,11 @@ rosetta_command = [
         '-out:pdb_gz', 
         '-parser:protocol', workspace.design_script_path,
         '-parser:script_vars',
-            'shared_defs=' + big_jobs.shared_defs_path,
+            'shared_defs=' + big_job.shared_defs_path,
             'wts_file=' + workspace.scorefxn_path,
             'cst_file=' + workspace.restraints_path,
         '-packing:resfile', workspace.resfile_path,
         '@', workspace.flags_path,
 ]
-
+print ' '.join(rosetta_command)
 subprocess.call(rosetta_command)

@@ -14,11 +14,6 @@ def submit(script, workspace, **params):
     if not os.path.exists(workspace.rosetta_dir):
         raise pipeline.RosettaNotFound(workspace)
 
-    # Make sure the current working directory is the PIP root.
-
-    if not os.path.samefile(os.getcwd(), pipeline.pipeline_dir()):
-        raise MustSubmitFromPipRoot()
-
     # Parse some job parameters for the keyword arguments.
 
     params = dict((k, v) for k, v in params.items() if v is not None)
@@ -43,6 +38,7 @@ def submit(script, workspace, **params):
     qsub_command += '-l', 'h_rt={0}'.format(max_runtime),
     qsub_command += '-l', 'mem_free={0}'.format(max_memory),
     qsub_command += pipeline.big_job_path(script),
+    qsub_command += pipeline.pipeline_dir(),
     qsub_command += workspace.focus_dir,
 
     status = process.check_output(qsub_command)
@@ -53,7 +49,7 @@ def submit(script, workspace, **params):
         print status
         sys.exit()
 
-    # Figure out the job id, and make a params file specifically for that job.
+    # Figure out the job id, then make a params file specifically for it.
 
     job_id = status_match.group(1)
 
@@ -68,7 +64,7 @@ def submit(script, workspace, **params):
 
 def initiate():
     """Return some relevant information about the currently running job."""
-    workspace = pipeline.workspace_from_dir(sys.argv[1])
+    workspace = pipeline.workspace_from_dir(sys.argv[2])
     job_id = int(os.environ['JOB_ID'])
     task_id = int(os.environ['SGE_TASK_ID']) - 1
     job_params = read_params(workspace.job_params_path(job_id))

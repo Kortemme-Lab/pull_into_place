@@ -1,13 +1,14 @@
 <ROSETTASCRIPTS>
 
-  <INCLUDES file="%%shared_defs%%"/>
+  <INCLUDES>
+    <XML file="%%shared_defs%%"/>
+  </INCLUDES>
 
   <MOVERS>
-    <ConstraintSetMover name="cst" cst_fa_file="%%cst_file%%"/>
     <LoopModeler name="modeler"
       config="kic_with_frags"
-      scorefxn="scorefxn_cst"
-      task_operations="resfile,ex"
+      scorefxn_fa="scorefxn_cst"
+      task_operations="cli,resfile,ex"
       loops_file="%%loop_file%%"
       fast="%%fast%%">
         <Build skip="yes"/>
@@ -15,7 +16,7 @@
   </MOVERS>
 
   <PROTOCOLS>
-    <Add mover_name=cst/>
+    <!-- Constraints read from command line -->
     <Add mover_name=modeler/>
   </PROTOCOLS>
 
