@@ -1,14 +1,16 @@
 <ROSETTASCRIPTS>
 
-  <INCLUDES file="%%shared_defs%%"/>
+  <INCLUDES>
+    <XML file="%%shared_defs%%"/>
+  </INCLUDES>
 
   <MOVERS>
-    <ConstraintSetMover name="cst" cst_fa_file="%%cst_file%%"/>
     <PackRotamersMover name="fixbb"
-        task_operations="resfile,ex" scorefxn="scorefxn_cst"/>
+        task_operations="cli,resfile,ex" scorefxn="scorefxn_cst"/>
   </MOVERS>
 
   <PROTOCOLS>
+    <!-- Constraints added using mover because command-line is ignored -->
     <Add mover_name=cst/>
     <Add mover_name=fixbb/>
   </PROTOCOLS>

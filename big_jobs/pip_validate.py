@@ -6,7 +6,7 @@
 #$ -l netapp=1G
 #$ -cwd
 
-import os, sys; sys.path.append(os.getcwd())
+import os, sys; sys.path.append(sys.argv[1])
 import subprocess
 from libraries import big_job
 
@@ -30,7 +30,7 @@ rosetta_command = [
         '-out:mute', 'protocols.loops.loops_main',
         '-parser:protocol', workspace.validate_script_path,
         '-parser:script_vars',
-            'shared_defs=' + big_jobs.shared_defs_path,
+            'shared_defs=' + big_job.shared_defs_path,
             'wts_file=' + workspace.scorefxn_path,
             'loop_file=' + workspace.loops_path,
             'fast=' + ('yes' if test_run else 'no')

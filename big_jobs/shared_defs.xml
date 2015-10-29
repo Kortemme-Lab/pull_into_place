@@ -1,5 +1,5 @@
   <SCOREFXNS>
-    <scorefxn weights="%%wts_file%%">
+    <scorefxn weights="%%wts_file%%"/>
     <scorefxn_cst weights="%%wts_file%%">
       <Reweight scoretype="coordinate_constraint" weight="1.0"/>
       <Reweight scoretype="atom_pair_constraint" weight="1.0"/>
@@ -10,6 +10,7 @@
   </SCOREFXNS>
 
   <TASKOPERATIONS>
+    <InitializeFromCommandline name="cli"/>
     <ReadResfile name="resfile"/>
     <ExtraRotamersGeneric name="ex"
       ex1="yes" ex2="yes" extrachi_cutoff="0"/>
@@ -20,4 +21,3 @@
   </MOVERS>
 
   <OUTPUT scorefxn="scorefxn"/>
-
