@@ -17,7 +17,8 @@ input_path = designs[task_id % len(designs)]
 output_subdir = workspace.output_subdir(input_path)
 test_run = parameters.get('test_run', False)
 
-rosetta_command = [
+big_job.print_debug_info()
+big_job.run_command([
         workspace.rosetta_scripts_path,
         '-database', workspace.rosetta_database_path,
         '-in:file:s', input_path,
@@ -36,6 +37,4 @@ rosetta_command = [
             'fast=' + ('yes' if test_run else 'no')
 ] +     workspace.fragments_flags(input_path) + [
         '@', workspace.flags_path,
-]
-print ' '.join(rosetta_command)
-subprocess.call(rosetta_command)
+])

@@ -74,9 +74,18 @@ def read_params(params_path):
     with open(params_path) as file:
         return json.load(file)
 
-class MustSubmitFromPipRoot (IOError):
+def print_debug_info():
+    from datetime import datetime
+    from socket import gethostname
 
-    def __init__(self):
-        IOError.__init__(self, "Cluster jobs must be submitted from '{0}'.".format(pipeline.pipeline_dir()))
-        self.no_stack_trace = True
+    print "Date:", datetime.now()
+    print "Host:", gethostname()
 
+def run_command(command):
+    process = subprocess.Popen(command)
+
+    print "Command: ", ' '.join(command)
+    print "Process ID:", process.pid
+    sys.stdout.flush()
+
+    process.wait()

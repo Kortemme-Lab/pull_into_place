@@ -17,7 +17,8 @@ bb_models = parameters['inputs']
 bb_model = bb_models[task_id % len(bb_models)]
 design_id = task_id // len(bb_models)
 
-rosetta_command = [
+big_job.print_debug_info()
+big_job.run_command([
         workspace.rosetta_scripts_path,
         '-database', workspace.rosetta_database_path,
         '-in:file:s', bb_model,
@@ -34,6 +35,4 @@ rosetta_command = [
             'cst_file=' + workspace.restraints_path,
         '-packing:resfile', workspace.resfile_path,
         '@', workspace.flags_path,
-]
-print ' '.join(rosetta_command)
-subprocess.call(rosetta_command)
+])

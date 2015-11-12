@@ -14,7 +14,8 @@ workspace, job_id, task_id, parameters = big_job.initiate()
 output_prefix = '{0}/{1}_{2:06d}_'.format(workspace.output_dir, job_id, task_id)
 test_run = parameters.get('test_run', False)
 
-rosetta_command = [
+big_job.print_debug_info()
+big_job.run_command([
         workspace.rosetta_scripts_path,
         '-database', workspace.rosetta_database_path,
         '-in:file:s', workspace.input_pdb_path,
@@ -35,6 +36,4 @@ rosetta_command = [
         '-constraints:cst_fa_file', workspace.restraints_path,
 ] +     workspace.fragments_flags(workspace.input_pdb_path) + [
         '@', workspace.flags_path,
-]
-print ' '.join(rosetta_command)
-subprocess.call(rosetta_command)
+])
