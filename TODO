@@ -1,31 +1,44 @@
-Regarding custom score functions
+Regarding fragment generation
+=============================
+The fragment script uses Roland's no-longer-existent rosetta checkout.  I 
+should modify it to either use a rosetta that's shared by the whole lab, or to 
+accept a path to rosetta on the command-line, which PIP can supply.
+
+Regarding annotating output structures
+======================================
+It would be nice if rosetta scripts had a way to specify filters that run on 
+the pose and add to the PDB in the end, using setPoseExtraScore() or whatever 
+it's called.  This could be parsed in a general way by show_my_designs.py
+
+Regarding the wildtype structure
 ================================
-Change the 01_setup script to accept and save a 'scorefxn.wts' file.  It should 
-also simply accept the name of a standard rosetta score function, which it will 
-then find and copy into the workspace.  The default can be talaris2013.
-
-Change the various job scripts to use 'scorefxn.wts'.  The build and design 
-scripts will have to modify this score function to turn on constraints.  I 
-thought about giving the user a way to control the constraint term weights, but 
-I decided that the restraint file already gives that knob.
-
-Do a small test run to make sure that all the scripts are using the correct 
-score function.  In particular, I have to make sure that the design script is 
-respecting the constraints, because I don't know that I've ever gotten that to 
-work properly.
-
-In 01_setup_pipeline.py
-=======================
 Save input pdb as 'wildtype.pdb.gz'
 
-Generate 'input.pdb.gz' or 'design.pdb.gz' or 'mutant.pdb.gz' by running fixbb 
-on the given structure.  First, parse the restraint file to figure out which 
-residues are restrained.  Second, parse the lines from resfile that pertain to 
-those residues.  Make sure that those lines are of the form 'PIKAA .', i.e. 
-make sure that each restrained position can only be one type of residue and 
-that that type of residue is specified in the resfile.  Combine the parsed 
-resfile lines to make a mini-resfile and feed that mini-resfile to fixbb to 
-generate the input pdb.
+Generate 'input.pdb.gz' or 'design.pdb.gz' or 'mutant.pdb.gz' in the 01_setup 
+scripts by running fixbb on the given wildtype structure.  First, parse the 
+restraint file to figure out which residues are restrained.  Second, parse the 
+lines from resfile that pertain to those residues.  Make sure that those lines 
+are of the form 'PIKAA .', i.e.  make sure that each restrained position can 
+only be one type of residue and that that type of residue is specified in the 
+resfile.  Combine the parsed resfile lines to make a mini-resfile and feed that 
+mini-resfile to fixbb to generate the input pdb.
+
+or
+
+Prompt the user for a relaxed wildtype structure.  Then make the following 
+modifications to the model building script: begin with a quick repack using the 
+given resfile, follow by applying constraints, then do full-atom loop modeling.  
+Currently, the model building script has to load constraints from the command 
+line (which means there can't be an initial repack step) because otherwise the 
+centroid mode loop modeling chokes.  This scheme skips centroid loop modeling, 
+which may or may not be a problem.  I can always explicitly add it back in, 
+though.
+
+A conceptual problem, however, is that the "wildtype" structure would not be 
+wildtype if you wanted to add or remove residues in your designs.  So in this 
+sense it's more honest to call the structure "input", because that's what it 
+is.  I could call it "reference".  That's maybe even more what it is, because I 
+use it to calculate loop RMSDs, delta buried unsats, and things like that.
 
 In view_models.py
 =================
@@ -56,7 +69,7 @@ script that runs pymol, loads the given PDB, loads the wildtype PDB (hardcoded
 path), formats things nicely, and launches wt_vs_mut.  The question is how 
 should view models remember that script?  Also, how should it decide what to 
 call it?  Regarding the second question, we can look for a magic comment and 
-fall back on the file name if necessary.  Regarding the first, We either need a 
+fall back on the file name if necessary.  Regarding the first, we either need a 
 config file or a magic naming scheme.  I want to be able to easily use the same 
 script for multiple directories, like I would for Cas9 project.  If I'm going 
 to use a magic name, I can get rid of the 'Add Custom Previewer' button.  Or I 
