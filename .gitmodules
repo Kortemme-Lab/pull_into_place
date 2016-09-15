@@ -1,6 +1,0 @@
-[submodule "tools"]
-	path = tools
-	url = git@guybrush.ucsf.edu:kortemme-lab/tools.git
-[submodule "libraries/show_my_designs"]
-	path = libraries/show_my_designs
-	url = git@github.com:Kortemme-Lab/show_my_designs.git
