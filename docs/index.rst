@@ -1,6 +1,4 @@
-******************************************************************
-Pull Into Place --- Position sidechains with sub-angstrom accuracy
-******************************************************************
+.. include:: ../README.rst
 
 .. toctree::
    :maxdepth: 1
@@ -12,7 +10,4 @@ Pull Into Place --- Position sidechains with sub-angstrom accuracy
    api/index.rst
    contrib
 
-
-.. include:: ../README.rst
-   :start-line: 2
 
