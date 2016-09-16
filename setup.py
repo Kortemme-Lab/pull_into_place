@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open('pull_into_place/__init__.py') as file:
     exec file.read()
@@ -11,7 +11,7 @@ with open('README.rst') as file:
 def define_command(module, extras=None):
     entry_point = '{0} = pull_into_place.commands.{0}:main'.format(module)
     if extras is not None:
-        entry_point += ' {}'.format(extras)
+        entry_point += ' {0}'.format(extras)
     return entry_point
 
 
@@ -40,9 +40,7 @@ setup(
         'Programming Language :: Python :: 2',
         'Topic :: Scientific/Engineering :: Bio-Informatics',
     ],
-    packages=[
-        'pull_into_place',
-    ],
+    packages=find_packages(),
     package_data={
         'pull_into_place': [
             'big_jobs/*.py',
