@@ -1,83 +1,111 @@
+************
 Installation
-============
-Install the Pull Into Place pipeline using ``pip``::
+************
+Typically, you would install Pull Into Place (PIP) both on your workstation and 
+on your supercomputing cluster.  On your cluster, you would run the steps in 
+the pipeline that involve long rosetta simulations.  On your workstation, you 
+would run the analysis and filtering steps between those simulations.  The 
+reason for splitting up the work like this is that the analysis scripts have 
+more dependencies than the simulation scripts, and those dependencies can be 
+hard to install on clusters with limited internet access and/or out-of-date 
+software.  Some of the analysis scripts also require a GUI environment, which 
+most clusters won't have.  Also note that the simulation scripts require 
+``python>=2.6`` while the analysis scripts require ``python>=2.7``.
 
-    $ pip install pull_into_place
+Installing on your workstation
+==============================
+PIP is available on PyPI, so you can use ``pip`` to install it.  (Sorry if the 
+distinction between PIP and ``pip`` is confusing.  PIP is the Pull Into Place 
+pipeline, ``pip`` is the package manager distributed with modern versions of 
+python)::
 
-This command won't install any of the dependencied need by the analysis 
-scripts, because the rest of the scripts 
+   $ pip install 'pull_into_place [analysis]'
 
-Installation on the UCSF Cluster
-================================
-Installing PIP requires ``setuptools``, which is not present by default on the 
-cluster.  To install it, you need to download the most recent ``setuptools`` 
-source distribution from ``https://pypi.python.org/pypi/setuptools``.  When I 
-did this, the most recent distribution was ``setuptools-27.2.0.tar.gz``.  Then 
-run the following commands to copy the setuptools onto the cluster and to 
-install it::
-    
-    $ scp setuptools-27.2.0.tar.gz chef.compbio.ucsf.edu:
-    $ ssh chef.compbio.ucsf.edu
-    $ tar -xzf setuptools-27.2.0.tar.gz
-    $ cd setuptools-27.2.0
-    $ python setup.py install --user
+The ``[analysis]`` part of the command instructs ``pip`` to install all of the 
+dependencies for the analysis scripts.  These dependencies aren't installed by 
+default because they aren't needed for the rosetta simulation steps, and they 
+can be challenging to install of some clusters.
 
-PIP also requires ``klab``, the Kortemme Lab 
+GTK and the ``plot_funnels`` command
+------------------------------------
+The ``plot_funnels`` command creates an interactive GUI that can show you score 
+vs RMSD funnels, open the structures corresponding to individual points in 
+``pymol`` or ``chimera``, and keep track of your notes on different designs.  
 
----
+In order to use this command, you have to install ``pygtk`` yourself.  This 
+dependency is not included with the other ``[analysis]`` dependencies because 
+it can't be installed with ``pip`` (except maybe on Windows).  On Linux 
+systems, your package manager should be able to install it pretty easily::
 
-Installation
-============
-Install the Pull Into Place pipeline by cloning its git repository with the 
-following command.  The --recursive option tells git to also clone the 'tools' 
-submodule used by PIP.
+   $ apt-get instal pygtk  # Ubuntu
+   $ yum install pygtk2    # Fedora<=21
+   $ dnf install pygtk2    # Fedora>=22
 
-$ git clone --recursive https://guybrush.ucsf.edu/gitlab/kortemme-lab/pull_into_place.git
+On Mac systems, you might have success with ``homebrew``, but I haven't tried 
+it before so your mileage may vary::
 
-If you are cloning PIP on the UCSF cluster and are using the Kortemme lab's SSH 
-tunneling tricks, then you can't use the command above because it will crash 
-when it tries to clone the 'tools' submodule without going through a tunnel.  
-Instead, use this set of commands to install PIP::
+   $ brew install pygtk
 
-$ git clone git@gitlab:kortemme-lab/pull_into_place.git
-$ cd pull_into_place
-$ git submodule init
-$ vim .git/config   
+Installing on your cluster
+==========================
+If ``pip`` is available on your cluster, use it::
 
-In the editor, change the lines that say:
-    
-[submodule "tools"]
-    url = git@guybrush.ucsf.edu:kortemme-lab/tools.git
+   $ pip install pull_into_place
 
-to:
-    
-[submodule "tools"]
-    url = git@gitlab:kortemme-lab/tools.git
+Otherwise, you will need to install PIP manually.  The first step is to 
+download and install source distributions of |setuptools|_ and |klab|_.  PIP 
+needs |setuptools|_ to install itself and |klab|_ to access a number of 
+general-purpose tools developed by the Kortemme lab.  Once those dependencies 
+are installed, you can download and install a source distribution of 
+|pull_into_place|_.  The next section has example command lines for all of 
+these steps in the specific context of the QB3 cluster at UCSF.
 
-where 'gitlab' is the name of your tunnel to guybrush.ucsf.edu on port 22.  The 
-save, exit, and run one last command to clone the 'tools' submodule:
+Installing on the QB3 cluster at UCSF
+-------------------------------------
+1. Download the most recent source distributions for |setuptools|_, |klab|_, 
+   and |pull_into_place|_ from PyPI (those are links, in case it's hard to 
+   tell).  When I did this, the most recent distributions were:
+   
+   - ``setuptools-27.2.0.tar.gz``
+   - ``klab-0.2.0.tar.gz``
+   - ``pull_into_place-1.0.0.tar.gz``
 
-$ git submodule update
+2. Copy the source distributions onto the cluster::
 
-Dependencies
-============
-In general, there are two types of scripts in this pipeline: those that run on 
-the cluster and those that analyze results.  The cluster scripts don't require 
-anything beyond Sun Grid Engine (SGE) and the python 2.6 standard distribution.  
-The analysis scripts typically require python 2.7 and the full complement of 
-scientific python packages.  The view_models.py script additionally requires 
-the Gtk2 GUI library, which is often pre-installed on Linux and is probably 
-possible to install on other systems as well.  All the packages needed to run 
-the analysis scripts are listed below:
+   $ scp setuptools-27.2.0.tar.gz chef.compbio.ucsf.edu:
+   $ scp klab-0.2.0.tar.gz chef.compbio.ucsf.edu:
+   $ scp pull_into_place-1.0.0.tar.gz chef.compbio.ucsf.edu:
 
-python 2.7
-numpy 1.9
-scipy 0.12
-pandas 0.15
-numexpr 2.2
-matplotlib 1.3
-pygtk 2.24
-xlsxwriter 0.5
-pyyaml 3.1
+3. Log onto the cluster and unpack the source distributions::
 
-python-tk
+   $ ssh chef.compbio.ucsf.edu
+   $ tar -xzf setuptools-27.2.0.tar.gz
+   $ tar -xzf klab-0.2.0.tar.gz
+   $ tar -xzf pull_into_place-1.0.0.tar.gz
+
+4. Install |setuptools|_::
+
+   $ cd ~/setuptools-27.2.0
+   $ python setup.py install --user
+
+5. Install |klab|_::
+
+   $ cd ~/klab-0.2.0
+   $ python setup.py install --user
+
+6. Install |pull_into_place|_::
+
+   $ cd ~/pull_into_place-1.0.0
+   $ python setup.py install --user
+
+7. Make sure it works::
+
+   $ pull_into_place --help
+
+.. |setuptools| replace:: ``setuptools``
+.. _setuptools: https://pypi.python.org/pypi/setuptools
+.. |klab| replace:: ``klab``
+.. _klab: https://pypi.python.org/pypi/klab
+.. |pull_into_place| replace:: ``pull_into_place``
+.. _pull_into_place: https://pypi.python.org/pypi/pull_into_place
+

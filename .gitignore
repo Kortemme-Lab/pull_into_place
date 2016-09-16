@@ -48,7 +48,7 @@ coverage.xml
 .hypothesis/
 
 # Sphinx documentation
-docs/build/
+docs/.*
 
 # IPython Notebook
 .ipynb_checkpoints
