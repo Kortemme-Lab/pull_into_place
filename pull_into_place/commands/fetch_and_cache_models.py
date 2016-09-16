@@ -6,7 +6,8 @@ metrics for each one.  This script is meant to be called periodically during
 long running jobs, to reduce the amount of time you have to spend waiting to 
 build the cache at the end.
 
-Usage: fetch_and_cache_models.py <directory> [options]
+Usage:
+    pull_into_place fetch_and_cache_models <directory> [options]
 
 Options:
     --remote URL, -r URL

@@ -6,12 +6,13 @@ different sequence, so each input needs its own fragment library.  You can skip
 this step if you don't plan to use fragments in your validation simulations, 
 but other algorithms may not perform as well on long loops.
 
-Usage: 07_setup_design_fragments.py <name> <round> [options]
+Usage:
+    pull_into_place 07_setup_design_fragments <name> <round> [options]
 
 Options:
     -m, --mem-free=MEM  [default: 2]
         The amount of memory (GB) to request from the cluster.  Bigger systems 
-        may need more memory, But making large memory requests can make jobs 
+        may need more memory, but making large memory requests can make jobs 
         take much longer to come off the queue (since there may only be a few 
         nodes with enough memory to meet the request).
 

@@ -9,7 +9,8 @@ given restraints and how many buried unsatisfied H-bonds are present in the
 model.  All of the criteria that can be used are described in the "Queries" 
 section below.
 
-Usage: 04_pick_models_to_design.py [options] <name> <round> <queries>...
+Usage:
+    pull_into_place 04_pick_models_to_design [options] <name> <round> <queries>...
 
 Options:
     --clear, -x

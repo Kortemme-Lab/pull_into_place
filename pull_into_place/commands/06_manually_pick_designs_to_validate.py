@@ -8,7 +8,8 @@ mutations you want to test.  These files are simply copied into the workspace
 in question.  The files are copied (not linked) so they're less fragile and 
 easier to copy across the network.
 
-Usage: 06_pick_manual_designs.py <name> <round> <pdbs>... [options]
+Usage:
+    pull_into_place 06_pick_manual_designs <name> <round> <pdbs>... [options]
 
 Options:
     --clear, -x

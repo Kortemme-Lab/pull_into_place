@@ -6,7 +6,8 @@ because so few designs can be validated.  Typically the decision is made based
 on sequence identity and rosetta score.  It might be nice to add a clustering 
 component as well.
 
-Usage: 06_pick_designs_to_validate.py <name> <round> [<queries>...] [options]
+Usage:
+    pull_into_place 06_pick_designs_to_validate <name> <round> [<queries>...] [options]
 
 Options:
     --num NUM, -n NUM           [default: 50]

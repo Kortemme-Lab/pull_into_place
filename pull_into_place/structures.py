@@ -225,6 +225,10 @@ def read_and_calculate(workspace, pdb_paths):
     return records
 
 def xyz_to_array(xyz):
+    """
+    Convert a list of strings representing a 3D coordinate to floats and return 
+    the coordinate as a ``numpy`` array.
+    """
     return np.array([float(x) for x in xyz])
 
 

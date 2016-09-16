@@ -3,7 +3,8 @@
 """\
 Count the number of models meeting the given query.
 
-Usage: count_models.py <directories>... [options]
+Usage:
+    pull_into_place count_models <directories>... [options]
 
 Options:
     --query QUERY, -q QUERY

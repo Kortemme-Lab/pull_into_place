@@ -6,7 +6,8 @@ resfile that was used for the model building step is used again for this step.
 Note that the model build step already includes some design.  The purpose of 
 this step is to expand the number of designs for each backbone model.
 
-Usage: 05_design_models.py <name> <round> [options]
+Usage:
+    pull_into_place 05_design_models <name> <round> [options]
 
 Options:
     --nstruct NUM, -n NUM   [default: 100]

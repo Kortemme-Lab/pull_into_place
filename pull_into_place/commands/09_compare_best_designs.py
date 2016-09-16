@@ -6,7 +6,8 @@ Create a nicely organized excel spreadsheet comparing all of the validated
 designs in the given where the lowest scoring decoy within some threshold of 
 the target structure.
 
-Usage: 09_compare_best_designs.py <name> [<round>] [options]
+Usage:
+    pull_into_place 09_compare_best_designs <name> [<round>] [options]
 
 Options:
     -t, --threshold RESTRAINT_DIST   [default: 1.2]

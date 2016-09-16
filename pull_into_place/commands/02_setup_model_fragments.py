@@ -9,7 +9,7 @@ believe that the improved sampling that fragments offer outweighs this
 potential drawback.
 
 Usage:
-    02_setup_model_fragments.py <name> [options]
+    pull_into_place 02_setup_model_fragments <name> [options]
 
 Options:
     -m, --mem-free=MEM  [default: 2]

@@ -6,7 +6,8 @@ Only regions of the backbone specified by the loop file are allowed to move.
 The resfile used in the previous steps of the pipeline is not respected here; 
 all residues within 10A of the loop are allowed to pack.
 
-Usage: 07_validate_designs.py <name> <round> [options]
+Usage:
+    pull_into_place 07_validate_designs <name> <round> [options]
 
 Options:
     --nstruct NUM, -n NUM   [default: 500]
