@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-with open('pull_into_place/__meta__.py') as file:
+with open('pull_into_place/__init__.py') as file:
     exec file.read()
 
 with open('README.rst') as file:
@@ -52,7 +52,7 @@ setup(
     install_requires=[
         'klab',
     ],
-    extras_require = {
+    extras_require={
         'analysis': [
             'numpy',
             'scipy',
@@ -66,7 +66,7 @@ setup(
             'weblogo',
         ],
     },
-    entry_points = {
+    entry_points={
         'console_scripts': [
             'pull_into_place=pull_into_place.main:main',
         ],
@@ -90,5 +90,4 @@ setup(
             define_command('plot_funnels', '[analysis]'),
         ],
     },
-    include_package_data=True,
 )
