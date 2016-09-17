@@ -12,6 +12,9 @@ simulations to test designs.
 .. image:: https://img.shields.io/pypi/pyversions/pull_into_place.svg
    :target: https://pypi.python.org/pypi/pull_into_place
 
+.. image:: https://readthedocs.org/projects/pull_into_place/badge/?version=latest
+   :target: http://pull_into_place.readthedocs.io/en/latest/?badge=latest
+
 The design pipeline orchestrated by PIP has the following steps:
 
 1. Define your project.  This entails creating an input PDB file and preparing 
