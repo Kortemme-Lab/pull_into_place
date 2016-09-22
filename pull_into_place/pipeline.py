@@ -200,10 +200,13 @@ class Workspace (object):
         workspace.  This is useful for commands that have to be run from a 
         certain directory.
         """
-        source = os.path.abspath(self._relative_path)
+        source = os.path.abspath(self._root_dirname)
         target = os.path.abspath(os.path.join(*subpaths))
         self._root_dirname = os.path.relpath(source, target)
         os.chdir(target)
+
+    def cd_to_root(self):
+        self.cd(self.root_dir)
 
     def exists(self):
         return os.path.exists(self.focus_dir)
