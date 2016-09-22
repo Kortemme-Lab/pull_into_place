@@ -12,7 +12,7 @@ Options:
         Specify the URL to push data to.
 
     --dry-run, -d
-        Output rsync command that would be used to push data.
+        Output the rsync command that would be used to push data.
 """
 
 from klab import docopt, scripting

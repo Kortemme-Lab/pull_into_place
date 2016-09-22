@@ -20,7 +20,7 @@ Options:
         significantly longer.
 
     --dry-run, -d
-        Output rsync command that would be used to fetch data.
+        Output the rsync command that would be used to fetch data.
         
 """
 

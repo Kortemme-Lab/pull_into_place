@@ -15,7 +15,7 @@ Arguments:
         enough of the name to be unique.  Broadly speaking, there are two 
         categories of scripts.  The first are part of the main design pipeline.  
         These are prefixed with numbers so that you know the order to run them 
-        in.  The second are helpers scripts and are not prefixed.
+        in.  The second are helper scripts and are not prefixed.
 
 {command_table}
 
