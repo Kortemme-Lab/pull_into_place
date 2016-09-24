@@ -39,7 +39,7 @@ def main():
     # Run the fragment generation script.
 
     generate_fragments = [
-            'tools/bio/fragments/generate_fragments.py',
+            'klab_generate_fragments',
             '--loops_file', workspace.loops_path,
             '--outdir', workspace.fragments_dir,
             '--memfree', args['--mem-free'],
