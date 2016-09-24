@@ -29,7 +29,6 @@ big_jobs.run_command([
         '-out:pdb_gz', 
         '-parser:protocol', workspace.design_script_path,
         '-parser:script_vars',
-            'shared_defs=' + big_jobs.shared_defs_path,
             'wts_file=' + workspace.scorefxn_path,
             'cst_file=' + workspace.restraints_path,
         '-packing:resfile', workspace.resfile_path,

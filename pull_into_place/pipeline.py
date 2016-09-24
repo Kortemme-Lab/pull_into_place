@@ -117,6 +117,10 @@ class Workspace (object):
         return self.find_path('validate_designs.xml')
 
     @property
+    def shared_defs_path(self):
+        return self.find_path('shared_defs.xml')
+
+    @property
     def flags_path(self):
         return self.find_path('flags')
 

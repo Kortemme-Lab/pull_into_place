@@ -3,11 +3,9 @@
 import sys, os, re, json, subprocess
 from . import pipeline
 
-shared_defs_path = pipeline.big_job_path('shared_defs.xml')
-
 def submit(script, workspace, **params):
     """Submit a job with the given parameters."""
-    from tools import cluster, process
+    from klab import cluster, process
 
     # Make sure the rosetta symlink has been created.
 
@@ -86,7 +84,8 @@ def print_debug_info():
 def run_command(command):
     process = subprocess.Popen(command)
 
-    print "Command: ", ' '.join(command)
+    print "Working directory:", os.getcwd()
+    print "Command:", ' '.join(command)
     print "Process ID:", process.pid
     sys.stdout.flush()
 

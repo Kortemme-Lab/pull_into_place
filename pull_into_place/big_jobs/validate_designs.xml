@@ -1,8 +1,6 @@
 <ROSETTASCRIPTS>
 
-  <INCLUDES>
-    <XML file="%%shared_defs%%"/>
-  </INCLUDES>
+  <xi:include href="shared_defs.xml"/>
 
   <MOVERS>
     <LoopModeler name="modeler"

@@ -173,9 +173,8 @@ with fragments in "ensemble-generation mode" (i.e. no initial build step)."""
 class DesignScript:
     prompt = "Path to design script [optional]: "
     description = """\
-Design script: An XML rosetta script that performs design (usually on a fixed 
-backbone) to stabilize the desired geometry.  The default version of this 
-script uses fixbb."""
+Design script: An XML rosetta script that performs design to stabilize the 
+desired geometry.  The default version of this script uses fixbb."""
 
     @staticmethod
     def install(workspace, script_path):
@@ -203,6 +202,17 @@ mode" (i.e. no initial build step)."""
         else:
             default_path = pipeline.big_job_path('validate_designs.xml')
             shutil.copyfile(default_path, workspace.validate_script_path)
+
+
+class SharedDefs:
+    prompt = None
+    description = None
+
+    @staticmethod
+    def install(workspace):
+        print "Installing shared defs."
+        shared_defs_path = pipeline.big_job_path('shared_defs.xml')
+        shutil.copyfile(shared_defs_path, workspace.shared_defs_path)
 
 
 class FlagsFile:
@@ -284,6 +294,7 @@ Design '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
                 BuildScript,
                 DesignScript,
                 ValidateScript,
+                SharedDefs,
                 FlagsFile,
         )
 
@@ -296,6 +307,17 @@ Design '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
     scripting.use_path_completion()
 
     for installer in installers:
+
+        # If the installer doesn't have a prompt, just install it without 
+        # asking any questions.
+
+        if installer.prompt is None:
+            installer.install(workspace)
+            continue
+
+        # Otherwise, print a description of the setting being installed and 
+        # prompt the user for a value.
+
         print installer.description
         print
 
