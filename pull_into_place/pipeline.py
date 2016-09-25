@@ -470,7 +470,17 @@ def workspace_from_dir(directory, recurse=True):
     if not os.path.exists(pickle_path):
         if recurse:
             parent_dir = os.path.dirname(directory)
-            return workspace_from_dir(parent_dir, parent_dir != '/')
+
+            # Keep looking for a workspace as long as we haven't hit the root 
+            # of the file system.  If an exception is raised, that means no 
+            # workspace was found.  Catch and re-raise the exception so that 
+            # the name of the directory reported in the exception is meaningful 
+            # to the user.
+
+            try:
+                return workspace_from_dir(parent_dir, parent_dir != '/')
+            except WorkspaceNotFound:
+                raise WorkspaceNotFound(directory)
         else:
             raise WorkspaceNotFound(directory)
 
