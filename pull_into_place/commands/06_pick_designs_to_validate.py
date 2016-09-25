@@ -7,7 +7,7 @@ on sequence identity and rosetta score.  It might be nice to add a clustering
 component as well.
 
 Usage:
-    pull_into_place 06_pick_designs_to_validate <name> <round> [<queries>...] [options]
+    pull_into_place 06_pick_designs_to_validate <workspace> <round> [<queries>...] [options]
 
 Options:
     --num NUM, -n NUM           [default: 50]
@@ -36,12 +36,12 @@ from .. import pipeline, structures
 @scripting.catch_and_print_errors()
 def main():
     args = docopt.docopt(__doc__)
-    name = args['<name>']
+    root = args['<workspace>']
     round = args['<round>']
     query = ' and '.join(args['<queries>'])
     temp = float(args['--temp'])
 
-    workspace = pipeline.ValidatedDesigns(name, round)
+    workspace = pipeline.ValidatedDesigns(root, round)
     workspace.check_paths()
     workspace.make_dirs()
 

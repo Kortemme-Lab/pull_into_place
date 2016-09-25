@@ -9,7 +9,8 @@ in question.  The files are copied (not linked) so they're less fragile and
 easier to copy across the network.
 
 Usage:
-    pull_into_place 06_pick_manual_designs <name> <round> <pdbs>... [options]
+    pull_into_place 06_manually_pick_designs_to_validate [options]
+        <workspace> <round> <pdbs>...
 
 Options:
     --clear, -x
@@ -23,13 +24,10 @@ from .. import pipeline
 @scripting.catch_and_print_errors()
 def main():
     args = docopt.docopt(__doc__)
-    name = args['<name>']
-    round = args['<round>']
-    pdbs = args['<pdbs>']
 
     # Setup the workspace.
 
-    workspace = pipeline.ValidatedDesigns(name, round)
+    workspace = pipeline.ValidatedDesigns(args['<workspace>'], args['<round>'])
     workspace.check_paths()
     workspace.make_dirs()
 
@@ -38,6 +36,6 @@ def main():
 
     # Copy the manual designs into the input directory.
 
-    for source_path in pdbs:
+    for source_path in args['<pdbs>']:
         dest_path = os.path.join(workspace.input_dir, os.path.basename(source_path))
         shutil.copy(source_path, dest_path)

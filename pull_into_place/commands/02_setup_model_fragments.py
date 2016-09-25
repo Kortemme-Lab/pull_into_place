@@ -9,7 +9,7 @@ believe that the improved sampling that fragments offer outweighs this
 potential drawback.
 
 Usage:
-    pull_into_place 02_setup_model_fragments <name> [options]
+    pull_into_place 02_setup_model_fragments <workspace> [options]
 
 Options:
     -m, --mem-free=MEM  [default: 2]
@@ -32,7 +32,7 @@ def main():
     args = docopt.docopt(__doc__)
     cluster.require_qsub()
 
-    workspace = pipeline.RestrainedModels(args['<name>'])
+    workspace = pipeline.RestrainedModels(args['<workspace>'])
     workspace.check_paths()
     workspace.make_dirs()
     workspace.clear_fragments()

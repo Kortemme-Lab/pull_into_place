@@ -7,7 +7,7 @@ in the resfile are allowed to design.  The design goal is embodied by the
 restraints specified in the restraints file.
 
 Usage:
-    pull_into_place 03_build_models <name> [options]
+    pull_into_place 03_build_models <workspace> [options]
 
 Options:
     --nstruct NUM, -n NUM   [default: 10000]
@@ -39,7 +39,7 @@ def main():
 
     # Setup the workspace.
 
-    workspace = pipeline.RestrainedModels(arguments['<name>'])
+    workspace = pipeline.RestrainedModels(arguments['<workspace>'])
     workspace.check_paths()
     workspace.check_rosetta()
     workspace.make_dirs()

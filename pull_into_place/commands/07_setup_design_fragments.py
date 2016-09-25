@@ -7,7 +7,7 @@ this step if you don't plan to use fragments in your validation simulations,
 but other algorithms may not perform as well on long loops.
 
 Usage:
-    pull_into_place 07_setup_design_fragments <name> <round> [options]
+    pull_into_place 07_setup_design_fragments <workspace> <round> [options]
 
 Options:
     -m, --mem-free=MEM  [default: 2]
@@ -30,7 +30,7 @@ def main():
     args = docopt.docopt(__doc__)
     cluster.require_qsub()
 
-    workspace = pipeline.ValidatedDesigns(args['<name>'], args['<round>'])
+    workspace = pipeline.ValidatedDesigns(args['<workspace>'], args['<round>'])
     workspace.check_paths()
     workspace.check_rosetta()
     workspace.make_dirs()

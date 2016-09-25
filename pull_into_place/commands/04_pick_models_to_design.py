@@ -10,7 +10,8 @@ model.  All of the criteria that can be used are described in the "Queries"
 section below.
 
 Usage:
-    pull_into_place 04_pick_models_to_design [options] <name> <round> <queries>...
+    pull_into_place 04_pick_models_to_design [options]
+        <workspace> <round> <queries>...
 
 Options:
     --clear, -x
@@ -23,13 +24,13 @@ Options:
         Choose which models to pick, but don't actually make any symlinks.
 
 Queries:
-    The queries provided after the design name are used to decide which models 
-    to carry forward and which to discard.  Any number of queries may be 
-    specified; only models that satisfy each query will be picked.  The query 
-    strings use the same syntax of the query() method of pandas DataFrame 
-    objects, which is pretty similar to python syntax.  Loosely speaking, each 
-    query must consist of a criterion name, a comparison operator, and a 
-    comparison value.  Only 5 criterion names are recognized:
+    The queries provided after the workspace name and round number are used to 
+    decide which models to carry forward and which to discard.  Any number of 
+    queries may be specified; only models that satisfy each query will be 
+    picked.  The query strings use the same syntax of the query() method of 
+    pandas DataFrame objects, which is pretty similar to python syntax.  
+    Loosely speaking, each query must consist of a criterion name, a comparison 
+    operator, and a comparison value.  Only 5 criterion names are recognized:
 
     "restraint_dist"
         The average distance between all the restrained atoms and their target 
@@ -58,10 +59,10 @@ from .. import pipeline, structures
 @scripting.catch_and_print_errors()
 def main():
     args = docopt.docopt(__doc__)
-    name, round = args['<name>'], args['<round>']
+    root, round = args['<workspace>'], args['<round>']
     query = ' and '.join(args['<queries>'])
 
-    workspace = pipeline.FixbbDesigns(name, round)
+    workspace = pipeline.FixbbDesigns(root, round)
     workspace.check_paths()
     workspace.make_dirs()
 

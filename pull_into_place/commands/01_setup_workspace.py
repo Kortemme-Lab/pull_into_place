@@ -8,7 +8,7 @@ given below.  This information is used to build a workspace for this design
 that will be used by the rest of the scripts in this pipeline.  
 
 Usage:
-    pull_into_place 01_setup_workspace <name> [--remote] [--overwrite]
+    pull_into_place 01_setup_workspace <workspace> [--remote] [--overwrite]
 
 Options:
     --remote, -r
@@ -252,7 +252,7 @@ from .. import pipeline
 @scripting.catch_and_print_errors()
 def main():
     arguments = docopt.docopt(__doc__)
-    workspace = pipeline.Workspace(arguments['<name>'])
+    workspace = pipeline.Workspace(arguments['<workspace>'])
 
     # Make a new workspace directory.
 

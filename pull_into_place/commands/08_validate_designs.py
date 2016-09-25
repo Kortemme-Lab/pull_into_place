@@ -7,7 +7,7 @@ The resfile used in the previous steps of the pipeline is not respected here;
 all residues within 10A of the loop are allowed to pack.
 
 Usage:
-    pull_into_place 07_validate_designs <name> <round> [options]
+    pull_into_place 08_validate_designs <workspace> <round> [options]
 
 Options:
     --nstruct NUM, -n NUM   [default: 500]
@@ -37,7 +37,7 @@ def main():
 
     # Setup the workspace.
 
-    workspace = pipeline.ValidatedDesigns(args['<name>'], args['<round>'])
+    workspace = pipeline.ValidatedDesigns(args['<workspace>'], args['<round>'])
     workspace.check_paths()
     workspace.make_dirs()
 

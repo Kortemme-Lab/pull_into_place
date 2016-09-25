@@ -7,7 +7,7 @@ Note that the model build step already includes some design.  The purpose of
 this step is to expand the number of designs for each backbone model.
 
 Usage:
-    pull_into_place 05_design_models <name> <round> [options]
+    pull_into_place 05_design_models <workspace> <round> [options]
 
 Options:
     --nstruct NUM, -n NUM   [default: 100]
@@ -40,7 +40,7 @@ def main():
 
     # Setup the workspace.
 
-    workspace = pipeline.FixbbDesigns(args['<name>'], args['<round>'])
+    workspace = pipeline.FixbbDesigns(args['<workspace>'], args['<round>'])
     workspace.check_paths()
     workspace.check_rosetta()
     workspace.make_dirs()

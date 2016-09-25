@@ -7,7 +7,7 @@ designs in the given where the lowest scoring decoy within some threshold of
 the target structure.
 
 Usage:
-    pull_into_place 09_compare_best_designs <name> [<round>] [options]
+    pull_into_place 09_compare_best_designs <workspace> [<round>] [options]
 
 Options:
     -t, --threshold RESTRAINT_DIST   [default: 1.2]
@@ -750,8 +750,10 @@ def annotate_designs(designs):
 def main():
     args = docopt.docopt(__doc__)
     prefix = args['--prefix'] or ''
-    workspaces = find_validation_workspaces(args['<name>'], args['<round>'])
-    designs = find_reasonable_designs(workspaces, args['--threshold'], args['--verbose'])
+    workspaces = find_validation_workspaces(
+            args['<workspace>'], args['<round>'])
+    designs = find_reasonable_designs(
+            workspaces, args['--threshold'], args['--verbose'])
     metrics = [
             DesignNameMetric(),
             ResfileSequenceMetric(),
