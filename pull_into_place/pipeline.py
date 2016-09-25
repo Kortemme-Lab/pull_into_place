@@ -50,6 +50,10 @@ class Workspace (object):
         return Workspace(directory)
 
     @property
+    def parent_dir(self):
+        return self._root_dirname
+
+    @property
     def root_dir(self):
         return os.path.normpath(
                 os.path.join(self._root_dirname, self._root_basename))
@@ -474,7 +478,17 @@ def workspace_from_dir(directory, recurse=True):
     if not os.path.exists(pickle_path):
         if recurse:
             parent_dir = os.path.dirname(directory)
-            return workspace_from_dir(parent_dir, parent_dir != '/')
+
+            # Keep looking for a workspace as long as we haven't hit the root 
+            # of the file system.  If an exception is raised, that means no 
+            # workspace was found.  Catch and re-raise the exception so that 
+            # the name of the directory reported in the exception is meaningful 
+            # to the user.
+
+            try:
+                return workspace_from_dir(parent_dir, parent_dir != '/')
+            except WorkspaceNotFound:
+                raise WorkspaceNotFound(directory)
         else:
             raise WorkspaceNotFound(directory)
 
@@ -522,15 +536,13 @@ def load_resfile(directory, resfile_path=None):
 def fetch_data(directory, remote_url=None, include_logs=False, dry_run=False):
     import os, subprocess
 
+    workspace = workspace_from_dir(directory)
+
     # Try to figure out the remote URL from the given directory, if a 
     # particular URL wasn't given.
 
     if remote_url is None:
-        try:
-            workspace = workspace_from_dir(directory)
-            remote_url = workspace.rsync_url
-        except WorkspaceNotFound:
-            print "No remote URL specified."
+        remote_url = workspace.rsync_url
 
     # Make sure the given directory is actually a directory.  (It's ok if it 
     # doesn't exist; rsync will create it.)
@@ -554,8 +566,11 @@ def fetch_data(directory, remote_url=None, include_logs=False, dry_run=False):
                 '--exclude', 'stderr',
                 '--exclude', '*.sc',
         ]
+    remote_dir = os.path.normpath(os.path.join(
+            remote_url, os.path.relpath(directory, workspace.parent_dir)))
     rsync_command += [
-            os.path.join(remote_url, directory) + '/', directory
+            remote_dir + '/',
+            directory,
     ]
     if dry_run:
         print ' '.join(rsync_command)
@@ -570,15 +585,19 @@ def fetch_and_cache_data(directory, remote_url=None, include_logs=False):
 def push_data(directory, remote_url=None, dry_run=False):
     import os, subprocess
 
+    workspace = workspace_from_dir(directory)
+
     if remote_url is None:
-        workspace = workspace_from_dir(directory)
         remote_url = workspace.rsync_url
+
+    remote_dir = os.path.normpath(os.path.join(
+            remote_url, os.path.relpath(directory, workspace.parent_dir)))
 
     rsync_command = [
             'rsync', '-avr',
             '--exclude', 'rosetta', '--exclude', 'rsync_url',
             '--exclude', 'stdout', '--exclude', 'stderr',
-            directory + '/', os.path.join(remote_url, directory),
+            directory + '/', remote_dir,
     ]
 
     if dry_run:

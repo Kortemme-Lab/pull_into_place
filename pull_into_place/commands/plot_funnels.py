@@ -128,5 +128,5 @@ def main():
     smd.show_my_designs(
             args['<pdb_directories>'],
             use_cache=not args['--force'],
-            lauch_gui=not args['--quiet'],
+            launch_gui=not args['--quiet'],
     )

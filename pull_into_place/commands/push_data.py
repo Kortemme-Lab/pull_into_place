@@ -5,7 +5,7 @@ Copy design files to a remote destination.  A common application is to copy
 input files onto the cluster before starting big jobs.
 
 Usage:
-    pull_into_place push_to_cluster <directory> [options]
+    pull_into_place push_data <directory> [options]
 
 Options:
     --remote URL, -r URL

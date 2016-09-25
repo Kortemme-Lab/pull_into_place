@@ -161,6 +161,10 @@ def read_and_calculate(workspace, pdb_paths):
             print "\nFailed to read '{}'".format(path)
             continue
 
+        if not lines:
+            print "\n{} is empty".format(path)
+            continue
+
         # Get different information from different lines in the PDB file.  Some 
         # of these lines are specific to different simulations.
 
