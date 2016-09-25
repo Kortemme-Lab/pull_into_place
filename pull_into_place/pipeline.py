@@ -276,7 +276,7 @@ class BigJobWorkspace (Workspace):
 
     @property
     def all_job_params(self):
-        from libraries import big_jobs
+        from . import big_jobs
         return [big_jobs.read_params(x) for x in self.all_job_params_paths]
 
     @property
@@ -487,7 +487,7 @@ def load_loops(directory, loops_path=None):
         workspace = workspace_from_dir(directory)
         loops_path = workspace.loops_path
 
-    from tools.rosetta.input_files import LoopsFile
+    from klab.rosetta.input_files import LoopsFile
     loops_parser = LoopsFile.from_filepath(loops_path)
 
     # We have to account for some weird indexing behavior in the loops file 
@@ -508,7 +508,7 @@ def load_resfile(directory, resfile_path=None):
         workspace = workspace_from_dir(directory)
         resfile_path = workspace.resfile_path
 
-    from tools.rosetta.input_files import Resfile
+    from klab.rosetta.input_files import Resfile
     return Resfile(resfile_path)
 
 def fetch_data(directory, remote_url=None, include_logs=False, dry_run=False):
@@ -555,7 +555,7 @@ def fetch_data(directory, remote_url=None, include_logs=False, dry_run=False):
         subprocess.call(rsync_command)
 
 def fetch_and_cache_data(directory, remote_url=None, include_logs=False):
-    from libraries import structures
+    from . import structures
     fetch_data(directory, remote_url, include_logs)
     structures.load(directory)
 

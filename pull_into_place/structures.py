@@ -136,7 +136,7 @@ def read_and_calculate(workspace, pdb_paths):
 
     records = []
     from scipy.spatial.distance import euclidean
-    from tools.bio.basics import residue_type_3to1_map
+    from klab.bio.basics import residue_type_3to1_map
 
     for i, path in enumerate(pdb_paths):
         record = {'path': os.path.basename(path)}
