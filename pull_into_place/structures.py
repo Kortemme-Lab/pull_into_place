@@ -136,7 +136,7 @@ def read_and_calculate(workspace, pdb_paths):
 
     records = []
     from scipy.spatial.distance import euclidean
-    from tools.bio.basics import residue_type_3to1_map
+    from klab.bio.basics import residue_type_3to1_map
 
     for i, path in enumerate(pdb_paths):
         record = {'path': os.path.basename(path)}
@@ -159,6 +159,10 @@ def read_and_calculate(workspace, pdb_paths):
                 lines = file.readlines()
         except IOError:
             print "\nFailed to read '{}'".format(path)
+            continue
+
+        if not lines:
+            print "\n{} is empty".format(path)
             continue
 
         # Get different information from different lines in the PDB file.  Some 
