@@ -12,17 +12,16 @@ from pull_into_place import big_jobs
 workspace, job_id, task_id, parameters = big_jobs.initiate()
 
 designs = parameters['inputs']
-input_path = designs[task_id % len(designs)]
-output_subdir = workspace.output_subdir(input_path)
+design = designs[task_id % len(designs)]
 test_run = parameters.get('test_run', False)
 
 big_jobs.print_debug_info()
 big_jobs.run_command([
         workspace.rosetta_scripts_path,
         '-database', workspace.rosetta_database_path,
-        '-in:file:s', input_path,
+        '-in:file:s', workspace.input_path(design),
         '-in:file:native', workspace.input_pdb_path,
-        '-out:prefix', output_subdir + '/',
+        '-out:prefix', workspace.output_subdir(design) + '/',
         '-out:suffix', '_{0:03d}'.format(task_id / len(designs)),
         '-out:no_nstruct_label',
         '-out:overwrite',

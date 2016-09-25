@@ -80,6 +80,10 @@ def print_debug_info():
 
     print "Date:", datetime.now()
     print "Host:", gethostname()
+    print "Command: JOB_ID={0[JOB_ID]} SGE_TASK_ID={0[SGE_TASK_ID]} {1}".format(
+            os.environ, ' '.join(sys.argv))
+    print
+    sys.stdout.flush()
 
 def run_command(command):
     process = subprocess.Popen(command)
@@ -87,6 +91,7 @@ def run_command(command):
     print "Working directory:", os.getcwd()
     print "Command:", ' '.join(command)
     print "Process ID:", process.pid
+    print
     sys.stdout.flush()
 
     process.wait()

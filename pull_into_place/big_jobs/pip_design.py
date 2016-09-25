@@ -7,6 +7,7 @@
 #$ -l h_core=0
 #$ -cwd
 
+
 import os, sys, subprocess
 from pull_into_place import big_jobs
 
@@ -20,7 +21,7 @@ big_jobs.print_debug_info()
 big_jobs.run_command([
         workspace.rosetta_scripts_path,
         '-database', workspace.rosetta_database_path,
-        '-in:file:s', bb_model,
+        '-in:file:s', workspace.input_path(bb_model),
         '-in:file:native', workspace.input_pdb_path,
         '-out:prefix', workspace.output_dir + '/',
         '-out:suffix', '_{0:03}'.format(design_id),

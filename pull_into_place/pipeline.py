@@ -51,7 +51,8 @@ class Workspace (object):
 
     @property
     def root_dir(self):
-        return os.path.join(self._root_dirname, self._root_basename)
+        return os.path.normpath(
+                os.path.join(self._root_dirname, self._root_basename))
 
     @property
     def abs_root_dir(self):
@@ -234,6 +235,13 @@ class BigJobWorkspace (Workspace):
     def input_paths(self):
         return glob.glob(os.path.join(self.input_dir, '*.pdb.gz'))
 
+    def input_path(self, name):
+        return os.path.join(self.input_dir, name)
+
+    @property
+    def input_names(self):
+        return [os.path.basename(x) for x in self.input_paths]
+
     @property
     def output_dir(self):
         return os.path.join(self.focus_dir, 'outputs')
@@ -281,7 +289,7 @@ class BigJobWorkspace (Workspace):
 
     @property
     def unclaimed_inputs(self):
-        inputs = set(self.input_paths)
+        inputs = set(self.input_names)
         for params in self.all_job_params:
             inputs -= set(params['inputs'])
         return sorted(inputs)
@@ -436,8 +444,8 @@ class ValidatedDesigns (BigJobWorkspace, WithFragmentLibs):
     def output_subdirs(self):
         return sorted(glob.glob(os.path.join(self.output_dir, '*/')))
 
-    def output_subdir(self, input):
-        basename = os.path.basename(input[:-len('.pdb.gz')])
+    def output_subdir(self, input_name):
+        basename = os.path.basename(input_name[:-len('.pdb.gz')])
         return os.path.join(self.output_dir, basename)
 
 
