@@ -32,6 +32,6 @@ big_jobs.run_command([
             'wts_file=' + workspace.scorefxn_path,
             'loop_file=' + workspace.loops_path,
             'fast=' + ('yes' if test_run else 'no')
-] +     workspace.fragments_flags(input_path) + [
+] +     workspace.fragments_flags(design) + [
         '@', workspace.flags_path,
 ])
