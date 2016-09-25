@@ -605,7 +605,7 @@ def report_quality_metrics(designs, metrics, path, clustering=False):
     from matplotlib.cm import ScalarMappable
     from matplotlib.colors import LinearSegmentedColormap
     
-    best_color = np.array([114, 159, 207]) / 255
+    best_color = np.array([114, 159, 207]) / 255    # Tango light blue
     worst_color = np.array([255, 255, 255]) / 255
     color_table = {
             'red':   [(0.0, worst_color[0], worst_color[0]),

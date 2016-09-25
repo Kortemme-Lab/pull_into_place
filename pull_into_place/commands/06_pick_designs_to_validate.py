@@ -84,7 +84,7 @@ def main():
 
     # Use a Boltzmann weighting scheme to pick designs.
 
-    seqs_scores.sort('total_score', inplace=True)
+    seqs_scores.sort_values(by='total_score', inplace=True)
     
     scores = seqs_scores.total_score.values
     scores -= median(scores)
@@ -114,31 +114,29 @@ picked randomly.  If it is too sharp, the temperature is too low and only the
 highest scoring designs are being picked.
 """.format(temp))
 
-    base_format = dict()
-    picked_format = dict(marker='o', ls='none', mfc='blue', mec='none')
+    color = '#204a87'   # Tango dark blue
+    base_format = dict(color=color)
+    picked_format = dict(marker='o', ls='none', mfc=color, mec='none')
 
-    pylab.subplot(2, 2, 1)
+    pylab.figure(num=1, figsize=(8,3))
+
+    pylab.subplot(1, 3, 1)
     pylab.title('Rosetta Scores')
     pylab.plot(indices, scores, **base_format)
     pylab.plot(picked_indices, scores[picked_indices], **picked_format)
 
-    pylab.subplot(2, 2, 2)
-    pylab.title('Boltzmann Weights')
-    pylab.plot(indices, weights, **base_format)
-    pylab.plot(picked_indices, weights[picked_indices], **picked_format)
-    pylab.yscale('log')
-
-    pylab.subplot(2, 2, 3)
+    pylab.subplot(1, 3, 2)
     pylab.title('Boltzmann PDF')
     pylab.plot(indices, pdf, **base_format)
     pylab.plot(picked_indices, pdf[picked_indices], **picked_format)
     pylab.yscale('log')
 
-    pylab.subplot(2, 2, 4)
+    pylab.subplot(1, 3, 3)
     pylab.title('Boltzmann CDF')
     pylab.plot(indices, cdf, **base_format)
     pylab.plot(picked_indices, cdf[picked_indices], **picked_format)
 
+    pylab.tight_layout()
     pylab.show()
 
     if raw_input("Accept these picks? [Y/n] ") == 'n':
