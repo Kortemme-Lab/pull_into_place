@@ -12,6 +12,22 @@ software.  Some of the analysis scripts also require a GUI environment, which
 most clusters won't have.  Also note that the simulation scripts require 
 ``python>=2.6`` while the analysis scripts require ``python>=2.7``.
 
+.. note::
+   Right now, the pipeline will only work as written on the QB3 cluster at 
+   UCSF.  There are two issues preventing more general use.  The first issue is 
+   that all of the scripts that submit jobs to the cluster use Sun Grid Engine 
+   (SGE) commands to do so.  This would be easy to generalize, but so far there 
+   hasn't been any need to do so.  If you have a need, send an email to the 
+   maintainer describing your system and we'll do what we can to support it. 
+   
+   The second issue is that the fragment generation scripts contain a number of 
+   hard-coded paths to executables and databases that are specific to the QB3 
+   cluster.  For a variety of reasons, fixing this would be a fairly serious 
+   undertaking.  Nonetheless, please let the maintainer know if you need this 
+   done, and we'll do what we can.  In the meantime, you can try using 
+   simulations that don't require fragments (although these don't perform as 
+   well) or generating fragments yourself.
+   
 Installing on your workstation
 ==============================
 PIP is available on PyPI, so you can use ``pip`` to install it.  (Sorry if the 
@@ -37,7 +53,7 @@ dependency is not included with the other ``[analysis]`` dependencies because
 it can't be installed with ``pip`` (except maybe on Windows).  On Linux 
 systems, your package manager should be able to install it pretty easily::
 
-   $ apt-get instal pygtk  # Ubuntu
+   $ apt-get install pygtk  # Ubuntu
    $ yum install pygtk2    # Fedora<=21
    $ dnf install pygtk2    # Fedora>=22
 
@@ -67,20 +83,20 @@ Installing on the QB3 cluster at UCSF
    tell).  When I did this, the most recent distributions were:
    
    - ``setuptools-27.2.0.tar.gz``
-   - ``klab-0.2.0.tar.gz``
+   - ``klab-0.2.4.tar.gz``
    - ``pull_into_place-1.0.0.tar.gz``
 
 2. Copy the source distributions onto the cluster::
 
    $ scp setuptools-27.2.0.tar.gz chef.compbio.ucsf.edu:
-   $ scp klab-0.2.0.tar.gz chef.compbio.ucsf.edu:
+   $ scp klab-0.2.4.tar.gz chef.compbio.ucsf.edu:
    $ scp pull_into_place-1.0.0.tar.gz chef.compbio.ucsf.edu:
 
 3. Log onto the cluster and unpack the source distributions::
 
    $ ssh chef.compbio.ucsf.edu
    $ tar -xzf setuptools-27.2.0.tar.gz
-   $ tar -xzf klab-0.2.0.tar.gz
+   $ tar -xzf klab-0.2.4.tar.gz
    $ tar -xzf pull_into_place-1.0.0.tar.gz
 
 4. Install |setuptools|_::
@@ -90,7 +106,7 @@ Installing on the QB3 cluster at UCSF
 
 5. Install |klab|_::
 
-   $ cd ~/klab-0.2.0
+   $ cd ~/klab-0.2.4
    $ python setup.py install --user
 
 6. Install |pull_into_place|_::
