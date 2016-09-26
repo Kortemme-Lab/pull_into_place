@@ -7,7 +7,9 @@ to define the geometry you're trying to design and 2) using an unrestrained
 simulations to test designs.
 
 Usage:
-    pull_into_place [options] <command> [<args>...]
+    pull_into_place <command> [<args>...]
+    pull_into_place --version
+    pull_into_place --help
 
 Arguments:
     <command>
@@ -91,6 +93,7 @@ PIP's design pipeline has the following steps:
 
 import sys, re
 from klab import docopt, scripting
+from . import __version__
 
 def make_command_table(entry_points):
     """
@@ -157,7 +160,11 @@ def main():
 
     # Read the command the user typed on the command line.
     command_table = make_command_table(entry_points)
-    arguments = docopt.docopt(__doc__.format(**locals()), options_first=True)
+    arguments = docopt.docopt(
+            __doc__.format(**locals()),
+            version=__version__,
+            options_first=True,
+    )
     command_name = arguments['<command>']
 
     # Find all the commands that match what the user typed.
