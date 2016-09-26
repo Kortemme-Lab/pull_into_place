@@ -3,8 +3,8 @@
 
 """\
 Create a nicely organized excel spreadsheet comparing all of the validated 
-designs in the given where the lowest scoring decoy within some threshold of 
-the target structure.
+designs in the given workspace where the lowest scoring decoy within some 
+threshold of the target structure.
 
 Usage:
     pull_into_place 09_compare_best_designs <workspace> [<round>] [options]
