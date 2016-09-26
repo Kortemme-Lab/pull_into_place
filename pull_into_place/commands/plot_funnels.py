@@ -90,41 +90,48 @@ Hotkeys:
 """
 
 import os, glob, numpy as np
-import show_my_designs as smd
 from .. import pipeline, structures
-
-class PipDesign (smd.Design):
-
-    def _load_models(self, use_cache):
-        self._models = structures.load(
-                self.directory,
-                use_cache=use_cache,
-                require_io_dir=False,
-        )
-
-
-
-smd.Design = PipDesign
-
-smd.default_x_metric = 'restraint_dist'
-smd.default_y_metric = 'total_score'
-
-smd.metric_titles['total_score'] = u"Total Score (REU)"
-smd.metric_titles['dunbrack_score'] = u"Dunbrack Score (REU)"
-smd.metric_titles['buried_unsat_score'] = u"Δ Buried Unsats"
-smd.metric_titles['restraint_dist'] = u"Restraint Satisfaction (Å)"
-smd.metric_titles['loop_dist'] = u"Loop RMSD (Å)"
-
-smd.metric_limits['total_score'] = lambda x: (min(x), np.percentile(x, 85))
-smd.metric_limits['restraint_dist'] = lambda x: (0, np.percentile(x, 95))
-smd.metric_limits['loop_dist'] = lambda x: (0, np.percentile(x, 95))
-
-smd.metric_guides['restraint_dist'] = 1.0
-smd.metric_guides['loop_dist'] = 1.0
 
 def main():
     import docopt
     args = docopt.docopt(__doc__)
+
+    # Defer trying to use PyGTK (which will happen when ``show_my_designs`` is 
+    # imported) until after ``docopt`` has had a chance to print the help 
+    # message.  This was a problem because ReadTheDocs needs to run this 
+    # command with the help flag to generate the command usage page, but PyGTK 
+    # can't be installed with pip.
+
+    import show_my_designs as smd
+
+    class PipDesign (smd.Design):
+
+        def _load_models(self, use_cache):
+            self._models = structures.load(
+                    self.directory,
+                    use_cache=use_cache,
+                    require_io_dir=False,
+            )
+
+
+    smd.Design = PipDesign
+
+    smd.default_x_metric = 'restraint_dist'
+    smd.default_y_metric = 'total_score'
+
+    smd.metric_titles['total_score'] = u"Total Score (REU)"
+    smd.metric_titles['dunbrack_score'] = u"Dunbrack Score (REU)"
+    smd.metric_titles['buried_unsat_score'] = u"Δ Buried Unsats"
+    smd.metric_titles['restraint_dist'] = u"Restraint Satisfaction (Å)"
+    smd.metric_titles['loop_dist'] = u"Loop RMSD (Å)"
+
+    smd.metric_limits['total_score'] = lambda x: (min(x), np.percentile(x, 85))
+    smd.metric_limits['restraint_dist'] = lambda x: (0, np.percentile(x, 95))
+    smd.metric_limits['loop_dist'] = lambda x: (0, np.percentile(x, 95))
+
+    smd.metric_guides['restraint_dist'] = 1.0
+    smd.metric_guides['loop_dist'] = 1.0
+
     smd.show_my_designs(
             args['<pdb_directories>'],
             use_cache=not args['--force'],
