@@ -44,6 +44,3 @@ def main():
         document = weblogo.pdf_formatter(logo_data, logo_format)
         logo_file.write(document)
 
-
-
-        

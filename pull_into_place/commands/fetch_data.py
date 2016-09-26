@@ -3,7 +3,7 @@
 """\
 Copy design files from a remote source.  A common application is to copy 
 simulation results from the cluster to a workstation for analysis.  The given 
-directory must be contained within a workspace created by 01_setup_design.
+directory must be contained within a workspace created by 01_setup_workspace.
 
 Usage:
     pull_into_place fetch_data <directory> [options]
