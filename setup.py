@@ -22,7 +22,7 @@ setup(
     author_email=__email__,
     url='https://github.com/Kortemme-Lab/pull_into_place',
     download_url='https://github.com/Kortemme-Lab/pull_into_place/tarball/v'+__version__,
-    license='GPLv2',
+    license='GPLv3',
     description="A rosetta pipeline to position important protein sidechains with sub-angstrom accuracy.",
     long_description=readme,
     keywords=[
