@@ -5,9 +5,9 @@
    :hidden:
 
    install
-   demo
+   Example Project <demos/ksi/ksi_demo>
    usage
-   api/index.rst
+   api/index
    contrib
 
 

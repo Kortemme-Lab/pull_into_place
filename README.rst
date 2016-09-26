@@ -28,8 +28,8 @@ The design pipeline orchestrated by PIP has the following steps:
 
 2. Build a large number of models that plausibly support your desired geometry 
    by running flexible backbone Monte Carlo simulations restrained to stay near 
-   said geometry.  The goal is to find a balance between finding models that 
-   are realistic and that satisfy your restraints::
+   said geometry.  The goal is to strike a balance between finding models that 
+   are realistic and finding models that satisfy your restraints::
 
    $ pull_into_place 03_build_models ...
 

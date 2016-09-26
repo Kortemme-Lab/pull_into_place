@@ -1,8 +1,8 @@
 Regarding fragment generation
 =============================
-The fragment script uses Roland's no-longer-existent rosetta checkout.  I 
-should modify it to either use a rosetta that's shared by the whole lab, or to 
-accept a path to rosetta on the command-line, which PIP can supply.
+The fragment script uses hard-coded paths to Roland's rosetta checkout and a 
+number of databases.  I should modify it to to rosetta on the paths either from 
+the command line or a config file, which PIP should supply.
 
 Regarding annotating output structures
 ======================================

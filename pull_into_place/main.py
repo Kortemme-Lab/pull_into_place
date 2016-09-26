@@ -32,7 +32,7 @@ Options:
 
 PIP's design pipeline has the following steps:
 
-0. Define your project.  This entails creating an input PDB file and preparing 
+1. Define your project.  This entails creating an input PDB file and preparing 
    it for use with rosetta, creating a restraints file that specifies your 
    desired geometry, creating a resfile that specifies which residues are 
    allowed to design, and creating a loop file that specifies where backbone 
@@ -40,7 +40,7 @@ PIP's design pipeline has the following steps:
 
    $ pull_into_place 01_setup_workspace ...
 
-1. Build a large number of models that plausibly support your desired geometry 
+2. Build a large number of models that plausibly support your desired geometry 
    by running flexible backbone Monte Carlo simulations restrained to stay near 
    said geometry.  The goal is to find a balance between finding models that 
    are realistic and that satisfy your restraints.
@@ -48,29 +48,29 @@ PIP's design pipeline has the following steps:
    $ pull_into_place 02_setup_model_fragments ...
    $ pull_into_place 03_build_models ...
 
-2. Filter out models that don't meet your quality criteria.
+3. Filter out models that don't meet your quality criteria.
 
    $ pull_into_place 04_pick_models_to_design ...
 
-3. Generate a number of designs for each model remaining.
+4. Generate a number of designs for each model remaining.
 
    $ pull_into_place 05_design_models ...
 
-4. Pick a small number of designs to validate.  Typically I generate 100,000 
+5. Pick a small number of designs to validate.  Typically I generate 100,000 
    designs and can only validate 50-100.  I've found that randomly picking 
    designs according to the Boltzmann weight of their rosetta score gives a 
    nice mix of designs that are good but not too homogeneous.
 
    $ pull_into_place 06_pick_designs_to_validate ...
 
-5. Validate the designs using unrestrained Monte Carlo simulations.  Designs 
+6. Validate the designs using unrestrained Monte Carlo simulations.  Designs 
    that are "successful" will have a funnel on the left side of their score vs 
    rmsd plots.
 
    $ pull_into_place 07_setup_design_fragments ...
    $ pull_into_place 08_validate_designs ...
 
-6. Optionally take the decoys with the best geometry from the validation run 
+7. Optionally take the decoys with the best geometry from the validation run 
    (even if they didn't score well) and feed them back into step 3.  Second and 
    third rounds of simulation usually produce much better results than the 
    first, because the models being designed are more realistic.  Additional 
@@ -83,7 +83,7 @@ PIP's design pipeline has the following steps:
    $ pull_into_place 07_setup_design_fragments ...
    $ pull_into_place 08_validate_designs ...
 
-7. Generate a report summarizing a variety of quality metrics for each design.  
+8. Generate a report summarizing a variety of quality metrics for each design.  
    This report is meant to help you pick designs to test experimentally.
 
    $ pull_into_place 09_compare_best_designs ...
