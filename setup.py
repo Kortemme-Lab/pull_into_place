@@ -61,6 +61,7 @@ setup(
             'xlsxwriter',
             'pyyaml',
             'sklearn',
+            'biopython',
             'weblogo',
         ],
     },

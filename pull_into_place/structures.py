@@ -246,7 +246,7 @@ class Design (object):
 
     def __init__(self, directory):
         self.directory = directory
-        self.structures = structures.load(directory)
+        self.structures = load(directory)
         self.loops = pipeline.load_loops(directory)
         self.resfile = pipeline.load_resfile(directory)
         self.representative = self.rep = np.argmin(self.scores)
@@ -264,9 +264,8 @@ class Design (object):
 
     @property
     def resfile_sequence(self):
-        return ''.join(
-                self['sequence'][self.rep][i-1]
-                for i in self.resfile.designable)
+        resis = sorted(int(i) for i in self.resfile.designable)
+        return ''.join(self['sequence'][self.rep][i-1] for i in resis)
 
     @property
     def rep_path(self):

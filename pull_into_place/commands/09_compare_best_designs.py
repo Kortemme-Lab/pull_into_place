@@ -34,10 +34,6 @@ Options:
 
     -v, --verbose
         Output sanity checks and debugging information for each calculation.
-
-    -c, --cluster NUMCLUST [default: 0]
-        Perform a sequence clustering on the final designs. Must specify -t;
-        Only clusters designs below theshold. Default value samples  
 """
 
 from __future__ import division
@@ -134,11 +130,6 @@ class ResfileSequenceMetric (Metric):
     align = 'left'
     font_name = 'Monospace'
     width = 30
-
-    def load_cell(self, design, verbose=False):
-        full_sequence = design['sequence'][design.rep]
-        design.resfile_sequence = ''.join(
-                full_sequence[i-1] for i in design.resfile.designable)
 
     def face_value(self, design):
         return design.resfile_sequence
@@ -270,7 +261,7 @@ class StructureClusterMetric (Metric):
     Make a column that shows which designs are the most structurally similar.  
     This metric works by creating a hierarchical clustering of all the design 
     "representatives" based on loop backbone RMSD.  Clusters are then made such 
-    that every member in every closer is within a certain loop RMSD of all its 
+    that every member in every cluster is within a certain loop RMSD of all its 
     peers.  This column is nice because it makes it easier to compare apples to 
     apples, as it were.
     """
@@ -727,8 +718,6 @@ def annotate_designs(designs):
                 annotation_lines = file.readlines()
         except IOError:
             annotation_lines = []
-
-        print annotation_lines
 
         # If there are existing annotations and the first line starts with a 
         # plus, assume that the line was previously inserted by this function 
