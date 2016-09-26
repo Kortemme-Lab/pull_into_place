@@ -24,15 +24,22 @@ Options:
         Keep attempting to fetch and cache new models until you press Ctrl-C.  
         You can run this command with this flag at the start of a long job, and 
         it will incrementally cache new models as they are produced.
+
+    --wait-time MINUTES, -w MINUTES     [default: 5]
+        The amount of time to wait in between attempts to fetch and cache new 
+        models, if the --keep-going flag was given.
 """
 
+from __future__ import division
+
+import time
 from klab import docopt, scripting
 from .. import pipeline
 
 @scripting.catch_and_print_errors()
 def main():
     args = docopt.docopt(__doc__)
-    directories = []
+    wait_time = 60 * eval(args['--wait-time'])
 
     if args['--keep-going']:
         while True:
@@ -41,6 +48,10 @@ def main():
                     args['--remote'],
                     args['--include-logs'],
             )
+
+            print "Waiting {} min...".format(wait_time // 60)
+            time.sleep(wait_time)
+
     else:
         pipeline.fetch_and_cache_data(
                 args['<directory>'],

@@ -580,7 +580,10 @@ def fetch_data(directory, remote_url=None, include_logs=False, dry_run=False):
 def fetch_and_cache_data(directory, remote_url=None, include_logs=False):
     from . import structures
     fetch_data(directory, remote_url, include_logs)
-    structures.load(directory)
+
+    # Don't try to cache anything if nothing has been downloaded yet.
+    if glob.glob(os.path.join(directory, '*.pdb*')):
+        structures.load(directory)
 
 def push_data(directory, remote_url=None, dry_run=False):
     import os, subprocess
