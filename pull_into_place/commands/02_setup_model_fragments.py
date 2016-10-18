@@ -12,6 +12,11 @@ Usage:
     pull_into_place 02_setup_model_fragments <workspace> [options]
 
 Options:
+    -L, --ignore-loop-file
+        Generate fragments for the entire input structure, not just for the 
+        region that will be remodeled as specified in the loop file.  This is 
+        currently necessary only if multiple loops are being remodeled.
+
     -m, --mem-free=MEM  [default: 2]
         The amount of memory (GB) to request from the cluster.  Bigger systems 
         may need more memory, but making large memory requests can make jobs 
@@ -41,11 +46,14 @@ def main():
 
     generate_fragments = [
             'klab_generate_fragments',
-            '--loops_file', workspace.loops_path,
+            workspace.input_pdb_path,
             '--outdir', workspace.fragments_dir,
             '--memfree', args['--mem-free'],
-            workspace.input_pdb_path,
     ]
+    if not args['--ignore-loop-file']:
+        generate_fragments += [
+            '--loops_file', workspace.loops_path,
+        ]
 
     if args['--dry-run']:
         print ' '.join(generate_fragments)
