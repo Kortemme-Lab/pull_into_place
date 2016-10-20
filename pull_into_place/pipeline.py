@@ -374,7 +374,7 @@ class WithFragmentLibs (object):
 
         if paths and sizes:
             flags.append('-loops:frag_sizes')
-            flags.extend(sizes)
+            flags.extend(map(str, sizes))
             flags.append('-loops:frag_files')
             flags.extend(paths)
 
