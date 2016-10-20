@@ -356,8 +356,9 @@ class WithFragmentLibs (object):
 
         frag_paths = sorted(frag_map)
         frag_paths = sorted(frag_paths, key=frag_size, reverse=True)
-        frag_paths = [os.path.join(self.fragments_dir, x) for x in frag_paths]
+
         frag_sizes = [frag_size(x) for x in frag_paths]
+        frag_paths = [os.path.join(self.fragments_dir, x) for x in frag_paths]
 
         # If no size-1 fragments were generated, but larger fragments were, 
         # also add the 'none' pseudo-path.  This will cause rosetta to make 
