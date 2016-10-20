@@ -83,21 +83,21 @@ Installing on the QB3 cluster at UCSF
    tell).  When I did this, the most recent distributions were:
    
    - ``setuptools-27.2.0.tar.gz``
-   - ``klab-0.2.4.tar.gz``
-   - ``pull_into_place-1.0.0.tar.gz``
+   - ``klab-0.3.0.tar.gz``
+   - ``pull_into_place-1.1.0.tar.gz``
 
 2. Copy the source distributions onto the cluster::
 
    $ scp setuptools-27.2.0.tar.gz chef.compbio.ucsf.edu:
-   $ scp klab-0.2.4.tar.gz chef.compbio.ucsf.edu:
-   $ scp pull_into_place-1.0.0.tar.gz chef.compbio.ucsf.edu:
+   $ scp klab-0.3.0.tar.gz chef.compbio.ucsf.edu:
+   $ scp pull_into_place-1.1.0.tar.gz chef.compbio.ucsf.edu:
 
 3. Log onto the cluster and unpack the source distributions::
 
    $ ssh chef.compbio.ucsf.edu
    $ tar -xzf setuptools-27.2.0.tar.gz
-   $ tar -xzf klab-0.2.4.tar.gz
-   $ tar -xzf pull_into_place-1.0.0.tar.gz
+   $ tar -xzf klab-0.3.0.tar.gz
+   $ tar -xzf pull_into_place-1.1.0.tar.gz
 
 4. Install |setuptools|_::
 
@@ -106,12 +106,12 @@ Installing on the QB3 cluster at UCSF
 
 5. Install |klab|_::
 
-   $ cd ~/klab-0.2.4
+   $ cd ~/klab-0.3.0
    $ python setup.py install --user
 
 6. Install |pull_into_place|_::
 
-   $ cd ~/pull_into_place-1.0.0
+   $ cd ~/pull_into_place-1.1.0
    $ python setup.py install --user
 
 7. Make sure it works::
