@@ -86,10 +86,12 @@ def print_debug_info():
     sys.stdout.flush()
 
 def run_command(command):
-    process = subprocess.Popen(command)
-
     print "Working directory:", os.getcwd()
     print "Command:", ' '.join(command)
+    sys.stdout.flush()
+
+    process = subprocess.Popen(command)
+
     print "Process ID:", process.pid
     print
     sys.stdout.flush()
