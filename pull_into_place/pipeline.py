@@ -11,6 +11,7 @@ the design, each of which is related to a cluster job.
 
 import os, re, glob, json, pickle
 from klab import scripting
+from pprint import pprint
 
 class Workspace (object):
     """
@@ -80,7 +81,36 @@ class Workspace (object):
 
     @property
     def rosetta_scripts_path(self):
-        return self.rosetta_subpath('source', 'bin', 'rosetta_scripts')
+        pattern = self.rosetta_subpath('source', 'bin', 'rosetta_scripts*')
+        executables = glob.glob(pattern)
+
+        # Sometimes dead symlinks end up in the `bin/` directory, so explicitly 
+        # ignore those.
+
+        executables = [x for x in executables if os.path.exists(x)]
+
+        # Print a (hopefully) helpful error message if no ``rosetta_scripts`` 
+        # executables are found.
+
+        if len(executables) == 0:
+            raise PipelineError("""\
+No RosettaScripts executable found.
+
+Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
+""".format(pattern))
+
+        # Sort the ``rosetta_scripts`` executables such that those containing 
+        # the word 'release' end up at the front of the list, those containing 
+        # 'debug' end up at the back, and shorter file names (which have fewer 
+        # weird compilation options) end up in front of longer ones.  We'll 
+        # ultimately pick the first path in the list, so we're doing our best 
+        # to use a basic release mode executable.
+
+        executables.sort(key=lambda x: len(x))
+        executables.sort(key=lambda x: 'debug' in x)
+        executables.sort(key=lambda x: 'release' not in x)
+
+        return executables[0]
 
     @property
     def rosetta_database_path(self):
