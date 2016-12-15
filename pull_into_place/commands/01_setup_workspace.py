@@ -236,7 +236,7 @@ class RsyncUrl:
     description = """\
 Rsync URL: An ssh-style path to the directory that contains (i.e. is one level 
 above) the remote workspace.  This workspace must have the same name as the 
-remote one.  For example, to link to "/path/to/my_design" on chef, name this 
+remote one.  For example, to link to "~/path/to/my_design" on chef, name this 
 workspace "my_design" and set its rsync URL to "chef:path/to"."""
 
     @staticmethod
@@ -344,3 +344,4 @@ Design '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
         pipeline.fetch_data(workspace.root_dir)
     else:
         print "Setup successful for design '{0}'.".format(workspace.root_dir)
+

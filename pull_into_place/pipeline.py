@@ -9,8 +9,9 @@ of a design.  It's subclasses deal with file in the different subdirectories of
 the design, each of which is related to a cluster job.
 """
 
-import os, glob, pickle, re
+import os, re, glob, json, pickle
 from klab import scripting
+from pprint import pprint
 
 class Workspace (object):
     """
@@ -80,7 +81,36 @@ class Workspace (object):
 
     @property
     def rosetta_scripts_path(self):
-        return self.rosetta_subpath('source', 'bin', 'rosetta_scripts')
+        pattern = self.rosetta_subpath('source', 'bin', 'rosetta_scripts*')
+        executables = glob.glob(pattern)
+
+        # Sometimes dead symlinks end up in the `bin/` directory, so explicitly 
+        # ignore those.
+
+        executables = [x for x in executables if os.path.exists(x)]
+
+        # Print a (hopefully) helpful error message if no ``rosetta_scripts`` 
+        # executables are found.
+
+        if len(executables) == 0:
+            raise PipelineError("""\
+No RosettaScripts executable found.
+
+Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
+""".format(pattern))
+
+        # Sort the ``rosetta_scripts`` executables such that those containing 
+        # the word 'release' end up at the front of the list, those containing 
+        # 'debug' end up at the back, and shorter file names (which have fewer 
+        # weird compilation options) end up in front of longer ones.  We'll 
+        # ultimately pick the first path in the list, so we're doing our best 
+        # to use a basic release mode executable.
+
+        executables.sort(key=lambda x: len(x))
+        executables.sort(key=lambda x: 'debug' in x)
+        executables.sort(key=lambda x: 'release' not in x)
+
+        return executables[0]
 
     @property
     def rosetta_database_path(self):
@@ -336,33 +366,47 @@ class WithFragmentLibs (object):
     def fragments_tag(self, input_path):
         return os.path.basename(input_path)[:4]
 
-    def fragments_sizes(self, input_path):
-        import re
+    def fragments_info(self, input_path):
+        # Typically, there is one output directory for each chain that 
+        # fragments are being generated for.
 
-        sizes = []
-        pattern = re.compile(r'(\d+)mers\.rewrite\.gz')
-
-        for path in self.fragments_paths(input_path):
-            match = pattern.search(path)
-            if match: sizes.append(match.group(1))
-            elif path == 'none': sizes.append('1')
-
-        return sizes
-
-    def fragments_paths(self, input_path):
         tag = self.fragments_tag(input_path)
-        pattern = os.path.join(self.fragments_dir, tag+'?', '*mers.rewrite.gz')
-        paths = sorted(glob.glob(pattern), reverse=True)
-        return paths + ['none'] if paths else []
+        frag_map_glob = os.path.join(self.fragments_dir, tag+'?', 'fragment_file_map.json')
+        frag_map = {}
+
+        for path in glob.glob(frag_map_glob):
+            with open(path) as file:
+                frag_map.update(json.load(file))
+
+        # Sort the fragments first by decreasing size of the fragments (because 
+        # rosetta insists that the fragment arguments be in this order) and 
+        # second alphabetically (for aesthetics).
+
+        frag_size = lambda x: frag_map[x]['frag_sizes']
+
+        frag_paths = sorted(frag_map)
+        frag_paths = sorted(frag_paths, key=frag_size, reverse=True)
+
+        frag_sizes = [frag_size(x) for x in frag_paths]
+        frag_paths = [os.path.join(self.fragments_dir, x) for x in frag_paths]
+
+        # If no size-1 fragments were generated, but larger fragments were, 
+        # also add the 'none' pseudo-path.  This will cause rosetta to make 
+        # size-1 fragments from the next largest fragment set.
+
+        if frag_sizes and frag_sizes[-1] > 1:
+            frag_paths.append('none')
+            frag_sizes.append(1)
+
+        return frag_paths, frag_sizes
 
     def fragments_flags(self, input_path):
         flags = []
-        paths = self.fragments_paths(input_path)
-        sizes = self.fragments_sizes(input_path)
+        paths, sizes = self.fragments_info(input_path)
 
         if paths and sizes:
             flags.append('-loops:frag_sizes')
-            flags.extend(sizes)
+            flags.extend(map(str, sizes))
             flags.append('-loops:frag_files')
             flags.extend(paths)
 
