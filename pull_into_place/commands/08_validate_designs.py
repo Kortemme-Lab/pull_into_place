@@ -49,6 +49,14 @@ def main():
     inputs = workspace.unclaimed_inputs
     nstruct = len(inputs) * int(args['--nstruct'])
 
+    if nstruct == 0:
+        scripting.print_error_and_die("""\
+No unclaimed input files.
+
+If you previously started a round of simulations and then stopped them for some 
+reason, the problem is probably that all the inputs are still claimed by those 
+simulations.  Use the '--clear' flag to remove the claims and try again.""")
+
     for input in inputs:
         subdir = workspace.output_subdir(input)
         scripting.clear_directory(subdir)
