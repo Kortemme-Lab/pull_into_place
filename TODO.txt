@@ -1,3 +1,9 @@
+Things to clarify
+=================
+- fetch_data doesn't give a good error message if the argument you give it is 
+  wrong  (e.g. running ``pull_into_place fetch_data workspace_name`` from 
+  within ``workspace_name``).
+
 Regarding fragment generation
 =============================
 The fragment script uses hard-coded paths to Roland's rosetta checkout and a 

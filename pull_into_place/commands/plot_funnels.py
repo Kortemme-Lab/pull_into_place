@@ -9,6 +9,9 @@ Usage:
     pull_into_place plot_funnels <pdb_directories>... [options]
 
 Options:
+    -F, --no-fork
+        Do not fork into a background process.
+
     -f, --force
         Force the cache to be regenerated.
 
@@ -45,35 +48,35 @@ containing the PDB files you want to look at.  For example:
 
     $ pull_into_place plot_funnels design_*
 
-This last command will launch the GUI. If you specified more than one design on 
-the command line, the GUI will have a panel on the left listing all the designs 
-being compared. You can control what is plotted by selecting one or more 
-designs from this list. The search bar at the top of this panel can be used to 
-filter the list for designs that have the search term in their descriptions. 
-The buttons at the bottom can be used to save information about whatever 
-designs are selected. The "Save selected paths" button will save a text file 
-listing the path to the lowest scoring model for each selected design. The 
-"Save selected funnels" button will save a PDF with the plot for each selected 
-design on a separate page.
+This last command will launch the GUI.  If you specified more than one design 
+on the command line, the GUI will have a panel on the left listing all the 
+designs being compared.  You can control what is plotted by selecting one or 
+more designs from this list.  The search bar at the top of this panel can be 
+used to filter the list for designs that have the search term in their 
+descriptions.  The buttons at the bottom can be used to save information about 
+whatever designs are selected.  The "Save selected paths" button will save a 
+text file listing the path to the lowest scoring model for each selected 
+design.  The "Save selected funnels" button will save a PDF with the plot for 
+each selected design on a separate page.
 
 The upper right area of the GUI will contain a plot with different metrics on 
-the two axes where each point represents a single model. You can right-click on 
-any point to take an action on the model represented by that point. Usually 
-this means visualizing the model in an external program, like pymol or chimera. 
+the two axes where each point represents a single model.  You can right-click 
+on any point to take an action on the model represented by that point.  Usually 
+this means visualizing the model in an external program, like pymol or chimera.  
 You can also run custom code by writing a script with the extension *.sho that 
-takes the path of a model as its only argument. ``plot_funnels`` will search 
+takes the path of a model as its only argument.  ``plot_funnels`` will search 
 for scripts with this extension in every directory starting with the directory 
 containing the model in question and going down all the way to the root of the 
-file system. Any scripts that are found are added to the menu you get by 
+file system.  Any scripts that are found are added to the menu you get by 
 right-clicking on a point, using simple rules (the first letter is capitalized 
 and underscores are converted to spaces) to convert the file name into a menu 
 item name.
 
 The tool bar below the plot can be used to pan around, zoom in or out, save an 
-image of the plot, or change the axes. If the mouse is over the plot, its 
-coordinates will be shown just to the right of these controls. Below the plot 
-is a text form which can be used to enter a description of the design. These 
-descriptions can be searched. I like using the '+', '++', ... convention to 
+image of the plot, or change the axes.  If the mouse is over the plot, its 
+coordinates will be shown just to the right of these controls.  Below the plot 
+is a text form which can be used to enter a description of the design.  These 
+descriptions can be searched.  I like using the '+', '++', ... convention to 
 rank designs so I can easily search for increasingly good designs.
 
 Hotkeys:

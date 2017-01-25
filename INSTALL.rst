@@ -9,7 +9,7 @@ reason for splitting up the work like this is that the analysis scripts have
 more dependencies than the simulation scripts, and those dependencies can be 
 hard to install on clusters with limited internet access and/or out-of-date 
 software.  Some of the analysis scripts also require a GUI environment, which 
-most clusters won't have.  Also note that the simulation scripts require 
+most clusters don't have.  Also note that the simulation scripts require 
 ``python>=2.6`` while the analysis scripts require ``python>=2.7``.
 
 .. note::
@@ -39,14 +39,33 @@ python)::
 
 The ``[analysis]`` part of the command instructs ``pip`` to install all of the 
 dependencies for the analysis scripts.  These dependencies aren't installed by 
-default because they aren't needed for the rosetta simulation steps, and they 
-can be challenging to install of some clusters.
+default because they aren't needed for the rosetta simulation steps and they 
+can be challenging to install on some clusters.
+
+If the installation worked, this command should print out a nice help message::
+
+   $ pull_into_place --help
+
+.. note::
+   If you don't have administrator access on your workstation, or if you just 
+   don't want to install PIP system-wide, you can use the ``--user`` flag to 
+   install PIP in your home directory::
+
+      $ pip install 'pull_into_place [analysis]' --user
+
+   This will install the PIP executable in ``~/.local/bin``, which may not be 
+   on your ``$PATH`` by default.  If the installation seemed to work but you 
+   get a "command not found" error when trying to run ``pull_into_place``, you 
+   probably need to add ``~/.local/bin`` to ``$PATH``::
+
+      echo 'export PATH=~/.local/bin:$PATH' >> ~/.bashrc
+      source ~/.bashrc
 
 GTK and the ``plot_funnels`` command
 ------------------------------------
-The ``plot_funnels`` command creates an interactive GUI that can show you score 
-vs RMSD funnels, open the structures corresponding to individual points in 
-``pymol`` or ``chimera``, and keep track of your notes on different designs.  
+The ``plot_funnels`` command creates an interactive GUI that can show score vs 
+RMSD funnels, open structures corresponding to individual points in ``pymol`` 
+or ``chimera``, and keep track of your notes on different designs.  
 
 In order to use this command, you have to install ``pygtk`` yourself.  This 
 dependency is not included with the other ``[analysis]`` dependencies because 
@@ -54,13 +73,13 @@ it can't be installed with ``pip`` (except maybe on Windows).  On Linux
 systems, your package manager should be able to install it pretty easily::
 
    $ apt-get install pygtk  # Ubuntu
-   $ yum install pygtk2    # Fedora<=21
-   $ dnf install pygtk2    # Fedora>=22
+   $ yum install pygtk2     # Fedora<=21
+   $ dnf install pygtk2     # Fedora>=22
 
-On Mac systems, you might have success with ``homebrew``, but I haven't tried 
-it before so your mileage may vary::
+On Mac systems, the easiest way to do this is to use ``homebrew`` to install 
+``matplotlib`` with the ``--with-pygtk`` option::
 
-   $ brew install pygtk
+   $ brew install matplotlib --with-pygtk
 
 Installing on your cluster
 ==========================
@@ -78,13 +97,24 @@ these steps in the specific context of the QB3 cluster at UCSF.
 
 Installing on the QB3 cluster at UCSF
 -------------------------------------
+Because the UCSF cluster is not connected to the internet, it cannot 
+automatically download and install dependencies.  Instead, we have to do these 
+steps manually.
+
 1. Download the most recent source distributions for |setuptools|_, |klab|_, 
    and |pull_into_place|_ from PyPI (those are links, in case it's hard to 
-   tell).  When I did this, the most recent distributions were:
+   tell) onto your workstation.  When I did this, the most recent distributions 
+   were:
    
    - ``setuptools-27.2.0.tar.gz``
    - ``klab-0.3.0.tar.gz``
    - ``pull_into_place-1.1.0.tar.gz``
+   |
+   .. note::
+      Three new dependencies were added to ``setuptools`` in version 
+      ``34.0.0``: ``six``, ``packaging``, and ``appdirs``.  You can either 
+      install these dependencies in the same way as the others, or you can just 
+      use an earlier version of setuptools.
 
 2. Copy the source distributions onto the cluster::
 

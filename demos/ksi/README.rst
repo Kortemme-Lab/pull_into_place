@@ -67,13 +67,12 @@ demo assumes that these input files are located on your cluster in
    resfile
    restraints
 
-__ https://github.com/Kortemme-Lab/pull_into_place/demos/ksi
+__ https://github.com/Kortemme-Lab/pull_into_place/tree/master/demos/ksi
 
 If you have ``svn`` installed, you can use this command to download all the 
 files at once::
 
-   $ svn export https://github.com/Kortemme-Lab/pull_into_place/trunk/demos/ksi 
-   ~/ksi_inputs
+   $ svn export https://github.com/Kortemme-Lab/pull_into_place/trunk/demos/ksi ~/ksi_inputs
 
 Set up your workspaces
 ======================
@@ -87,7 +86,21 @@ We will also use workspaces to sync files between our workstation and the
 cluster.  The workspace on the cluster will be "normal" and will not know about 
 the one on our workstation.  In contrast, the workspace on our workstation will 
 know about the one on the cluster and will be able to transfer data to and from 
-it::
+it:
+
+.. note::
+   Pay attention to the ``ssh chef.compbio.ucsf.edu`` and ``exit`` commands, 
+   because they indicate which commands are meant to be run on your workstation 
+   and which are meant to be run on the cluster.
+   
+   The ``ssh shef.compbio.ucsf.edu`` command means that you should log onto the 
+   cluster and run all subsequent commands should on the cluster.  The ``exit`` 
+   command means that you should log off the cluster and run all subsequent 
+   commands on your workstation.  If you get errors, especially ones that seem 
+   to involve version or dependency issues, double check to make sure that 
+   you're logged onto the right machine.
+
+::
 
    $ ssh chef.compbio.ucsf.edu   # log onto the cluster
    $ pull_into_place 01 rescue_ksi_d38e
@@ -183,7 +196,7 @@ to manually copy the ligand parameters files into the workspace::
    $ cp ~/ksi_inputs/EQU.*.params ~/rescue_ksi_d38e
    $ exit   # log off the cluster and return to your workstation
 
-Now that the workspace on the cluster is all setup, we can make a workspace on 
+Now that the workspace on the cluster is all set up, we can make a workspace on 
 our workstation that links to it::
 
    $ cd ~
@@ -261,8 +274,8 @@ models::
 With the ``--test-run`` flag, which dramatically reduces both the number and 
 length of the simulations, this step should take about 30 minutes.  This flag 
 should not be used for production runs, but I will continue to use it 
-throughout this demo with the idea that you just want to run through the whole 
-pipeline as quickly as possible.
+throughout this demo with the idea that your goal is just to run through the 
+whole pipeline as quickly as possible.
 
 Once the simulations finish, we can download the results to our workstation and 
 visualize them::
@@ -385,7 +398,7 @@ normally part of the PIP pipeline, though::
 
    $ pull_into_place 06_man rescue_ksi_d38e 1 path/to/manual/design.pdb
 
-We can push our picks to the cluster using the same command as before::
+We can push our picks to the cluster in the same way as before::
 
    $ pull_into_place push rescue_ksi_d38e
 
