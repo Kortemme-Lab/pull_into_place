@@ -37,25 +37,27 @@ lengthy help message::
 
    $ pull_into_place --help
 
-You will also need to compile Rosetta on both your workstation and your 
-cluster.  This demo assumes that rosetta is installed in ``~/rosetta`` such 
-that::
+You also need to have Rosetta compiled on both your workstation and your 
+cluster.  See the :ref:`Rosetta section of the installation page 
+<installing-rosetta>` for instructions.  In general, PIP doesn't care where 
+rosetta is installed; it just needs a path to the installation.  This tutorial 
+will assume that rosetta is installed in ``~/rosetta`` such that::
 
    $ ls ~/rosetta/source/bin
    ...
    rosetta_scripts
    ...
 
-Note that Rosetta requires a compiler that supports C++11.  This shouldn't be a 
-problem on your workstation, but it might require some extra care on your 
-cluster.  On the QB3 cluster, you will need to explicitly enable a modern 
-compiler with the following command::
+Finally, you need to download the `example input files`__ we'll be using onto 
+your cluster.  If your cluster has ``svn`` installed, you can use this command 
+to download all these files at once::
 
-   $ scl enable devtoolset-4 bash
+   # Run this command on ``iqint`` if you're using the QB3 cluster.
+   $ svn export https://github.com/Kortemme-Lab/pull_into_place/trunk/demos/ksi ~/ksi_inputs
 
-You also need to download the `example input files`__ we'll be using.  This 
-demo assumes that these input files are located on your cluster in 
-``~/ksi_inputs``, such that::
+Otherwise, you can download them by hand onto your workstation and use ``scp`` 
+to copy them onto your cluster.  You can put the input files wherever you want, 
+but the tutorial will assume that they're in ``~/ksi_inputs`` such that::
 
    $ ls ~/ksi_inputs
    EQU.cen.params
@@ -68,11 +70,6 @@ demo assumes that these input files are located on your cluster in
    restraints
 
 __ https://github.com/Kortemme-Lab/pull_into_place/tree/master/demos/ksi
-
-If you have ``svn`` installed, you can use this command to download all the 
-files at once::
-
-   $ svn export https://github.com/Kortemme-Lab/pull_into_place/trunk/demos/ksi ~/ksi_inputs
 
 Set up your workspaces
 ======================

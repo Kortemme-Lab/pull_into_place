@@ -28,8 +28,8 @@ most clusters don't have.  Also note that the simulation scripts require
    simulations that don't require fragments (although these don't perform as 
    well) or generating fragments yourself.
    
-Installing on your workstation
-==============================
+Installing PIP on your workstation
+==================================
 PIP is available on PyPI, so you can use ``pip`` to install it.  (Sorry if the 
 distinction between PIP and ``pip`` is confusing.  PIP is the Pull Into Place 
 pipeline, ``pip`` is the package manager distributed with modern versions of 
@@ -81,8 +81,8 @@ On Mac systems, the easiest way to do this is to use ``homebrew`` to install
 
    $ brew install matplotlib --with-pygtk
 
-Installing on your cluster
-==========================
+Installing PIP on your cluster
+==============================
 If ``pip`` is available on your cluster, use it::
 
    $ pip install pull_into_place
@@ -95,9 +95,9 @@ are installed, you can download and install a source distribution of
 |pull_into_place|_.  The next section has example command lines for all of 
 these steps in the specific context of the QB3 cluster at UCSF.
 
-Installing on the QB3 cluster at UCSF
--------------------------------------
-Because the UCSF cluster is not connected to the internet, it cannot 
+Installing PIP on the QB3 cluster at UCSF
+-----------------------------------------
+Because the UCSF cluster is not directly connected to the internet, it cannot 
 automatically download and install dependencies.  Instead, we have to do these 
 steps manually.
 
@@ -144,6 +144,21 @@ steps manually.
    $ cd ~/pull_into_place-1.1.0
    $ python setup.py install --user
 
+7. Make sure ``~/.local/bin`` is on your ``$PATH``::
+
+   The above commands install PIP into ``~/.local/bin``.  This directory is 
+   good because you can install programs there without needing administrator 
+   privileges, but it's not on your ``$PATH`` by default (which means that any 
+   programs installed there won't be found).  This command modifies your shell 
+   configuration file to add ``~/.local/bin`` to your ``$PATH``::
+
+       $ echo 'export PATH=~/.local/bin:$PATH' >> ~/.bashrc
+
+   This command reloads your shell configuration so the change takes place 
+   immediately (otherwise you'd have to log out and back in)::
+
+       $ source ~/.bashrc
+
 7. Make sure it works::
 
    $ pull_into_place --help
@@ -154,4 +169,55 @@ steps manually.
 .. _klab: https://pypi.python.org/pypi/klab
 .. |pull_into_place| replace:: ``pull_into_place``
 .. _pull_into_place: https://pypi.python.org/pypi/pull_into_place
+
+.. _installing-rosetta:
+
+Installing Rosetta
+==================
+PIP also requires Rosetta to be installed, both on your workstation and on your 
+cluster.  You can consult `this page`__ for more information on how to do this, 
+but in general there are two steps.  First, you need to check out a copy of the 
+source code from GitHub::
+
+    $ git clone git@github.com:RosettaCommons/main.git ~/rosetta
+
+Second, you need to compile everything::
+
+    $ cd ~/rosetta/source
+    $ ./scons.py bin mode=release -j8
+
+Be aware that compiling Rosetta requires a C++11 compiler.  This is much more 
+likely to cause problems on your cluster than on your workstation.  If you have 
+problems, ask your administrator for help.
+
+__ https://www.rosettacommons.org/docs/latest/build_documentation/Build-Documentation
+
+Installing Rosetta on the QB3 cluster at UCSF
+---------------------------------------------
+Installing Rosetta on the QB3 cluster is especially annoying because the 
+cluster has limited access to the internet and outdated versions of both the 
+C++ compiler and python.  As above, the first step is to check out a copy of 
+the Rosetta source code from GitHub.  This has to be done from one of the 
+interactive nodes (e.g. ``iqint``, ``optint1``, ``optint2``, or ``xeonint``) 
+because ``chef`` and ``sous`` are not allowed to communicate with GitHub::
+
+    $ ssh chef.compbio.ucsf.edu
+    $ ssh iqint
+    $ git clone git@github.com:RosettaCommons/main.git ~/rosetta
+
+The second step is to install the QB3-specific build settings, which specify 
+the path to the cluster's C++11 compiler (among other things)::
+
+    $ ln -s site.settings.qb3 ~/rosetta/source/tools/build/site.settings
+
+The final step is to compile Rosetta.  This command has several parts: ``scl 
+enable python27`` causes python2.7 to be used for the rest of the command, 
+which ``scons`` requires.  ``nice`` reduces the compiler's CPU priority, which 
+helps the shell stay responsive.  ``./scons.py bin`` is the standard command to 
+build Rosetta.  ``mode=release`` tells to compiler to leave out debugging code, 
+which actually makes Rosetta ≈10x faster.  ``-j16`` tells the compiler that 
+``iqint`` has 16 cores for it to use::
+
+    $ cd ~/rosetta/source
+    $ scl enable python27 'nice ./scons.py bin mode=release -j16'
 
