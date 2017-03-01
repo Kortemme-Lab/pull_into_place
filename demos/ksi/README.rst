@@ -91,7 +91,7 @@ it:
    and which are meant to be run on the cluster.
    
    The ``ssh shef.compbio.ucsf.edu`` command means that you should log onto the 
-   cluster and run all subsequent commands should on the cluster.  The ``exit`` 
+   cluster and run all subsequent commands on the cluster.  The ``exit`` 
    command means that you should log off the cluster and run all subsequent 
    commands on your workstation.  If you get errors, especially ones that seem 
    to involve version or dependency issues, double check to make sure that 
