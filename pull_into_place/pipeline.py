@@ -610,12 +610,21 @@ def fetch_data(directory, remote_url=None, include_logs=False, dry_run=False):
                 '--exclude', 'stderr',
                 '--exclude', '*.sc',
         ]
-    remote_dir = os.path.normpath(os.path.join(
-            remote_url, os.path.relpath(directory, workspace.parent_dir)))
+
+    # This code is trying to combine the remote URL with a directory path.  
+    # Originally I was just using os.path.join() to do this, but that caused a 
+    # bug when the URL was something like "chef:".  This is supposed to specify 
+    # a path relative to the user's home directory, but os.path.join() adds a 
+    # slash and turns the path into an absolute path.
+
+    sep = '' if remote_url.endswith(':') else '/'
+    remote_dir = os.path.normpath(
+            remote_url + sep + os.path.relpath(directory, workspace.parent_dir))
     rsync_command += [
             remote_dir + '/',
             directory,
     ]
+
     if dry_run:
         print ' '.join(rsync_command)
     else:
