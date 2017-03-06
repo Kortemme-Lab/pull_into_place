@@ -108,7 +108,7 @@ steps manually.
    
    - ``setuptools-27.2.0.tar.gz``
    - ``klab-0.3.0.tar.gz``
-   - ``pull_into_place-1.1.0.tar.gz``
+   - ``pull_into_place-1.2.0.tar.gz``
    |
    .. note::
       Three new dependencies were added to ``setuptools`` in version 
@@ -120,14 +120,14 @@ steps manually.
 
    $ scp setuptools-27.2.0.tar.gz chef.compbio.ucsf.edu:
    $ scp klab-0.3.0.tar.gz chef.compbio.ucsf.edu:
-   $ scp pull_into_place-1.1.0.tar.gz chef.compbio.ucsf.edu:
+   $ scp pull_into_place-1.2.0.tar.gz chef.compbio.ucsf.edu:
 
 3. Log onto the cluster and unpack the source distributions::
 
    $ ssh chef.compbio.ucsf.edu
    $ tar -xzf setuptools-27.2.0.tar.gz
    $ tar -xzf klab-0.3.0.tar.gz
-   $ tar -xzf pull_into_place-1.1.0.tar.gz
+   $ tar -xzf pull_into_place-1.2.0.tar.gz
 
 4. Install |setuptools|_::
 
@@ -141,7 +141,7 @@ steps manually.
 
 6. Install |pull_into_place|_::
 
-   $ cd ~/pull_into_place-1.1.0
+   $ cd ~/pull_into_place-1.2.0
    $ python setup.py install --user
 
 7. Make sure ``~/.local/bin`` is on your ``$PATH``::
