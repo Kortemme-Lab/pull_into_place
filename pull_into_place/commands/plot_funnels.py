@@ -139,4 +139,5 @@ def main():
             args['<pdb_directories>'],
             use_cache=not args['--force'],
             launch_gui=not args['--quiet'],
+            fork_gui=not args['--no-fork'],
     )
