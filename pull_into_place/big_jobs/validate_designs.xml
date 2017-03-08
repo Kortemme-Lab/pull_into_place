@@ -13,7 +13,9 @@
   </MOVERS>
 
   <PROTOCOLS>
-    <Add mover_name=modeler/>
+    <Add mover_name="modeler"/>
   </PROTOCOLS>
+
+  <OUTPUT scorefxn="scorefxn"/>
 
 </ROSETTASCRIPTS>

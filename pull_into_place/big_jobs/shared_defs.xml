@@ -1,23 +1,21 @@
   <SCOREFXNS>
-    <scorefxn weights="%%wts_file%%"/>
-    <scorefxn_cst weights="%%wts_file%%">
+    <ScoreFunction name="scorefxn" weights="%%wts_file%%"/>
+    <ScoreFunction name="scorefxn_cst" weights="%%wts_file%%">
       <Reweight scoretype="coordinate_constraint" weight="1.0"/>
       <Reweight scoretype="atom_pair_constraint" weight="1.0"/>
       <Reweight scoretype="angle_constraint" weight="1.0"/>
       <Reweight scoretype="dihedral_constraint" weight="1.0"/>
       <Reweight scoretype="res_type_constraint" weight="1.0"/>
-    </scorefxn_cst>
+    </ScoreFunction>
   </SCOREFXNS>
 
   <TASKOPERATIONS>
     <InitializeFromCommandline name="cli"/>
     <ReadResfile name="resfile"/>
-    <ExtraRotamersGeneric name="ex"
-      ex1="yes" ex2="yes" extrachi_cutoff="0"/>
+    <ExtraRotamersGeneric name="ex" ex1="yes" ex2="yes" extrachi_cutoff="0"/>
   </TASKOPERATIONS>
 
   <MOVERS>
     <ConstraintSetMover name="cst" cst_fa_file="%%cst_file%%"/>
   </MOVERS>
 
-  <OUTPUT scorefxn="scorefxn"/>

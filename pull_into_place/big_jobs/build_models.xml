@@ -15,7 +15,9 @@
 
   <PROTOCOLS>
     <!-- Constraints read from command line -->
-    <Add mover_name=modeler/>
+    <Add mover_name="modeler"/>
   </PROTOCOLS>
+
+  <OUTPUT scorefxn="scorefxn"/>
 
 </ROSETTASCRIPTS>
