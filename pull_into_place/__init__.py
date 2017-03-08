@@ -3,6 +3,6 @@
 # This file is exec'd by setup.py, so don't put anything in here that would 
 # depend on the package actually being installed.
 
-__version__ = '1.2.0'
+__version__ = '1.2.1'
 __author__ = 'Kale Kundert'
 __email__ = 'kale.kundert@ucsf.edu'
