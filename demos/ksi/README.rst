@@ -64,6 +64,7 @@ but the tutorial will assume that they're in ``~/ksi_inputs`` such that::
    EQU.fa.params
    KSI_D38E.pdb
    KSI_WT.pdb
+   compare_to_wildtype.sho
    flags
    loops
    resfile
@@ -175,11 +176,11 @@ it:
    ``pull_into_place 01_setup_workspace``.  
 
 You may have noticed that we were not prompted for the ``EQU.cen.params``, 
-``EQU.fa.params``, or ``KSI_WT.pdb`` files.  We will use ``KSI_WT.pdb`` to 
-compare against later on, but PIP doesn't need it.  ``EQU.cen.params`` and 
-``EQU.fa.params`` are ligand parameters for centroid and fullatom mode, 
-respectively.  PIP doesn't specifically ask for ligand parameter files, but we 
-still need them for our simulations because we referenced them in ``flags``::
+``EQU.fa.params``, ``KSI_WT.pdb``, or ``compare_to_wildtype.sho`` files.  
+``EQU.cen.params`` and ``EQU.fa.params`` are ligand parameters for centroid and 
+fullatom mode, respectively.  PIP doesn't specifically ask for ligand parameter 
+files, but we still need them for our simulations because we referenced them in 
+``flags``::
 
    $ cat ~/rescue_ksi_d38e/flags
    -extra_res_fa EQU.fa.params
@@ -192,6 +193,15 @@ to manually copy the ligand parameters files into the workspace::
 
    $ cp ~/ksi_inputs/EQU.*.params ~/rescue_ksi_d38e
    $ exit   # log off the cluster and return to your workstation
+
+``KSI_WT.pdb`` is the structure of the wildtype KSI enzyme and     
+``compare_to_wildtype.sho`` is a script that configures and displays scenes in 
+pymol that compare design models against ``KSI_WT.pdb``.  PIP itself doesn't 
+need these files, but we will use them later on to evaluate designs.  For now 
+just copy them into the workspace::
+
+   $ cp ~/ksi_inputs/KSI_WT.pdb ~/rescue_ksi_d38e
+   $ cp ~/ksi_inputs/compare_to_wildtype.sho ~/rescue_ksi_d38e
 
 Now that the workspace on the cluster is all set up, we can make a workspace on 
 our workstation that links to it::
@@ -279,6 +289,13 @@ visualize them::
 
    $ pull_into_place fetch_data rescue_ksi_d38e
    $ pull_into_place plot_funnels rescue_ksi_d38e/01_restrained_models/outputs
+
+.. note::
+   On Mac OS, you may have to give the ``plot_funnels`` command the ``-F`` 
+   flag.  This flag prevents the GUI from detaching from the terminal and 
+   running in a background process.  This behavior is normally convenient 
+   because it allows you to keep using the terminal while the GUI is open, but 
+   on Mac OS it seems to cause problems.
 
 .. figure:: plot_funnels.png
    :align: center
@@ -434,6 +451,50 @@ visualize the validation results::
 
    $ pull_into_place plot rescue_ksi_d38e/03_validated_designs_round_1/outputs/*
 
+The ``plot`` GUI has a number of features that can help you delve into your 
+simulation results and find good designs.  First, notice that there is a panel 
+on the left listing all of the designs that were validated.  You can click on a 
+design to view the results for that design.  You can also hit ``j`` and ``k`` 
+to quickly scroll through the designs.
+
+Second, notice that there is a place to take notes on the current design below 
+the plot.  The search bar in the top left can be used to filter designs based 
+on these notes.  One convention that I find useful is to mark designs with +, 
+++, +++, etc. depending on how much I like them, so I can easily select 
+interesting designs by searching for the corresponding number of + signs.
+
+Third, you view the model corresponding to any particular point by 
+right-clicking on that point and choosing one of the options in the menu that 
+appears.  For example, try choosing "Compare to wildtype".  Behind the scenes, 
+this runs the ``compare_to_wildtype.sho`` script that we copied into the 
+workspace with the path to the selected model as the first and only argument.  
+That script then runs ``pymol`` with the design superimposed on the wildtype 
+structure, a number of useful selections pre-defined, the proteins rendered as 
+cartoons and the ligand as sticks, and the camera positioned with a good 
+vantage point of the active-site loop.  
+
+.. figure:: compare_to_wildtype.png
+   :align: center
+
+   A screenshot of the pymol scene created by ``compare_to_wildtype.sho``.  
+
+Within ``pymol``, I use a plugin I wrote called ``wt_vs_mut`` to see how the 
+design model differs from the wildtype structure.  The plugin's philosophy is 
+to focus on each mutation one-at-a-time, to try to understand what interactions 
+the wildtype residue was making and how those interactions are (or are not) 
+being accommodated by the mutant residue.  If this sounds useful to you, `visit 
+this page`__ for instructions on how to install and use ``wt_vs_mut``.  
+"Compare to wildtype" pre-loads a shortcut to run ``wt_vs_mut`` with the 
+correct arguments, so once you have the plugin installed, you can simply type 
+``ww`` to run it.
+
+.. __: https://github.com/kalekundert/wt_vs_mut
+
+The ``plot`` command has several other features and hotkeys that aren't 
+described here, so you may find it worthwhile to read its complete help text::
+
+   $ pull_into_place plot --help
+
 Iterate the design process
 ==========================
 Often, some of the models from the validation simulations will fulfill the 
@@ -457,7 +518,7 @@ believe that models from the validation simulations -- which are the basis for
 the later rounds of design -- are more relaxed than the initial models, which 
 makes them better starting points for design.  At the same time, I would 
 recommend against doing more than three or four rounds of design, because 
-iterated cycles of backbone optimization and design seems to provoke artifacts 
+iterated cycles of backbone optimization and design seem to provoke artifacts 
 in Rosetta's score function.
 
 Pick designs to test experimentally
@@ -478,17 +539,18 @@ Finally, you might be interested in some of general-purpose metrics of protein
 stability that are not well represented by score alone, like the number of 
 buried unsatisfied H-bonds or the amount of strain in the designed sidechains.
 
-The following command generates a spreadsheet that conveniently collects all 
-this information in one place::
+The following command generates a spreadsheet that collects all this 
+information in one place::
 
    $ pull_into_place 09 rescue_ksi_d38e 1
 
 This command will create a file called ``quality_metrics.xlsx`` that you can 
-open with Excel or any related program.  By default, the spreadsheet will only 
-include entries for designs where the lowest scoring model is within 1.2Å of 
-satisfying the restraints.  Each column presents a different quality metric, 
-and each cell is colored according to how favorable that value of that metric 
-is.  The precise meaning and interpretation of each metric is discussed below:
+open with Excel or any other spreadsheet program.  By default, the spreadsheet 
+will only include entries for designs where the lowest scoring model is within 
+1.2Å of satisfying the restraints.  Each column presents a different quality 
+metric, and each cell is colored according to how favorable that value of that 
+metric is.  The precise meaning and interpretation of each metric is discussed 
+below:
 
 Resfile Sequence
    Show the amino acid identity of every position that was allowed to mutate in 
