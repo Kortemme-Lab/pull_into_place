@@ -53,7 +53,7 @@ your cluster.  If your cluster has ``svn`` installed, you can use this command
 to download all these files at once::
 
    # Run this command on ``iqint`` if you're using the QB3 cluster.
-   $ svn export https://github.com/Kortemme-Lab/pull_into_place/trunk/demos/ksi ~/ksi_inputs
+   $ svn export https://github.com/Kortemme-Lab/pull_into_place/trunk/demos/ksi/inputs ~/ksi_inputs
 
 Otherwise, you can download them by hand onto your workstation and use ``scp`` 
 to copy them onto your cluster.  You can put the input files wherever you want, 
@@ -70,7 +70,7 @@ but the tutorial will assume that they're in ``~/ksi_inputs`` such that::
    resfile
    restraints
 
-__ https://github.com/Kortemme-Lab/pull_into_place/tree/master/demos/ksi
+__ https://github.com/Kortemme-Lab/pull_into_place/tree/master/demos/ksi/inputs
 
 Set up your workspaces
 ======================
@@ -463,15 +463,15 @@ on these notes.  One convention that I find useful is to mark designs with +,
 ++, +++, etc. depending on how much I like them, so I can easily select 
 interesting designs by searching for the corresponding number of + signs.
 
-Third, you view the model corresponding to any particular point by 
-right-clicking on that point and choosing one of the options in the menu that 
-appears.  For example, try choosing "Compare to wildtype".  Behind the scenes, 
-this runs the ``compare_to_wildtype.sho`` script that we copied into the 
-workspace with the path to the selected model as the first and only argument.  
-That script then runs ``pymol`` with the design superimposed on the wildtype 
-structure, a number of useful selections pre-defined, the proteins rendered as 
-cartoons and the ligand as sticks, and the camera positioned with a good 
-vantage point of the active-site loop.  
+Third, you can view the model corresponding to any particular point by 
+right-clicking (or Ctrl-clicking) on that point and choosing one of the options 
+in the menu that appears.  For example, try choosing "Compare to wildtype".  
+Behind the scenes, this runs the ``compare_to_wildtype.sho`` script that we 
+copied into the workspace with the path to the selected model as the first and 
+only argument.  That script then runs ``pymol`` with the design superimposed on 
+the wildtype structure, a number of useful selections pre-defined, the proteins 
+rendered as cartoons and the ligand as sticks, and the camera positioned with a 
+good vantage point of the active-site loop.  
 
 .. figure:: compare_to_wildtype.png
    :align: center

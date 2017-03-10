@@ -5,7 +5,7 @@
    :hidden:
 
    install
-   Example Project <demos/ksi/ksi_demo>
+   Example Project <demos/ksi/README>
    usage
    api/index
    contrib
