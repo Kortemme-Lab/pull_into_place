@@ -470,8 +470,8 @@ Behind the scenes, this runs the ``compare_to_wildtype.sho`` script that we
 copied into the workspace with the path to the selected model as the first and 
 only argument.  That script then runs ``pymol`` with the design superimposed on 
 the wildtype structure, a number of useful selections pre-defined, the proteins 
-rendered as cartoons and the ligand as sticks, and the camera positioned with a 
-good vantage point of the active-site loop.  
+rendered as cartoons, the ligands rendered as sticks, and the camera positioned 
+with a good vantage point of the active-site loop.  
 
 .. figure:: compare_to_wildtype.png
    :align: center
