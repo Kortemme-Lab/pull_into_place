@@ -83,8 +83,8 @@ contain any simulation results.
 We will also use workspaces to sync files between our workstation and the 
 cluster.  The workspace on the cluster will be "normal" and will not know about 
 the one on our workstation.  In contrast, the workspace on our workstation will 
-know about the one on the cluster and will be able to transfer data to and from 
-it:
+be "remote".  It will know about the one on the cluster and will be able to 
+transfer data to and from it.
 
 .. note::
    Pay attention to the ``ssh chef.compbio.ucsf.edu`` and ``exit`` commands, 
@@ -98,7 +98,7 @@ it:
    to involve version or dependency issues, double check to make sure that 
    you're logged onto the right machine.
 
-::
+First, create the "normal" workstation on the cluster::
 
    $ ssh chef.compbio.ucsf.edu   # log onto the cluster
    $ pull_into_place 01 rescue_ksi_d38e
@@ -203,8 +203,8 @@ just copy them into the workspace::
    $ cp ~/ksi_inputs/KSI_WT.pdb ~/rescue_ksi_d38e
    $ cp ~/ksi_inputs/compare_to_wildtype.sho ~/rescue_ksi_d38e
 
-Now that the workspace on the cluster is all set up, we can make a workspace on 
-our workstation that links to it::
+Now that the workspace on the cluster is all set up, we can make the "remote" 
+workspace on our workstation that will link to it::
 
    $ cd ~
    $ pull_into_place 01 -r rescue_ksi_d38e
