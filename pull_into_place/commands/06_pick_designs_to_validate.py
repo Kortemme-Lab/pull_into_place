@@ -7,7 +7,8 @@ on sequence identity and rosetta score.  It might be nice to add a clustering
 component as well.
 
 Usage:
-    pull_into_place 06_pick_designs_to_validate <workspace> <round> [<queries>...] [options]
+    pull_into_place 06_pick_designs_to_validate
+            <workspace> <round> [<queries>...] [options]
 
 Options:
     --num NUM, -n NUM           [default: 50]
@@ -28,7 +29,7 @@ Options:
         Instead just report how many designs would be picked.
 """
 
-import os, sys, pylab
+import os, sys
 from numpy import *
 from klab import docopt, scripting
 from .. import pipeline, structures
@@ -40,6 +41,10 @@ def main():
     round = args['<round>']
     query = ' and '.join(args['<queries>'])
     temp = float(args['--temp'])
+
+    # Import ``pylab`` after handling the help message, because otherwise 
+    # ``matplotlib`` sometimes issues warnings that then show up in the docs.
+    import pylab
 
     workspace = pipeline.ValidatedDesigns(root, round)
     workspace.check_paths()
@@ -84,7 +89,7 @@ def main():
 
     # Use a Boltzmann weighting scheme to pick designs.
 
-    seqs_scores.sort_values(by='total_score', inplace=True)
+    seq_scores = seqs_scores.sort_values(by='total_score')
     
     scores = seqs_scores.total_score.values
     scores -= median(scores)

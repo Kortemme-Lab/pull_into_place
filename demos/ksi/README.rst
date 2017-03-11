@@ -391,7 +391,10 @@ structurally homogeneous::
 This command will open a window to show you how the scores are distributed and 
 which were picked.  As the command suggests, it worth looking at the cumulative 
 distribution function (CDF) of the Boltzmann-weighted scores to make sure it's 
-neither too flat nor too sharp.
+neither too flat nor too sharp.  This is a subjective judgment, but one good 
+rule of thumb is that the designs being picked (represented by the circles) 
+should be mostly, but not exclusively, low-scoring.  The CDF below looks about 
+like what you'd want:
 
 .. figure:: 06_pick_designs_to_validate.png
    :align: center
