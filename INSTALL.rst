@@ -35,6 +35,9 @@ distinction between PIP and ``pip`` is confusing.  PIP is the Pull Into Place
 pipeline, ``pip`` is the package manager distributed with modern versions of 
 python)::
 
+   # For reasons I don't fully understand, some dependencies can't be installed 
+   # unless numpy is manually installed on its own step before everything else.
+   $ pip install numpy
    $ pip install 'pull_into_place [analysis]'
 
 The ``[analysis]`` part of the command instructs ``pip`` to install all of the 
@@ -72,9 +75,9 @@ dependency is not included with the other ``[analysis]`` dependencies because
 it can't be installed with ``pip`` (except maybe on Windows).  On Linux 
 systems, your package manager should be able to install it pretty easily::
 
-   $ apt-get install pygtk  # Ubuntu
-   $ yum install pygtk2     # Fedora<=21
-   $ dnf install pygtk2     # Fedora>=22
+   $ apt-get install python-matplotlib pygtk    # Ubuntu
+   $ yum install pygtk2                         # Fedora<=21
+   $ dnf install pygtk2                         # Fedora>=22
 
 On Mac systems, the easiest way to do this is to use ``homebrew`` to install 
 ``matplotlib`` with the ``--with-pygtk`` option::
@@ -180,6 +183,14 @@ but in general there are two steps.  First, you need to check out a copy of the
 source code from GitHub::
 
     $ git clone git@github.com:RosettaCommons/main.git ~/rosetta
+
+.. note::
+   You have to be registered as a "Rosetta developer" in order to be able to 
+   clone this repository (even if you never plan on developing any C++ code).  
+   `This page 
+   <https://wiki.rosettacommons.org/index.php/NewNewDevelopersPage>`_ has 
+   step-by-step instructions on how to register as a developer.  You'll be 
+   asked for a password; anyone who's already a developer can give it to you.
 
 Second, you need to compile everything::
 
