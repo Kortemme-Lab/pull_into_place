@@ -3,7 +3,7 @@ Pull Into Place
 ***************
 Pull Into Place (PIP) is a protocol to design protein functional groups with 
 sub-angstrom accuracy.  The protocol is based on two ideas: 1) using restraints 
-to define the geometry you're trying to design and 2) using an unrestrained 
+to define the geometry you're trying to design and 2) using unrestrained 
 simulations to test designs.
 
 .. image:: https://img.shields.io/pypi/v/pull_into_place.svg
