@@ -84,6 +84,11 @@ On Mac systems, the easiest way to do this is to use ``homebrew`` to install
 
    $ brew install matplotlib --with-pygtk
 
+If you want to install PIP in a virtual environment, you will probably have to 
+create the environment with the ``--system-site-packages`` flag.  This will 
+allow the virtual environment to use the ``pygtk`` package installed by your 
+package manager.
+
 Installing PIP on your cluster
 ==============================
 If ``pip`` is available on your cluster, use it::
