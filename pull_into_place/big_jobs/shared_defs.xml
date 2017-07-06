@@ -1,3 +1,5 @@
+  <xi:include href="filters.xml"/>
+
   <SCOREFXNS>
     <ScoreFunction name="scorefxn" weights="%%wts_file%%"/>
     <ScoreFunction name="scorefxn_cst" weights="%%wts_file%%">
@@ -9,6 +11,7 @@
     </ScoreFunction>
   </SCOREFXNS>
 
+
   <TASKOPERATIONS>
     <InitializeFromCommandline name="cli"/>
     <ReadResfile name="resfile"/>
@@ -17,5 +20,5 @@
 
   <MOVERS>
     <ConstraintSetMover name="cst" cst_fa_file="%%cst_file%%"/>
+    <WriteFiltersToPose name="writer" prefix="FIL_"/>
   </MOVERS>
-

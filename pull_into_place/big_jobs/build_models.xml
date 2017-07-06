@@ -16,6 +16,7 @@
   <PROTOCOLS>
     <!-- Constraints read from command line -->
     <Add mover_name="modeler"/>
+    <Add mover_name="writer"/>
   </PROTOCOLS>
 
   <OUTPUT scorefxn="scorefxn"/>
