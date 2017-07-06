@@ -1,11 +1,11 @@
 #!/usr/bin/env python2
 
 """\
-This module defines the Workspace classes that are central to every script.  
-The role of these classes is to provide paths to all the data files used in any 
-part of the pipeline and to hide the organization of the directories containing 
-those files.  The base Workspace class deals with files in the root directory 
-of a design.  It's subclasses deal with file in the different subdirectories of 
+This module defines the Workspace classes that are central to every script.
+The role of these classes is to provide paths to all the data files used in any
+part of the pipeline and to hide the organization of the directories containing
+those files.  The base Workspace class deals with files in the root directory
+of a design.  It's subclasses deal with file in the different subdirectories of
 the design, each of which is related to a cluster job.
 """
 
@@ -17,23 +17,23 @@ class Workspace (object):
     """
     Provide paths to every file used in the design pipeline.
 
-    Each workspace object is responsible for returning paths to files that are 
-    relevant to a particular stage of the design pipeline.  These files are 
-    organized hierarchically: files that are relevant to many parts of the 
-    pipeline are stored in the root design directory while files that are 
-    relevant to specific stages are stored in subdirectories.  You can think of 
+    Each workspace object is responsible for returning paths to files that are
+    relevant to a particular stage of the design pipeline.  These files are
+    organized hierarchically: files that are relevant to many parts of the
+    pipeline are stored in the root design directory while files that are
+    relevant to specific stages are stored in subdirectories.  You can think of
     each workspace class as representing a different directory.
-    
-    The Workspace class itself represents the root directory, but it is also 
-    the superclass from which all of the other workspace derive.  The reason 
-    for this is that the root workspace knows where all the shared parameter 
+
+    The Workspace class itself represents the root directory, but it is also
+    the superclass from which all of the other workspace derive.  The reason
+    for this is that the root workspace knows where all the shared parameter
     files are located, and this information is needed in every workspace.
 
-    When modifying or inheriting from this class, keep in mind two things.  
-    First, workspace objects should do little more than return paths to files.  
-    There are a few convenience functions that clear directories and things 
-    like that, but these are the exception rather than the rule.  Second, use 
-    the @property decorator very liberally to keep the code that uses this API 
+    When modifying or inheriting from this class, keep in mind two things.
+    First, workspace objects should do little more than return paths to files.
+    There are a few convenience functions that clear directories and things
+    like that, but these are the exception rather than the rule.  Second, use
+    the @property decorator very liberally to keep the code that uses this API
     succinct and easy to read.
     """
 
@@ -66,7 +66,7 @@ class Workspace (object):
     @property
     def focus_dir(self):
         """
-        The particular directory managed by this class.  This is meant to be 
+        The particular directory managed by this class.  This is meant to be
         overridden in subclasses.
         """
         return self.root_dir
@@ -84,12 +84,12 @@ class Workspace (object):
         pattern = self.rosetta_subpath('source', 'bin', 'rosetta_scripts*')
         executables = glob.glob(pattern)
 
-        # Sometimes dead symlinks end up in the `bin/` directory, so explicitly 
+        # Sometimes dead symlinks end up in the `bin/` directory, so explicitly
         # ignore those.
 
         executables = [x for x in executables if os.path.exists(x)]
 
-        # Print a (hopefully) helpful error message if no ``rosetta_scripts`` 
+        # Print a (hopefully) helpful error message if no ``rosetta_scripts``
         # executables are found.
 
         if len(executables) == 0:
@@ -99,11 +99,11 @@ No RosettaScripts executable found.
 Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
 """.format(pattern))
 
-        # Sort the ``rosetta_scripts`` executables such that those containing 
-        # the word 'release' end up at the front of the list, those containing 
-        # 'debug' end up at the back, and shorter file names (which have fewer 
-        # weird compilation options) end up in front of longer ones.  We'll 
-        # ultimately pick the first path in the list, so we're doing our best 
+        # Sort the ``rosetta_scripts`` executables such that those containing
+        # the word 'release' end up at the front of the list, those containing
+        # 'debug' end up at the back, and shorter file names (which have fewer
+        # weird compilation options) end up in front of longer ones.  We'll
+        # ultimately pick the first path in the list, so we're doing our best
         # to use a basic release mode executable.
 
         executables.sort(key=lambda x: len(x))
@@ -142,6 +142,10 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
     @property
     def build_script_path(self):
         return self.find_path('build_models.xml')
+
+    @property
+    def filters_path(self):
+        return self.find_path('filters.xml')
 
     @property
     def design_script_path(self):
@@ -184,16 +188,16 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
 
     def find_path(self, basename):
         """
-        Look in a few places for a file with the given name.  If a custom 
-        version of the file is found in the directory being managed by 
-        this workspace, return it.  Otherwise return the path to the default 
+        Look in a few places for a file with the given name.  If a custom
+        version of the file is found in the directory being managed by
+        this workspace, return it.  Otherwise return the path to the default
         version of the file in the root directory.
 
-        This function makes it easy to provide custom parameters to any stage 
-        to the design pipeline.  Just place the file with the custom parameters 
+        This function makes it easy to provide custom parameters to any stage
+        to the design pipeline.  Just place the file with the custom parameters
         in the directory associated with that stage.
         """
-        
+
         custom_path = os.path.join(self.focus_dir, basename)
         default_path = os.path.join(self.root_dir, basename)
         return custom_path if os.path.exists(custom_path) else default_path
@@ -235,8 +239,8 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
 
     def cd(self, *subpaths):
         """
-        Change the current working directory and update all the paths in the 
-        workspace.  This is useful for commands that have to be run from a 
+        Change the current working directory and update all the paths in the
+        workspace.  This is useful for commands that have to be run from a
         certain directory.
         """
         source = os.path.abspath(self._root_dirname)
@@ -255,9 +259,9 @@ class BigJobWorkspace (Workspace):
     """
     Provide paths needed to run big jobs on the cluster.
 
-    This is a base class for all the workspaces meant to store results from 
-    long simulations (which is presently all of them except for the root).  
-    This class provides paths to input directories, output directories, 
+    This is a base class for all the workspaces meant to store results from
+    long simulations (which is presently all of them except for the root).
+    This class provides paths to input directories, output directories,
     parameters files, and several other things like that.
     """
 
@@ -351,7 +355,7 @@ class WithFragmentLibs (object):
     """
     Provide paths needed to interact with fragment libraries.
 
-    This is a mixin class that provides a handful of paths and features useful 
+    This is a mixin class that provides a handful of paths and features useful
     for working with fragment libraries.
     """
 
@@ -367,7 +371,7 @@ class WithFragmentLibs (object):
         return os.path.basename(input_path)[:4]
 
     def fragments_info(self, input_path):
-        # Typically, there is one output directory for each chain that 
+        # Typically, there is one output directory for each chain that
         # fragments are being generated for.
 
         tag = self.fragments_tag(input_path)
@@ -378,8 +382,8 @@ class WithFragmentLibs (object):
             with open(path) as file:
                 frag_map.update(json.load(file))
 
-        # Sort the fragments first by decreasing size of the fragments (because 
-        # rosetta insists that the fragment arguments be in this order) and 
+        # Sort the fragments first by decreasing size of the fragments (because
+        # rosetta insists that the fragment arguments be in this order) and
         # second alphabetically (for aesthetics).
 
         frag_size = lambda x: frag_map[x]['frag_sizes']
@@ -390,8 +394,8 @@ class WithFragmentLibs (object):
         frag_sizes = [frag_size(x) for x in frag_paths]
         frag_paths = [os.path.join(self.fragments_dir, x) for x in frag_paths]
 
-        # If no size-1 fragments were generated, but larger fragments were, 
-        # also add the 'none' pseudo-path.  This will cause rosetta to make 
+        # If no size-1 fragments were generated, but larger fragments were,
+        # also add the 'none' pseudo-path.  This will cause rosetta to make
         # size-1 fragments from the next largest fragment set.
 
         if frag_sizes and frag_sizes[-1] > 1:
@@ -419,7 +423,7 @@ class WithFragmentLibs (object):
 class RestrainedModels (BigJobWorkspace, WithFragmentLibs):
 
     def __init__(self, root):
-        BigJobWorkspace.__init__(self, root) 
+        BigJobWorkspace.__init__(self, root)
 
     @staticmethod
     def from_directory(directory):
@@ -506,27 +510,27 @@ def big_job_path(basename):
 
 def workspace_from_dir(directory, recurse=True):
     """
-    Construct a workspace object from a directory name.  If recurse=True, this 
-    function will search down the directory tree and return the first workspace 
-    it finds.  If recurse=False, an exception will be raised if the given 
-    directory is not a workspace.  Workspace identification requires a file 
-    called 'workspace.pkl' to be present in each workspace directory, which can 
+    Construct a workspace object from a directory name.  If recurse=True, this
+    function will search down the directory tree and return the first workspace
+    it finds.  If recurse=False, an exception will be raised if the given
+    directory is not a workspace.  Workspace identification requires a file
+    called 'workspace.pkl' to be present in each workspace directory, which can
     unfortunately be a little fragile.
     """
     directory = os.path.abspath(directory)
     pickle_path = os.path.join(directory, 'workspace.pkl')
 
-    # Make sure the given directory contains a 'workspace' file.  This file is 
+    # Make sure the given directory contains a 'workspace' file.  This file is
     # needed to instantiate the right kind of workspace.
-    
+
     if not os.path.exists(pickle_path):
         if recurse:
             parent_dir = os.path.dirname(directory)
 
-            # Keep looking for a workspace as long as we haven't hit the root 
-            # of the file system.  If an exception is raised, that means no 
-            # workspace was found.  Catch and re-raise the exception so that 
-            # the name of the directory reported in the exception is meaningful 
+            # Keep looking for a workspace as long as we haven't hit the root
+            # of the file system.  If an exception is raised, that means no
+            # workspace was found.  Catch and re-raise the exception so that
+            # the name of the directory reported in the exception is meaningful
             # to the user.
 
             try:
@@ -545,7 +549,7 @@ def workspace_from_dir(directory, recurse=True):
 
 def load_loops(directory, loops_path=None):
     """
-    Return a list of tuples indicating the start and end points of the loops 
+    Return a list of tuples indicating the start and end points of the loops
     that were sampled in the given directory.
     """
 
@@ -556,17 +560,17 @@ def load_loops(directory, loops_path=None):
     from klab.rosetta.input_files import LoopsFile
     loops_parser = LoopsFile.from_filepath(loops_path)
 
-    # We have to account for some weird indexing behavior in the loops file 
-    # parser that I don't really understand.  It seems to shrink the loop by 
-    # one residue on each side.  At first I thought it might be trying to 
-    # convert the indices to python indexing, but on second thought I have no 
+    # We have to account for some weird indexing behavior in the loops file
+    # parser that I don't really understand.  It seems to shrink the loop by
+    # one residue on each side.  At first I thought it might be trying to
+    # convert the indices to python indexing, but on second thought I have no
     # idea what it's trying to do.
 
     return [(x-1, y+1) for x, y in loops_parser.get_distinct_segments()]
 
 def load_resfile(directory, resfile_path=None):
     """
-    Return a list of tuples indicating the start and end points of the loops 
+    Return a list of tuples indicating the start and end points of the loops
     that were sampled in the given directory.
     """
 
@@ -582,20 +586,20 @@ def fetch_data(directory, remote_url=None, include_logs=False, dry_run=False):
 
     workspace = workspace_from_dir(directory)
 
-    # Try to figure out the remote URL from the given directory, if a 
+    # Try to figure out the remote URL from the given directory, if a
     # particular URL wasn't given.
 
     if remote_url is None:
         remote_url = workspace.rsync_url
 
-    # Make sure the given directory is actually a directory.  (It's ok if it 
+    # Make sure the given directory is actually a directory.  (It's ok if it
     # doesn't exist; rsync will create it.)
 
     if os.path.exists(directory) and not os.path.isdir(directory):
         print "Skipping {}: not a directory.".format(directory)
         return
 
-    # Compose an rsync command to copy the files in question.  Then either run 
+    # Compose an rsync command to copy the files in question.  Then either run
     # or print that command, depending on what the user asked for.
 
     rsync_command = [
@@ -611,10 +615,10 @@ def fetch_data(directory, remote_url=None, include_logs=False, dry_run=False):
                 '--exclude', '*.sc',
         ]
 
-    # This code is trying to combine the remote URL with a directory path.  
-    # Originally I was just using os.path.join() to do this, but that caused a 
-    # bug when the URL was something like "chef:".  This is supposed to specify 
-    # a path relative to the user's home directory, but os.path.join() adds a 
+    # This code is trying to combine the remote URL with a directory path.
+    # Originally I was just using os.path.join() to do this, but that caused a
+    # bug when the URL was something like "chef:".  This is supposed to specify
+    # a path relative to the user's home directory, but os.path.join() adds a
     # slash and turns the path into an absolute path.
 
     sep = '' if remote_url.endswith(':') else '/'
@@ -708,4 +712,3 @@ class UnspecifiedRemoteHost (PipelineError):
 
     def __init__(self):
         PipelineError.__init__(self, "No remote host specified.")
-
