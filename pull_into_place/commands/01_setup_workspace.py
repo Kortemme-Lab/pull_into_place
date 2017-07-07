@@ -1,23 +1,23 @@
 #!/usr/bin/env python2
 
 """\
-Query the user for all the input data needed for a design.  This includes a 
-starting PDB file, the backbone regions that will be remodeled, the residues 
-that will be allowed to design, and more.  A brief description of each field is 
-given below.  This information is used to build a workspace for this design 
-that will be used by the rest of the scripts in this pipeline.  
+Query the user for all the input data needed for a design.  This includes a
+starting PDB file, the backbone regions that will be remodeled, the residues
+that will be allowed to design, and more.  A brief description of each field is
+given below.  This information is used to build a workspace for this design
+that will be used by the rest of the scripts in this pipeline.
 
 Usage:
     pull_into_place 01_setup_workspace <workspace> [--remote] [--overwrite]
 
 Options:
     --remote, -r
-        Setup a link to a design directory on a remote machine, to help with 
-        transferring data between a workstation and a cluster.  Note: the 
+        Setup a link to a design directory on a remote machine, to help with
+        transferring data between a workstation and a cluster.  Note: the
         remote and local design directories must have the same name.
 
     --overwrite, -o
-        If a design with the given name already exists, remove it and replace 
+        If a design with the given name already exists, remove it and replace
         it with the new design created by this script.
 """
 
@@ -33,10 +33,10 @@ def ensure_path_exists(path):
 class RosettaDir:
     prompt = "Path to rosetta: "
     description = """\
-Rosetta checkout: Path to the main directory of a Rosetta source code checkout.  
-This is the directory called 'main' in a normal rosetta checkout.  Rosetta is 
-used both locally and on the cluster, but the path you specify here probably 
-won't apply to both machines.  You can manually correct the path by changing 
+Rosetta checkout: Path to the main directory of a Rosetta source code checkout.
+This is the directory called 'main' in a normal rosetta checkout.  Rosetta is
+used both locally and on the cluster, but the path you specify here probably
+won't apply to both machines.  You can manually correct the path by changing
 the symlink called 'rosetta' in the workspace directory."""
 
     @staticmethod
@@ -66,8 +66,8 @@ the symlink called 'rosetta' in the workspace directory."""
 class InputPdb:
     prompt = "Path to the input PDB file: "
     description = """\
-Input PDB file: A structure containing the functional groups to be positioned.  
-This file should already be parse-able by rosetta, which often means it must be 
+Input PDB file: A structure containing the functional groups to be positioned.
+This file should already be parse-able by rosetta, which often means it must be
 stripped of waters and extraneous ligands."""
 
     @staticmethod
@@ -85,8 +85,8 @@ stripped of waters and extraneous ligands."""
 class LoopsFile:
     prompt = "Path to the loops file: "
     description = """\
-Loops file: A file specifying which backbone regions will be allowed to move.  
-These backbone regions do not have to be contiguous, but each region must span 
+Loops file: A file specifying which backbone regions will be allowed to move.
+These backbone regions do not have to be contiguous, but each region must span
 at least 4 residues."""
 
     @staticmethod
@@ -98,7 +98,7 @@ at least 4 residues."""
 class Resfile:
     prompt = "Path to resfile: "
     description = """\
-Resfile: A file specifying which positions to design and which positions to 
+Resfile: A file specifying which positions to design and which positions to
 repack.  I recommend designing as few residues as possible outside the loops."""
 
     @staticmethod
@@ -110,8 +110,8 @@ repack.  I recommend designing as few residues as possible outside the loops."""
 class RestraintsFile:
     prompt = "Path to restraints file: "
     description = """\
-Restraints file: A file describing the geometry you're trying to design.  In 
-rosetta parlance, this is more often (inaccurately) called a constraint file.  
+Restraints file: A file describing the geometry you're trying to design.  In
+rosetta parlance, this is more often (inaccurately) called a constraint file.
 Note that restraints are not used during the validation step."""
 
     @staticmethod
@@ -123,21 +123,21 @@ Note that restraints are not used during the validation step."""
 class ScoreFunction:
     prompt = "Path to weights file [optional]: "
     description = """\
-Score function: A file that specifies weights for all the terms in the score 
-function, or the name of a standard rosetta score function.  The default is 
-talaris2014.  That should be ok unless you have some particular interaction 
+Score function: A file that specifies weights for all the terms in the score
+function, or the name of a standard rosetta score function.  The default is
+talaris2014.  That should be ok unless you have some particular interaction
 (e.g. ligand, DNA, etc.) that you want to score in a particular way."""
 
     @staticmethod
     def install(workspace, scorefxn_path):
 
-        # If the user didn't specify a score function, use talaris2014 by 
+        # If the user didn't specify a score function, use talaris2014 by
         # default.
 
         if not scorefxn_path:
             scorefxn_path = 'talaris2014'
 
-        # Figure out if the user is specifying the name of a standard score 
+        # Figure out if the user is specifying the name of a standard score
         # function.  If so, get the path to the real score file.
 
         if not os.path.exists(scorefxn_path):
@@ -156,8 +156,8 @@ talaris2014.  That should be ok unless you have some particular interaction
 class BuildScript:
     prompt = "Path to build script [optional]: "
     description = """\
-Build script: An XML rosetta script that generates backbones capable of 
-supporting the desired geometry.  The default version of this script uses KIC 
+Build script: An XML rosetta script that generates backbones capable of
+supporting the desired geometry.  The default version of this script uses KIC
 with fragments in "ensemble-generation mode" (i.e. no initial build step)."""
 
     @staticmethod
@@ -173,7 +173,7 @@ with fragments in "ensemble-generation mode" (i.e. no initial build step)."""
 class DesignScript:
     prompt = "Path to design script [optional]: "
     description = """\
-Design script: An XML rosetta script that performs design to stabilize the 
+Design script: An XML rosetta script that performs design to stabilize the
 desired geometry.  The default version of this script uses fixbb."""
 
     @staticmethod
@@ -189,9 +189,9 @@ desired geometry.  The default version of this script uses fixbb."""
 class ValidateScript:
     prompt = "Path to validate script [optional]: "
     description = """\
-Validate script: An XML rosetta script that samples the designed loop to 
-determine whether the desired geometry is really the global score minimum.  The 
-default version of this script uses KIC with fragments in "ensemble-generation 
+Validate script: An XML rosetta script that samples the designed loop to
+determine whether the desired geometry is really the global score minimum.  The
+default version of this script uses KIC with fragments in "ensemble-generation
 mode" (i.e. no initial build step)."""
 
     @staticmethod
@@ -214,12 +214,34 @@ class SharedDefs:
         shared_defs_path = pipeline.big_job_path('shared_defs.xml')
         shutil.copyfile(shared_defs_path, workspace.shared_defs_path)
 
+class Filters:
+    prompt = "Path to filters script [optional]: "
+    description = """\
+Filters script: An XML rosetta script that defines filters to be applied to
+designs. Filters can be set such that all designs pass if only a score is
+desired. By default, the PackStat filter is applied (for scoring only).
+Note that the name that you give the filter in RosettaScripts
+will appear in the plots that PIP produces, so choose something that will
+be descriptive for graphing purposes. Also, it is recommended that you
+indicate whether higher filter scores or lower filter scores indicate better structures,
+as this allows PIP to color the final xls table accordingly. You can indicate
+this with a "+" or a "-" at the beginning of the filter name in RosettaScripts
+(for example, name="+PackStat Score")."""
+
+    @staticmethod
+    def install(workspace, script_path):
+        if script_path:
+            script_path = ensure_path_exists(script_path)
+            shutil.copyfile(script_path, workspace.validate_script_path)
+        else:
+            default_path = pipeline.big_job_path('filters.xml')
+            shutil.copyfile(default_path, workspace.filters_path)
 
 class FlagsFile:
     prompt = "Path to flags file [optional]: "
     description = """\
-Flags file: A file containing command line flags that should be passed to every 
-invocation of rosetta for this design.  For example, if your design involves a 
+Flags file: A file containing command line flags that should be passed to every
+invocation of rosetta for this design.  For example, if your design involves a
 ligand, put flags related to the ligand parameter files in this file."""
 
     @staticmethod
@@ -234,9 +256,9 @@ ligand, put flags related to the ligand parameter files in this file."""
 class RsyncUrl:
     prompt = "Path to project on remote host: "
     description = """\
-Rsync URL: An ssh-style path to the directory that contains (i.e. is one level 
-above) the remote workspace.  This workspace must have the same name as the 
-remote one.  For example, to link to "~/path/to/my_design" on chef, name this 
+Rsync URL: An ssh-style path to the directory that contains (i.e. is one level
+above) the remote workspace.  This workspace must have the same name as the
+remote one.  For example, to link to "~/path/to/my_design" on chef, name this
 workspace "my_design" and set its rsync URL to "chef:path/to"."""
 
     @staticmethod
@@ -264,7 +286,7 @@ Illegal character(s) found in workspace path:
 
 The full path to a workspace must contain only characters that are alphanumeric
 or '.' or '_'.  The reason for this ridiculous rule is the fragment generation
-script, which will silently fail if the full path to its input file contains 
+script, which will silently fail if the full path to its input file contains
 any characters but those.""", workspace.abs_root_dir)
 
     if workspace.exists():
@@ -294,11 +316,12 @@ Design '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
                 BuildScript,
                 DesignScript,
                 ValidateScript,
+                Filters,
                 SharedDefs,
                 FlagsFile,
         )
 
-    # Get the necessary settings from the user and use them to fill in the 
+    # Get the necessary settings from the user and use them to fill in the
     # workspace.
 
     print "Please provide the following pieces of information:"
@@ -308,14 +331,14 @@ Design '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
 
     for installer in installers:
 
-        # If the installer doesn't have a prompt, just install it without 
+        # If the installer doesn't have a prompt, just install it without
         # asking any questions.
 
         if installer.prompt is None:
             installer.install(workspace)
             continue
 
-        # Otherwise, print a description of the setting being installed and 
+        # Otherwise, print a description of the setting being installed and
         # prompt the user for a value.
 
         print installer.description
@@ -336,8 +359,8 @@ Design '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
 
         print
 
-    # If we made a link to a remote workspace, immediately try to synchronize 
-    # with it.  Rsync will say whether or not it succeeded.  Otherwise just 
+    # If we made a link to a remote workspace, immediately try to synchronize
+    # with it.  Rsync will say whether or not it succeeded.  Otherwise just
     # print a success message.
 
     if arguments['--remote']:
