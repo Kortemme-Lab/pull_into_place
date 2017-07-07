@@ -77,7 +77,6 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
             'total_score',
             'restraint_dist',
             'sequence',
-            #'packstat_score',
     ]
     for metric in expected_metrics:
         if metric not in all_records:
@@ -146,7 +145,6 @@ def read_and_calculate(workspace, pdb_paths):
         dunbrack_index = None
         dunbrack_scores = []
         restraint_distances = []
-        packstat_scores = []
         # Update the user on our progress, because this is often slow.
 
         sys.stdout.write("\rReading '{}' [{}/{}]".format(

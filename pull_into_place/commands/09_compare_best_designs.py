@@ -519,14 +519,11 @@ class ExtraFilterHandler (Metric):
     def get_name(self,filtername):
 
         if filtername[0] == '+' or filtername[0] == '-':
-            #self.title = filtername[1:]
             self.color = True
         else:
-            #self.title = filtername
             self.color = False
 
         self.title = filtername
-        #self.color = False
         return self.title,self.color
 
     def load_cell(self, design, verbose=False):
@@ -809,7 +806,6 @@ def main():
     with open(filter_path,"r") as file:
         for line in file:
             filters.append(line)
-    print "filters list:",filters
     for record in filters:
         filterclass = ExtraFilterHandler()
         filterclass.get_name(record)
