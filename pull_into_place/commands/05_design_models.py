@@ -1,29 +1,29 @@
 #!/usr/bin/env python2
 
 """\
-Find sequences that stabilize the backbone models built previously.  The same 
-resfile that was used for the model building step is used again for this step.  
-Note that the model build step already includes some design.  The purpose of 
+Find sequences that stabilize the backbone models built previously.  The same
+resfile that was used for the model building step is used again for this step.
+Note that the model build step already includes some design.  The purpose of
 this step is to expand the number of designs for each backbone model.
 
 Usage:
     pull_into_place 05_design_models <workspace> <round> [options]
 
 Options:
-    --nstruct NUM, -n NUM   [default: 100]
+    --nstruct NUM, -n NUM   [default: 10]
         The number of design jobs to run.
 
     --max-runtime TIME      [default: 0:30:00]
-        The runtime limit for each design job.  The default value is 
-        set pretty low so that the short queue is available by default.  This 
-        should work fine more often than not, but you also shouldn't be 
+        The runtime limit for each design job.  The default value is
+        set pretty low so that the short queue is available by default.  This
+        should work fine more often than not, but you also shouldn't be
         surprised if you need to increase this.
 
     --max-memory MEM        [default: 1G]
         The memory limit for each design job.
 
     --test-run
-        Run on the short queue with a limited number of iterations.  This 
+        Run on the short queue with a limited number of iterations.  This
         option automatically clears old results.
 
     --clear
@@ -55,7 +55,7 @@ def main():
 
     if not inputs:
         print """\
-All the input structures have already been (or are already being) designed.  If 
+All the input structures have already been (or are already being) designed.  If
 you want to rerun all the inputs from scratch, use the --clear flag."""
         raise SystemExit
 
