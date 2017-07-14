@@ -122,9 +122,14 @@ def main():
 
     filter_path = os.path.join(workspace.root_dir,'filters.txt')
     records = []
-    with open(filter_path,"r") as file:
-        for line in file:
-            records.append(line)
+
+    try:
+        with open(filter_path,"r") as file:
+            for line in file:
+                records.append(line)
+    except IOError:
+        with open(filter_path,"w") as file:
+            pass
 
     smd.gui.Design = PipDesign
 

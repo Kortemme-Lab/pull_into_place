@@ -11,6 +11,10 @@
     </ScoreFunction>
   </SCOREFXNS>
 
+  <RESIDUE_SELECTORS>
+   <Chain name="chA" chains="A"/>
+   <Index name="D38" resnums="38"/>
+ </RESIDUE_SELECTORS>
 
   <TASKOPERATIONS>
     <InitializeFromCommandline name="cli"/>
@@ -19,6 +23,7 @@
   </TASKOPERATIONS>
 
   <MOVERS>
+    <FavorNativeResidue name="nativebonus" bonus="1.5"/>
     <ConstraintSetMover name="cst" cst_fa_file="%%cst_file%%"/>
     <WriteFiltersToPose name="writer" prefix="FIL_"/>
   </MOVERS>

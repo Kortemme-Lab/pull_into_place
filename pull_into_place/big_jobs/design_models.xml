@@ -9,11 +9,12 @@
 
   <PROTOCOLS>
     <!-- Constraints added using mover because command-line is ignored -->
+    <Add mover_name="nativebonus"/>
     <Add mover_name="cst"/>
     <Add mover_name="fixbb"/>
     <Add mover_name="writer"/>
   </PROTOCOLS>
 
-  <OUTPUT scorefxn="scorefxn"/>
+  OUTPUT scorefxn="scorefxn"/>
 
 </ROSETTASCRIPTS>

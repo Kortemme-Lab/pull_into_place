@@ -24,7 +24,7 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
 
     # Make sure the given directory seems to be a reasonable place to look for
     # data, i.e. it exists and contains PDB files.
-
+    
     if not os.path.exists(pdb_dir):
         raise IOError("'{}' does not exist".format(pdb_dir))
     if not os.path.isdir(pdb_dir):
