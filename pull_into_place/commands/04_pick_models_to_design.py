@@ -48,6 +48,11 @@ Queries:
     "total_score"
         The total score of a model.
 
+    If you would like to query based on a custom filter score, just type out the
+    name of the score, with underscores instead of spaces and without any "directional"
+    tags (i.e. [[+]] or [[-]]). For example, if the filter is named "Packstat Score [[+]]",
+    your query might look like "Packstat_Score > 0.67". 
+
     Some example query strings:
 
     'restraint_dist < 0.6'
@@ -81,6 +86,8 @@ def main():
                 input_subdir,
                 use_cache=not args['--recalc'],
         )
+        # Any column with spaces in the name or a [[ ]] tag has the spaces
+        # replaced with "_" and the [[ ]] tag removed.
         cols = [c for c in all_score_dists.columns]
         for index, title in enumerate(cols):
             title = structures.parse_filter_name(title)[0]

@@ -225,8 +225,8 @@ will appear in the plots that PIP produces, so choose something that will
 be descriptive for graphing purposes. Also, it is recommended that you
 indicate whether higher filter scores or lower filter scores indicate better structures,
 as this allows PIP to color the final xls table accordingly. You can indicate
-this with a "+" or a "-" at the beginning of the filter name in RosettaScripts
-(for example, name="+PackStat Score")."""
+this with a "[[+]]" or a "[[-]]" anywhere in the filter name in RosettaScripts
+(for example, name="PackStat Score [[+]]")."""
 
     @staticmethod
     def install(workspace, script_path):
