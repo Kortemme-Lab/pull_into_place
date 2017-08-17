@@ -50,8 +50,8 @@ Queries:
 
     If you would like to query based on a custom filter score, just type out the
     name of the score, with underscores instead of spaces and without any "directional"
-    tags (i.e. [[+]] or [[-]]). For example, if the filter is named "Packstat Score [[+]]",
-    your query might look like "Packstat_Score > 0.67". 
+    tags (i.e. [[+]] or [[-]]). For example, if the filter is named "PackStat Score [[+]]",
+    your query might look like "PackStat_Score > 0.67". 
 
     Some example query strings:
 
