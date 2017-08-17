@@ -258,6 +258,7 @@ def xyz_to_array(xyz):
 
 def parse_filter_name(name):
     found = re.search(r"\[\[(.*?)\]\]",name)
+    direction = None
     if found:
         title = re.sub(' +',' ',re.sub(r'\[\[(.*?)\]\]','',name).rstrip())
         direction = found.group(1)
