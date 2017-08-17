@@ -15,6 +15,6 @@
     <Add mover_name="writer"/>
   </PROTOCOLS>
 
-  OUTPUT scorefxn="scorefxn"/>
+  <OUTPUT scorefxn="scorefxn"/>
 
 </ROSETTASCRIPTS>

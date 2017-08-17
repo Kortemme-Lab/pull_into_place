@@ -25,13 +25,15 @@ big_jobs.run_command([
         '-out:suffix', '_{0:03d}'.format(task_id / len(designs)),
         '-out:no_nstruct_label',
         '-out:overwrite',
-        '-out:pdb_gz', 
+        '-out:pdb_gz',
         '-out:mute', 'protocols.loops.loops_main',
         '-parser:protocol', workspace.validate_script_path,
         '-parser:script_vars',
             'wts_file=' + workspace.scorefxn_path,
             'loop_file=' + workspace.loops_path,
             'fast=' + ('yes' if test_run else 'no')
+            'loop_start=' + str(workspace.loop_boundaries[0]),
+            'loop_end=' + str(workspace.loop_boundaries[1])
 ] +     workspace.fragments_flags(design) + [
         '@', workspace.flags_path,
 ])

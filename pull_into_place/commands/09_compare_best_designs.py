@@ -38,7 +38,7 @@ Options:
 
 from __future__ import division
 
-import os, re, sys, string, itertools, numpy as np
+import os, re, sys, string, itertools, yaml, numpy as np
 from klab import docopt, scripting
 from .. import pipeline, structures
 
@@ -512,28 +512,19 @@ class ExtraFilterHandler (Metric):
     extra filters.
     """
 
-    def __init__(self):
+    def __init__(self, filtername):
         align = 'center'
         num_format = '0.000'
-
-    def get_name(self,filtername):
-
-        if filtername[0] == '+' or filtername[0] == '-':
+        self.filtername = filtername
+        self.title, self.direction = structures.parse_filter_name(filtername)
+        if self.direction:
             self.color = True
-        else:
-            self.color = False
-
-        self.title = filtername
-        return self.title,self.color
-
-    def load_cell(self, design, verbose=False):
-        setattr(design,self.title,design.structures[self.title][design.rep])
 
     def face_value(self,design):
-        return getattr(design,self.title)
+        return design[self.filtername][design.rep]
 
     def score_value(self,design):
-        if self.title[0] == '-':
+        if self.direction == '-':
             scorevalue = -self.face_value(design)
         else:
             scorevalue = self.face_value(design)
@@ -771,6 +762,15 @@ def annotate_designs(designs):
         with open(annotation_path, 'w') as file:
             file.write('\n'.join(annotation_lines))
 
+def discover_filter_metrics(metrics,workspaces):
+    for workspace in workspaces:
+        filter_list = pipeline.workspace_from_dir(docopt.docopt(__doc__)['<workspace>']).filters_list
+        filters = []
+        with open(filter_list,"r") as file:
+            filters = yaml.load(file)
+        for record in filters:
+            filterclass = ExtraFilterHandler(record)
+            metrics.append(filterclass)
 
 @scripting.catch_and_print_errors()
 def main():
@@ -794,23 +794,8 @@ def main():
             #PackStatScoreMetric(),
     ]
 
-    try:
-        workspace = pipeline.workspace_from_dir(args['<workspace>'])
-    except pipeline.WorkspaceNotFound:
-        raise IOError("Invalid workspace")
 
-
-
-    filter_path = os.path.join(workspace.root_dir,'filters.txt')
-    filters = []
-    with open(filter_path,"r") as file:
-        for line in file:
-            filters.append(line)
-    for record in filters:
-        filterclass = ExtraFilterHandler()
-        filterclass.get_name(record)
-        metrics.append(filterclass)
-
+    discover_filter_metrics(metrics, workspaces)
     #discover_custom_metrics(metrics, workspaces)
     calculate_quality_metrics(metrics, designs, args['--verbose'])
     designs = find_pareto_optimal_designs(designs, metrics, args['--verbose'])

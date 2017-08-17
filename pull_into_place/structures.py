@@ -9,7 +9,7 @@ to depend very closely on the version of pandas used to generate them.  For
 example, caches generated with pandas 0.15 can't be read by pandas 0.14.
 """
 
-import sys, os, re, glob, collections, gzip
+import sys, os, re, glob, collections, gzip, re, yaml
 import numpy as np, scipy as sp, pandas as pd
 from . import pipeline
 
@@ -24,7 +24,7 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
 
     # Make sure the given directory seems to be a reasonable place to look for
     # data, i.e. it exists and contains PDB files.
-    
+
     if not os.path.exists(pdb_dir):
         raise IOError("'{}' does not exist".format(pdb_dir))
     if not os.path.isdir(pdb_dir):
@@ -50,6 +50,7 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
     pdb_paths = glob.glob(os.path.join(pdb_dir, '*.pdb.gz'))
     base_pdb_names = set(os.path.basename(x) for x in pdb_paths)
     cache_path = os.path.join(pdb_dir, 'distances.pkl')
+    filter_path = workspace.filters_list
 
     if use_cache and os.path.exists(cache_path):
         try:
@@ -70,6 +71,8 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
     # the cached and uncached data into a single data frame.
     uncached_records = read_and_calculate(workspace, uncached_paths)
     all_records = pd.DataFrame(cached_records + uncached_records)
+
+
 
     # Make sure all the expected metrics were calculated.
 
@@ -189,9 +192,9 @@ def read_and_calculate(workspace, pdb_paths):
                         dunbrack_scores.append(dunbrack_score)
                         break
 
-            elif line.startswith('FIL_'):
+            elif line.startswith('EXTRA_SCORE_'):
                 filter_value = float(line.rsplit()[-1:][0])
-                filter_name = " ".join(line.rsplit()[:-1])[4:]
+                filter_name = " ".join(line.rsplit()[:-1])[12:]
                 record[filter_name] = filter_value
                 if filter_name not in filter_list:
                     filter_list.append(filter_name)
@@ -221,13 +224,18 @@ def read_and_calculate(workspace, pdb_paths):
                         position = xyz_to_array(line[30:54].split())
                         distance = euclidean(restraint.position, position)
                         restraint_distances.append(distance)
-        filter_path = os.path.join(workspace.root_dir,'filters.txt')
-        for f in filter_list:
-            with open(filter_path,'r+') as file:
-                line_found = any(f in line for line in file)
-                if not line_found:
-                    file.seek(0, os.SEEK_END)
-                    file.write(f)
+
+        filter_path = workspace.filters_list
+        with open(filter_path, 'r+') as file:
+            filter_list_cached = yaml.load(file)
+            if not filter_list_cached:
+                filter_list_cached = []
+            filter_list_to_cache = []
+            for f in filter_list:
+                if f not in filter_list_cached:
+                    filter_list_to_cache.append(f)
+            if filter_list_to_cache:
+                yaml.dump(filter_list_to_cache,file)
 
         record['sequence'] = sequence
         if dunbrack_scores:
@@ -248,6 +256,14 @@ def xyz_to_array(xyz):
     """
     return np.array([float(x) for x in xyz])
 
+def parse_filter_name(name):
+    found = re.search(r"\[\[(.*?)\]\]",name)
+    if found:
+        title = re.sub(' +',' ',re.sub(r'\[\[(.*?)\]\]','',name).rstrip())
+        direction = found.group(1)
+    else:
+        title = name
+    return title, direction
 
 class Design (object):
     """

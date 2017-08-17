@@ -1,12 +1,12 @@
 #!/usr/bin/env python2
 
 """\
-Pick backbone models from the restrained loopmodel simulations to carry on 
-though the rest of the design pipeline.  The next step in the pipeline is to 
-search for the sequences that best stabilize these models.  Models can be 
-picked based on number of criteria, including how well the model satisfies the 
-given restraints and how many buried unsatisfied H-bonds are present in the 
-model.  All of the criteria that can be used are described in the "Queries" 
+Pick backbone models from the restrained loopmodel simulations to carry on
+though the rest of the design pipeline.  The next step in the pipeline is to
+search for the sequences that best stabilize these models.  Models can be
+picked based on number of criteria, including how well the model satisfies the
+given restraints and how many buried unsatisfied H-bonds are present in the
+model.  All of the criteria that can be used are described in the "Queries"
 section below.
 
 Usage:
@@ -24,24 +24,26 @@ Options:
         Choose which models to pick, but don't actually make any symlinks.
 
 Queries:
-    The queries provided after the workspace name and round number are used to 
-    decide which models to carry forward and which to discard.  Any number of 
-    queries may be specified; only models that satisfy each query will be 
-    picked.  The query strings use the same syntax of the query() method of 
-    pandas DataFrame objects, which is pretty similar to python syntax.  
-    Loosely speaking, each query must consist of a criterion name, a comparison 
-    operator, and a comparison value.  Only 5 criterion names are recognized:
+    The queries provided after the workspace name and round number are used to
+    decide which models to carry forward and which to discard.  Any number of
+    queries may be specified; only models that satisfy each query will be
+    picked.  The query strings use the same syntax of the query() method of
+    pandas DataFrame objects, which is pretty similar to python syntax.
+    Loosely speaking, each query must consist of a criterion name, a comparison
+    operator, and a comparison value.  Any filter title can be used as a criterion,
+    but spaces should be replaced with underscores, and "+" or "-" values should be
+    left out. 5 criterion names are recognized by default:
 
     "restraint_dist"
-        The average distance between all the restrained atoms and their target 
-        positions in a model. 
+        The average distance between all the restrained atoms and their target
+        positions in a model.
     "loop_dist"
         The backbone RMSD of a model relative to the input structure.
     "buried_unsat_score"
-        The change in the number of buried unsatisfied H-bonds in a model 
+        The change in the number of buried unsatisfied H-bonds in a model
         relative to the input structure.
     "dunbrack_score"
-        The average Dunbrack score of any sidechains in a model that were 
+        The average Dunbrack score of any sidechains in a model that were
         restrained during the loopmodel simulation.
     "total_score"
         The total score of a model.
@@ -71,7 +73,7 @@ def main():
 
     predecessor = workspace.predecessor
     num_models, num_selected, num_duplicates = 0, 0, 0
-    
+
     for input_subdir in predecessor.output_subdirs:
         # Find models meeting the criteria specified on the command line.
 
@@ -79,6 +81,12 @@ def main():
                 input_subdir,
                 use_cache=not args['--recalc'],
         )
+        cols = [c for c in all_score_dists.columns]
+        for index, title in enumerate(cols):
+            title = structures.parse_filter_name(title)[0]
+            title.replace(' ','_')
+            cols[index] = title.replace(' ','_')
+        all_score_dists.columns = cols
         best_score_dists = all_score_dists.query(query)
         best_inputs = set(best_score_dists['path'])
 

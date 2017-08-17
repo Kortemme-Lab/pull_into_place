@@ -76,6 +76,10 @@ class Workspace (object):
         return []
 
     @property
+    def filters_list(self):
+        return os.path.join(self.root_dir, 'filters.yaml')
+
+    @property
     def rosetta_dir(self):
         return self.find_path('rosetta')
 
@@ -126,6 +130,21 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
     @property
     def loops_path(self):
         return self.find_path('loops')
+
+    @property
+    def loop_segments(self):
+        return load_loops(self.root_dir,self.loops_path)
+
+    @property
+    def loop_boundaries(self):
+        #Note, this just gets the boundaries for the largest loop segment so that the Foldability filter has something to
+        #work off of by default if more than one loop is being modeled. If the user requires a different loop (or
+        # multiple loops) to be scored by Foldability, they should input the boundaries in filters.xml themselves.
+        for index, tup in enumerate(self.loop_segments):
+            if tup[1] - tup[0] == max(x[1] - x[0] for x in self.loop_segments):
+                loop_start = tup[0]
+                loop_end = tup[1]
+        return loop_start,loop_end
 
     @property
     def resfile_path(self):

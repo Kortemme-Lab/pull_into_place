@@ -1,12 +1,6 @@
 <FILTERS>
-  <PackStat name="+PackStat Score" threshold="0" chain="0" repeats="1"/>
-  <ResidueIE name="-D38 Interaction Energy" scorefxn="scorefxn_cst" score_type="total_score" energy_cutoff="-10" restype3="GLU" interface="0" whole_pose="0" selector="D38" jump_number="1" interface_distance_cutoff="8.0" max_penalty="1000.0" penalty_factor="1.0"/>
-  <PreProline name="-Pre-Proline Potential" use_statistical_potential="true" />
-  <TotalSasa name="+Total SASA" threshold="0" upper_threshold="1000000000000000" hydrophobic="0" polar="0" />
-  <ExposedHydrophobics name="-Exposed Hydrophobic Residue SASA" sasa_cutoff="20" threshold="-1" />
-  <HbondsToResidue name="+# HBonds to Glu38" scorefxn="scorefxn_cst" partners="0" energy_cutoff="-0.5" backbone="true" bb_bb="true" sidechain="true" residue="38" from_other_chains="true" from_same_chain="true" />
-  <OversaturatedHbondAcceptorFilter name="-# Hydrogen Bonds" scorefxn="scorefxn_cst" max_allowed_oversaturated="0" hbond_energy_cutoff="-0.5" consider_mainchain_only="false" />
-  <RepackWithoutLigand name="-Score Without Ligand"  scorefxn="scorefxn_cst" target_res="all_repacked" rms_threshold="100"/>
-  Note: RepackWithoutLigand only works if you have exactly one ligand in the structure. Could potentially do this by removing the ligand from the "undesigned" subunit.
-  <Foldability name="-Foldability Score" tries="2" start_res="38" end_res="47" distance_threshold="4" />
+  <PackStat name="PackStat Score [[+]]" threshold="0"/>
+  <PreProline name="Pre-Proline Potential [[-]]" use_statistical_potential="true" />
+  <ExposedHydrophobics name="Exposed Hydrophobic Residue SASA [[-]]" sasa_cutoff="20" threshold="-1" />
+  <Foldability name="Foldability Score [[+]]" start_res="%%loop_start%%" end_res="%%loop_end%%" />
 </FILTERS>

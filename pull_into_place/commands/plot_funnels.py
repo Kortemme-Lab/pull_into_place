@@ -92,7 +92,7 @@ Hotkeys:
     escape: Unfocus the search and description forms.
 """
 
-import os, glob, numpy as np
+import os, glob, yaml, numpy as np
 from .. import pipeline, structures
 
 def main():
@@ -120,16 +120,14 @@ def main():
     except pipeline.WorkspaceNotFound:
         raise IOError("'{}' is not a workspace".format(pdb_dir))
 
-    filter_path = os.path.join(workspace.root_dir,'filters.txt')
-    records = []
-
+    filter_path = workspace.filters_list
     try:
-        with open(filter_path,"r") as file:
-            for line in file:
-                records.append(line)
+        with open(filter_path,'r') as file:
+            records = yaml.load(file)
     except IOError:
-        with open(filter_path,"w") as file:
-            pass
+        with open(filter_path,'w') as file:
+            records = []
+
 
     smd.gui.Design = PipDesign
 
@@ -142,18 +140,12 @@ def main():
     smd.metric_titles['restraint_dist'] = u"Restraint Satisfaction (Å)"
     smd.metric_titles['loop_dist'] = u"Loop RMSD (Å)"
     for record in records:
-        if record[0] == "+" or record[0] == "-":
-            print(record[1:])
-            smd.metric_titles[record] = unicode(str(record[1:]))
-        else:
-            smd.metric_titles[record[0]] = unicode(str(record[0]))
-        smd.metric_limits[record[0]] = lambda x: (min(0,min(x)),max(x))
-    #smd.metric_titles['packstat_score'] = u"PackStat Score"
+        title = structures.parse_filter_name(record)[0]
+        smd.metric_titles[record] = unicode(title)
 
     smd.metric_limits['total_score'] = lambda x: (min(x), np.percentile(x, 85))
     smd.metric_limits['restraint_dist'] = lambda x: (0, np.percentile(x, 95))
     smd.metric_limits['loop_dist'] = lambda x: (0, np.percentile(x, 95))
-    #smd.metric_limits['packstat_score'] = lambda x: (min(x),np.percentile(x,95))
 
     smd.metric_guides['restraint_dist'] = 1.0
     smd.metric_guides['loop_dist'] = 1.0

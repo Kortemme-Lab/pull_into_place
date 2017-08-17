@@ -135,7 +135,7 @@ talaris2014.  That should be ok unless you have some particular interaction
         # default.
 
         if not scorefxn_path:
-            scorefxn_path = 'talaris2014'
+            scorefxn_path = 'ref2015'
 
         # Figure out if the user is specifying the name of a standard score
         # function.  If so, get the path to the real score file.
@@ -214,7 +214,7 @@ class SharedDefs:
         shared_defs_path = pipeline.big_job_path('shared_defs.xml')
         shutil.copyfile(shared_defs_path, workspace.shared_defs_path)
 
-class Filters:
+class FilterScript:
     prompt = "Path to filters script [optional]: "
     description = """\
 Filters script: An XML rosetta script that defines filters to be applied to
@@ -232,7 +232,7 @@ this with a "+" or a "-" at the beginning of the filter name in RosettaScripts
     def install(workspace, script_path):
         if script_path:
             script_path = ensure_path_exists(script_path)
-            shutil.copyfile(script_path, workspace.validate_script_path)
+            shutil.copyfile(script_path, workspace.filters_path)
         else:
             default_path = pipeline.big_job_path('filters.xml')
             shutil.copyfile(default_path, workspace.filters_path)
@@ -316,7 +316,7 @@ Design '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
                 BuildScript,
                 DesignScript,
                 ValidateScript,
-                Filters,
+                FilterScript,
                 SharedDefs,
                 FlagsFile,
         )
