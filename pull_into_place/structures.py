@@ -230,11 +230,13 @@ def read_and_calculate(workspace, pdb_paths):
             filter_list_cached = yaml.load(file)
             if not filter_list_cached:
                 filter_list_cached = []
-            filter_list_to_cache = []
+            new_filters = []
             for f in filter_list:
                 if f not in filter_list_cached:
-                    filter_list_to_cache.append(f)
-            if filter_list_to_cache:
+                    new_filters.append(f)
+        with open(filter_path, 'w') as file:
+            if new_filters:
+                filter_list_to_cache = filter_list_cached + new_filters
                 yaml.dump(filter_list_to_cache,file)
 
         record['sequence'] = sequence

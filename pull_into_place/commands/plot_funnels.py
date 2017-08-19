@@ -139,9 +139,10 @@ def main():
     smd.metric_titles['buried_unsat_score'] = u"Δ Buried Unsats"
     smd.metric_titles['restraint_dist'] = u"Restraint Satisfaction (Å)"
     smd.metric_titles['loop_dist'] = u"Loop RMSD (Å)"
-    for record in records:
-        title = structures.parse_filter_name(record)[0]
-        smd.metric_titles[record] = unicode(title)
+    if records:
+        for record in records:
+            title = structures.parse_filter_name(record)[0]
+            smd.metric_titles[record] = unicode(title)
 
     smd.metric_limits['total_score'] = lambda x: (min(x), np.percentile(x, 85))
     smd.metric_limits['restraint_dist'] = lambda x: (0, np.percentile(x, 95))
