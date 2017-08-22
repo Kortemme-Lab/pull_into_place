@@ -22,7 +22,7 @@ def submit(script, workspace, **params):
 
     if test_run:
         nstruct = 50
-        max_runtime = '0:30:00'
+        max_runtime = '2:00:00'
 
     if nstruct is None:
         raise TypeError("sumbit() requires the keyword argument 'nstruct' for production runs.")

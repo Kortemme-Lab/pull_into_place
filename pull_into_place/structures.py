@@ -13,6 +13,7 @@ import sys, os, re, glob, collections, gzip, re, yaml
 import numpy as np, scipy as sp, pandas as pd
 from . import pipeline
 
+
 def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
     """
     Return a variety of score and distance metrics for the structures found in
@@ -234,9 +235,9 @@ def read_and_calculate(workspace, pdb_paths):
             for f in filter_list:
                 if f not in filter_list_cached:
                     new_filters.append(f)
-        with open(filter_path, 'w') as file:
-            if new_filters:
-                filter_list_to_cache = filter_list_cached + new_filters
+        if new_filters:
+            filter_list_to_cache = filter_list_cached + new_filters
+            with open(filter_path, 'w') as file:
                 yaml.dump(filter_list_to_cache,file)
 
         record['sequence'] = sequence

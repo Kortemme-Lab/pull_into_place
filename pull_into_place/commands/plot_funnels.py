@@ -115,21 +115,21 @@ def main():
                     use_cache=use_cache,
                     require_io_dir=False,
             )
+
     try:
         workspace = pipeline.workspace_from_dir(args['<pdb_directories>'][0])
     except pipeline.WorkspaceNotFound:
         raise IOError("'{}' is not a workspace".format(pdb_dir))
 
     filter_path = workspace.filters_list
+    smd.gui.Design = PipDesign
+
     try:
         with open(filter_path,'r') as file:
             records = yaml.load(file)
     except IOError:
         with open(filter_path,'w') as file:
             records = []
-
-
-    smd.gui.Design = PipDesign
 
     smd.default_x_metric = 'restraint_dist'
     smd.default_y_metric = 'total_score'

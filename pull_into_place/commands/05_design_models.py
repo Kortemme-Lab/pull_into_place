@@ -13,7 +13,7 @@ Options:
     --nstruct NUM, -n NUM   [default: 10]
         The number of design jobs to run.
 
-    --max-runtime TIME      [default: 0:30:00]
+    --max-runtime TIME      [default: 3:00:00]
         The runtime limit for each design job.  The default value is
         set pretty low so that the short queue is available by default.  This
         should work fine more often than not, but you also shouldn't be
