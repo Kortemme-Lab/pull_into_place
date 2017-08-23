@@ -31,9 +31,9 @@ big_jobs.run_command([
         '-parser:script_vars',
             'wts_file=' + workspace.scorefxn_path,
             'loop_file=' + workspace.loops_path,
-            'fast=' + ('yes' if test_run else 'no')
+            'fast=' + ('yes' if test_run else 'no'),
             'loop_start=' + str(workspace.loop_boundaries[0]),
-            'loop_end=' + str(workspace.loop_boundaries[1])
+            'loop_end=' + str(workspace.loop_boundaries[1]),
 ] +     workspace.fragments_flags(design) + [
         '@', workspace.flags_path,
 ])
