@@ -604,6 +604,7 @@ def find_pareto_optimal_designs(designs, metrics, verbose=False):
     """
     return designs
 
+
 def report_quality_metrics(designs, metrics, path, clustering=False):
     """
     Create a nicely formatted spreadsheet showing all the designs and metrics.
@@ -637,9 +638,8 @@ def report_quality_metrics(designs, metrics, path, clustering=False):
     color_map = LinearSegmentedColormap('highlight', color_table)
 
     # Write the header row.
-
     for col, metric in enumerate(metrics):
-        cell = string.uppercase[col] + '1'
+        cell = xlsxwriter.utility.xl_col_to_name(col) + '1'
         format = workbook.add_format(metric.header_format())
         worksheet.write(cell, metric.title, format)
         worksheet.set_column(col, col, metric.width)
@@ -768,9 +768,10 @@ def discover_filter_metrics(metrics,workspaces):
         filters = []
         with open(filter_list,"r") as file:
             filters = yaml.load(file)
-        for record in filters:
-            filterclass = ExtraFilterHandler(record)
-            metrics.append(filterclass)
+        if filters:
+            for record in filters:
+                filterclass = ExtraFilterHandler(record)
+                metrics.append(filterclass)
 
 @scripting.catch_and_print_errors()
 def main():
@@ -791,7 +792,6 @@ def main():
             PercentSubangstromMetric(),
             BuriedUnsatHbondMetric(),
             DunbrackScoreMetric(),
-            #PackStatScoreMetric(),
     ]
 
 

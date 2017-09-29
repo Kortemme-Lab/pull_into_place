@@ -1,9 +1,9 @@
 #!/usr/bin/env python2
 
 """\
-Validate the designs by running unrestrained flexible backbone simulations.  
-Only regions of the backbone specified by the loop file are allowed to move.  
-The resfile used in the previous steps of the pipeline is not respected here; 
+Validate the designs by running unrestrained flexible backbone simulations.
+Only regions of the backbone specified by the loop file are allowed to move.
+The resfile used in the previous steps of the pipeline is not respected here;
 all residues within 10A of the loop are allowed to pack.
 
 Usage:
@@ -12,7 +12,7 @@ Usage:
 Options:
     --nstruct NUM, -n NUM   [default: 500]
         The number of simulations to run per design.
-        
+
     --max-runtime TIME      [default: 24:00:00]
         The runtime limit for each validation job.
 
@@ -20,7 +20,7 @@ Options:
         The memory limit for each validation job.
 
     --test-run
-        Run on the short queue with a limited number of iterations.  This 
+        Run on the short queue with a limited number of iterations.  This
         option automatically clears old results.
 
     --clear
@@ -53,8 +53,8 @@ def main():
         scripting.print_error_and_die("""\
 No unclaimed input files.
 
-If you previously started a round of simulations and then stopped them for some 
-reason, the problem is probably that all the inputs are still claimed by those 
+If you previously started a round of simulations and then stopped them for some
+reason, the problem is probably that all the inputs are still claimed by those
 simulations.  Use the '--clear' flag to remove the claims and try again.""")
 
     for input in inputs:

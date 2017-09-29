@@ -101,7 +101,18 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
 
     return all_records
 
-
+class Restraint(object):
+    # Class for defining restraints. atom1_coords and atom2_coords are for AtomPair constraints.
+    # This should allow for relatively easy implementation of additional constraint types.
+    def __init__(self):
+        self.restraint_type = None
+        self.atom_name = None
+        self.residue_id = None
+        self.atom2_name = None
+        self.residue2_id = None
+        self.position = None # For AtomPair constraints, position is the desired distance between atoms.
+        self.atom1_coords = None
+        self.atom2_coords = None
 
 def read_and_calculate(workspace, pdb_paths):
     """
@@ -115,18 +126,25 @@ def read_and_calculate(workspace, pdb_paths):
     # For example, the validation runs don't use restraints but the restraint
     # distance is a very important metric for deciding which designs worked.
 
-    Restraint = collections.namedtuple('R', 'atom_name residue_id position')
     restraints = []
     filter_list = []
     with open(workspace.restraints_path) as file:
         for line in file:
-            if line.startswith('CoordinateConstraint'):
+            if not line.startswith('#'):
                 fields = line.split()
-                restraint = Restraint(
-                        atom_name=fields[1],
-                        residue_id=fields[2],
-                        position=xyz_to_array(fields[5:8]))
+                restraint = Restraint()
+                restraint.restraint_type=fields[0]
+                restraint.atom_name=fields[1]
+                restraint.atom2_name=fields[3]
+                restraint.residue_id=fields[2]
+                restraint.residue2_id=fields[4]
+                restraint.position=None
+                if restraint.restraint_type == 'CoordinateConstraint':
+                    restraint.position=xyz_to_array(fields[5:8])
+                elif restraint.restraint_type=='AtomPair':
+                    restraint.position=float(fields[6])
                 restraints.append(restraint)
+
 
             elif not line.strip():
                 pass
@@ -135,6 +153,7 @@ def read_and_calculate(workspace, pdb_paths):
                 print "Skipping unrecognized restraint: '{}...'".format(line[:46])
 
     score_table_pattern = re.compile(r'^[A-Z]{3}(?:_[A-Z])?_([1-9]+) ')
+
 
     # Calculate score and distance metrics for each structure.
 
@@ -206,16 +225,16 @@ def read_and_calculate(workspace, pdb_paths):
             elif line.startswith('loop_backbone_rmsd'):
                 record['loop_dist'] = float(line.split()[1])
 
-            elif line.startswith('ATOM'):
+            elif (line.startswith('ATOM') or line.startswith('HETATM')):
                 atom_name = line[12:16].strip()
                 residue_id = line[22:26].strip()
                 residue_name = line[17:20].strip()
 
                 # Keep track of this model's sequence.
-
-                if residue_id != last_residue_id:
-                    sequence += residue_type_3to1_map.get(residue_name, 'X')
-                    last_residue_id = residue_id
+                if line.startswith('ATOM'): 
+                    if residue_id != last_residue_id:
+                        sequence += residue_type_3to1_map.get(residue_name, 'X')
+                        last_residue_id = residue_id
 
                 # See if this atom was restrained.
 
@@ -223,9 +242,18 @@ def read_and_calculate(workspace, pdb_paths):
                     if (restraint.residue_id == residue_id and
                             restraint.atom_name == atom_name):
                         position = xyz_to_array(line[30:54].split())
-                        distance = euclidean(restraint.position, position)
-                        restraint_distances.append(distance)
+                        if restraint.restraint_type == 'CoordinateConstraint':
+                            distance = euclidean(restraint.position, position)
+                            restraint_distances.append(distance)
+                        elif restraint.restraint_type == 'AtomPair':
+                            restraint.atom1_coords = position
+                    if (restraint.residue2_id == residue_id and restraint.atom2_name == atom_name):
+                        if restraint.restraint_type == 'AtomPair':
+                             restraint.atom2_coords = xyz_to_array(line[30:54].split())
 
+        for restraint in restraints:
+            if restraint.restraint_type == 'AtomPair':
+                restraint_distances.append(abs(euclidean(restraint.atom1_coords, restraint.atom2_coords) - restraint.position))
         filter_path = workspace.filters_list
         with open(filter_path, 'r+') as file:
             filter_list_cached = yaml.load(file)
@@ -258,6 +286,7 @@ def xyz_to_array(xyz):
     the coordinate as a ``numpy`` array.
     """
     return np.array([float(x) for x in xyz])
+
 
 def parse_filter_name(name):
     found = re.search(r"\[\[(.*?)\]\]",name)
