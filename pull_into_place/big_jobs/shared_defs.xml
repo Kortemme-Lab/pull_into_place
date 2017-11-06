@@ -1,3 +1,5 @@
+  <xi:include href="filters.xml"/>
+
   <SCOREFXNS>
     <ScoreFunction name="scorefxn" weights="%%wts_file%%"/>
     <ScoreFunction name="scorefxn_cst" weights="%%wts_file%%">
@@ -16,6 +18,7 @@
   </TASKOPERATIONS>
 
   <MOVERS>
+    <FavorNativeResidue name="nativebonus" />
     <ConstraintSetMover name="cst" cst_fa_file="%%cst_file%%"/>
+    <WriteFiltersToPose name="writer" prefix="EXTRA_SCORE_"/>
   </MOVERS>
-

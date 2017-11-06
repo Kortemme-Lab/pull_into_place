@@ -1,0 +1,6 @@
+<FILTERS>
+  <PackStat name="PackStat Score [[+]]" threshold="0"/>
+  <PreProline name="Pre-Proline Potential [[-]]" use_statistical_potential="true" />
+  <ExposedHydrophobics name="Exposed Hydrophobic Residue SASA [[-]]" sasa_cutoff="20" threshold="-1" />
+  <Foldability name="Foldability Score [[+]]" start_res="%%loop_start%%" end_res="%%loop_end%%" />
+</FILTERS>

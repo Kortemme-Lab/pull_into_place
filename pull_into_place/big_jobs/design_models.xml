@@ -3,17 +3,18 @@
   <xi:include href="shared_defs.xml"/>
 
   <MOVERS>
-    <PackRotamersMover name="fixbb"
+    <FastDesign name="fastdes"
         task_operations="cli,resfile,ex" scorefxn="scorefxn_cst"/>
   </MOVERS>
 
   <PROTOCOLS>
     <!-- Constraints added using mover because command-line is ignored -->
+    <Add mover_name="nativebonus"/>
     <Add mover_name="cst"/>
-    <Add mover_name="fixbb"/>
+    <Add mover_name="fastdes"/>
+    <Add mover_name="writer"/>
   </PROTOCOLS>
 
   <OUTPUT scorefxn="scorefxn"/>
 
 </ROSETTASCRIPTS>
-
