@@ -175,12 +175,11 @@ First, create the "normal" workstation on the cluster::
    to type enough to be unambiguous.  So ``pull_into_place 01`` is the same as 
    ``pull_into_place 01_setup_workspace``.  
 
-You may have noticed that we were not prompted for the ``EQU.cen.params``, 
-``EQU.fa.params``, ``KSI_WT.pdb``, or ``compare_to_wildtype.sho`` files.  
-``EQU.cen.params`` and ``EQU.fa.params`` are ligand parameters for centroid and 
-fullatom mode, respectively.  PIP doesn't specifically ask for ligand parameter 
-files, but we still need them for our simulations because we referenced them in 
-``flags``::
+You may have noticed that we were not prompted for all of the files we 
+downloaded.  ``EQU.cen.params`` and ``EQU.fa.params`` are ligand parameters for 
+centroid and fullatom mode, respectively.  PIP doesn't specifically ask for 
+ligand parameter files, but we still need them for our simulations because we 
+referenced them in ``flags``::
 
    $ cat ~/rescue_ksi_d38e/flags
    -extra_res_fa EQU.fa.params
@@ -202,6 +201,16 @@ just copy them into the workspace::
 
    $ cp ~/ksi_inputs/KSI_WT.pdb ~/rescue_ksi_d38e
    $ cp ~/ksi_inputs/compare_to_wildtype.sho ~/rescue_ksi_d38e
+
+``build_models.xml``, ``design_models.xml``, and ``validate_design.xml`` are 
+RosettaScripts that run the various simulations that make up the PIP pipeline.  
+We don't need to do anything with these files (they're for a different 
+tutorial) because the ``01_setup_workspace`` command already copied default 
+versions of each into the workspace.  We could provide different scripts if we 
+wanted to change any of the algorithms PIP uses --- for example, if we wanted 
+to use a less aggressive backbone move like Backrub for a smaller remodeling 
+problem, or if we wanted to use a design method like HBNet to prioritize 
+getting a good H-bond network --- but for this tutorial the defaults are fine.
 
 Now that the workspace on the cluster is all set up, we can make the "remote" 
 workspace on our workstation that will link to it::

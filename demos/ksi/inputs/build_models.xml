@@ -1,0 +1,40 @@
+<ROSETTASCRIPTS>
+
+  <SCOREFXNS>
+    <ScoreFunction name="scorefxn" weights="%%wts_file%%"/>
+    <ScoreFunction name="scorefxn_cst" weights="%%wts_file%%">
+      <Reweight scoretype="coordinate_constraint" weight="1.0"/>
+      <Reweight scoretype="atom_pair_constraint" weight="1.0"/>
+      <Reweight scoretype="angle_constraint" weight="1.0"/>
+      <Reweight scoretype="dihedral_constraint" weight="1.0"/>
+      <Reweight scoretype="res_type_constraint" weight="1.5"/>
+    </ScoreFunction>
+  </SCOREFXNS>
+
+  <TASKOPERATIONS>
+    <InitializeFromCommandline name="cli"/>
+    <ReadResfile name="resfile"/>
+    <RestrictToRepacking name="repackonly"/>
+  </TASKOPERATIONS>
+
+  <MOVERS>
+    <LoopModeler name="modeler"
+      config="loophash_kic"
+      scorefxn_fa="scorefxn_cst"
+      task_operations="cli,resfile,repackonly"
+      loops_file="%%loop_file%%"
+      loophash_perturb_sequence="yes"
+      loophash_seqposes_no_mutate="%%dont_mutate%%"
+      fast="%%fast%%">
+        <Build skip="yes"/>
+    </LoopModeler>
+  </MOVERS>
+
+  <PROTOCOLS>
+    <!-- Constraints read from command line -->
+    <Add mover_name="modeler"/>
+  </PROTOCOLS>
+
+  <OUTPUT scorefxn="scorefxn"/>
+
+</ROSETTASCRIPTS>

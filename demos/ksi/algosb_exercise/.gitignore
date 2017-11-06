@@ -1,0 +1,5 @@
+*.log
+*.pdb
+*.sc
+*.tgz
+/rosetta
