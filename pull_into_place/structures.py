@@ -1,28 +1,29 @@
 #!/usr/bin/env python2
 
 """\
-This module provides a function that will read a directory of PDB files and 
-return a pandas data frame containing a number of score, distance, and sequence 
-metrics for each structure.  This information is also cached, because it takes 
-a while to calculate up front.  Note that the cache files are pickles and seem 
-to depend very closely on the version of pandas used to generate them.  For 
+This module provides a function that will read a directory of PDB files and
+return a pandas data frame containing a number of score, distance, and sequence
+metrics for each structure.  This information is also cached, because it takes
+a while to calculate up front.  Note that the cache files are pickles and seem
+to depend very closely on the version of pandas used to generate them.  For
 example, caches generated with pandas 0.15 can't be read by pandas 0.14.
 """
 
-import sys, os, re, glob, collections, gzip
+import sys, os, re, glob, collections, gzip, re, yaml
 import numpy as np, scipy as sp, pandas as pd
 from . import pipeline
 
+
 def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
     """
-    Return a variety of score and distance metrics for the structures found in 
-    the given directory.  As much information as possible will be cached.  Note 
-    that new information will only be calculated for file names that haven't 
-    been seen before.  If a file changes or is deleted, the cache will not be 
+    Return a variety of score and distance metrics for the structures found in
+    the given directory.  As much information as possible will be cached.  Note
+    that new information will only be calculated for file names that haven't
+    been seen before.  If a file changes or is deleted, the cache will not be
     updated to reflect this and you may be presented with stale data.
     """
 
-    # Make sure the given directory seems to be a reasonable place to look for 
+    # Make sure the given directory seems to be a reasonable place to look for
     # data, i.e. it exists and contains PDB files.
 
     if not os.path.exists(pdb_dir):
@@ -34,7 +35,7 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
     if not glob.glob(os.path.join(pdb_dir, '*.pdb*')):
         raise IOError("'{}' doesn't contain any PDB files".format(pdb_dir))
 
-    # The given directory must also be a workspace, so that the restraint file 
+    # The given directory must also be a workspace, so that the restraint file
     # can be found and used to calculate the "restraint_dist" metric later on.
 
     try:
@@ -44,13 +45,13 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
     if require_io_dir and not any(
             os.path.samefile(pdb_dir, x) for x in workspace.io_dirs):
         raise IOError("'{}' is not an input or output directory".format(pdb_dir))
-
-    # Find all the structures in the given directory, then decide which have 
+    # Find all the structures in the given directory, then decide which have
     # already been cached and which haven't.
 
     pdb_paths = glob.glob(os.path.join(pdb_dir, '*.pdb.gz'))
     base_pdb_names = set(os.path.basename(x) for x in pdb_paths)
     cache_path = os.path.join(pdb_dir, 'distances.pkl')
+    filter_path = workspace.filters_list
 
     if use_cache and os.path.exists(cache_path):
         try:
@@ -67,14 +68,15 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
         cached_records = []
         uncached_paths = pdb_paths
 
-    # Calculate score and distance metrics for the uncached paths, then combine 
+    # Calculate score and distance metrics for the uncached paths, then combine
     # the cached and uncached data into a single data frame.
-
     uncached_records = read_and_calculate(workspace, uncached_paths)
     all_records = pd.DataFrame(cached_records + uncached_records)
 
+
+
     # Make sure all the expected metrics were calculated.
-    
+
     expected_metrics = [
             'total_score',
             'restraint_dist',
@@ -85,12 +87,12 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
             print all_records.keys()
             raise IOError("'{}' wasn't calculated for the models in '{}'".format(metric, pdb_dir))
 
-    # If everything else looks good, cache the data frame so we can load faster 
+    # If everything else looks good, cache the data frame so we can load faster
     # next time.
 
     all_records.to_pickle(cache_path)
 
-    # Report how many structures had to be cached, in case the caller is 
+    # Report how many structures had to be cached, in case the caller is
     # interested, and return to loaded data frame.
 
     if job_report is not None:
@@ -99,30 +101,50 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
 
     return all_records
 
+class Restraint(object):
+    # Class for defining restraints. atom1_coords and atom2_coords are for AtomPair constraints.
+    # This should allow for relatively easy implementation of additional constraint types.
+    def __init__(self):
+        self.restraint_type = None
+        self.atom_name = None
+        self.residue_id = None
+        self.atom2_name = None
+        self.residue2_id = None
+        self.position = None # For AtomPair constraints, position is the desired distance between atoms.
+        self.atom1_coords = None
+        self.atom2_coords = None
+
 def read_and_calculate(workspace, pdb_paths):
     """
     Calculate a variety of score and distance metrics for the given structures.
     """
 
-    # Parse the given restraints file.  The restraints definitions are used to 
-    # calculate the "restraint_dist" metric, which reflects how well each 
-    # structure achieves the desired geometry. Note that this is calculated 
-    # whether or not restraints were used to create the structures in question.  
-    # For example, the validation runs don't use restraints but the restraint 
+    # Parse the given restraints file.  The restraints definitions are used to
+    # calculate the "restraint_dist" metric, which reflects how well each
+    # structure achieves the desired geometry. Note that this is calculated
+    # whether or not restraints were used to create the structures in question.
+    # For example, the validation runs don't use restraints but the restraint
     # distance is a very important metric for deciding which designs worked.
 
-    Restraint = collections.namedtuple('R', 'atom_name residue_id position')
     restraints = []
-
+    filter_list = []
     with open(workspace.restraints_path) as file:
         for line in file:
-            if line.startswith('CoordinateConstraint'):
+            if not line.startswith('#'):
                 fields = line.split()
-                restraint = Restraint(
-                        atom_name=fields[1],
-                        residue_id=fields[2],
-                        position=xyz_to_array(fields[5:8]))
+                restraint = Restraint()
+                restraint.restraint_type=fields[0]
+                restraint.atom_name=fields[1]
+                restraint.atom2_name=fields[3]
+                restraint.residue_id=fields[2]
+                restraint.residue2_id=fields[4]
+                restraint.position=None
+                if restraint.restraint_type == 'CoordinateConstraint':
+                    restraint.position=xyz_to_array(fields[5:8])
+                elif restraint.restraint_type=='AtomPair':
+                    restraint.position=float(fields[6])
                 restraints.append(restraint)
+
 
             elif not line.strip():
                 pass
@@ -131,6 +153,7 @@ def read_and_calculate(workspace, pdb_paths):
                 print "Skipping unrecognized restraint: '{}...'".format(line[:46])
 
     score_table_pattern = re.compile(r'^[A-Z]{3}(?:_[A-Z])?_([1-9]+) ')
+
 
     # Calculate score and distance metrics for each structure.
 
@@ -145,7 +168,6 @@ def read_and_calculate(workspace, pdb_paths):
         dunbrack_index = None
         dunbrack_scores = []
         restraint_distances = []
-
         # Update the user on our progress, because this is often slow.
 
         sys.stdout.write("\rReading '{}' [{}/{}]".format(
@@ -165,7 +187,7 @@ def read_and_calculate(workspace, pdb_paths):
             print "\n{} is empty".format(path)
             continue
 
-        # Get different information from different lines in the PDB file.  Some 
+        # Get different information from different lines in the PDB file.  Some
         # of these lines are specific to different simulations.
 
         for line in lines:
@@ -190,31 +212,61 @@ def read_and_calculate(workspace, pdb_paths):
                         dunbrack_scores.append(dunbrack_score)
                         break
 
+            elif line.startswith('EXTRA_SCORE_'):
+                filter_value = float(line.rsplit()[-1:][0])
+                filter_name = " ".join(line.rsplit()[:-1])[12:]
+                record[filter_name] = filter_value
+                if filter_name not in filter_list:
+                    filter_list.append(filter_name)
+
             elif line.startswith('delta_buried_unsats'):
                 record['buried_unsat_score'] = float(line.split()[1])
 
             elif line.startswith('loop_backbone_rmsd'):
                 record['loop_dist'] = float(line.split()[1])
 
-            elif line.startswith('ATOM'):
+            elif (line.startswith('ATOM') or line.startswith('HETATM')):
                 atom_name = line[12:16].strip()
                 residue_id = line[22:26].strip()
                 residue_name = line[17:20].strip()
 
                 # Keep track of this model's sequence.
+                if line.startswith('ATOM'): 
+                    if residue_id != last_residue_id:
+                        sequence += residue_type_3to1_map.get(residue_name, 'X')
+                        last_residue_id = residue_id
 
-                if residue_id != last_residue_id:
-                    sequence += residue_type_3to1_map.get(residue_name, 'X')
-                    last_residue_id = residue_id
-                
                 # See if this atom was restrained.
 
                 for restraint in restraints:
                     if (restraint.residue_id == residue_id and
                             restraint.atom_name == atom_name):
                         position = xyz_to_array(line[30:54].split())
-                        distance = euclidean(restraint.position, position)
-                        restraint_distances.append(distance)
+                        if restraint.restraint_type == 'CoordinateConstraint':
+                            distance = euclidean(restraint.position, position)
+                            restraint_distances.append(distance)
+                        elif restraint.restraint_type == 'AtomPair':
+                            restraint.atom1_coords = position
+                    if (restraint.residue2_id == residue_id and restraint.atom2_name == atom_name):
+                        if restraint.restraint_type == 'AtomPair':
+                             restraint.atom2_coords = xyz_to_array(line[30:54].split())
+
+        for restraint in restraints:
+            if restraint.restraint_type == 'AtomPair':
+                restraint_distances.append(abs(euclidean(restraint.atom1_coords, restraint.atom2_coords) - restraint.position))
+        filter_path = workspace.filters_list
+        with open(filter_path, 'r+') as file:
+            filter_list_cached = yaml.load(file)
+            if not filter_list_cached:
+                filter_list_cached = []
+            new_filters = []
+            for f in filter_list:
+                if f not in filter_list_cached:
+                    new_filters.append(f)
+        if new_filters:
+            filter_list_to_cache = filter_list_cached + new_filters
+            with open(filter_path, 'w') as file:
+                yaml.dump(filter_list_to_cache,file)
 
         record['sequence'] = sequence
         if dunbrack_scores:
@@ -230,17 +282,27 @@ def read_and_calculate(workspace, pdb_paths):
 
 def xyz_to_array(xyz):
     """
-    Convert a list of strings representing a 3D coordinate to floats and return 
+    Convert a list of strings representing a 3D coordinate to floats and return
     the coordinate as a ``numpy`` array.
     """
     return np.array([float(x) for x in xyz])
 
 
+def parse_filter_name(name):
+    found = re.search(r"\[\[(.*?)\]\]",name)
+    direction = None
+    if found:
+        title = re.sub(' +',' ',re.sub(r'\[\[(.*?)\]\]','',name).rstrip())
+        direction = found.group(1)
+    else:
+        title = name
+    return title, direction
+
 class Design (object):
     """
-    Represent a single validated design.  Each design is associated with 500 
-    scores, 500 restraint distances, and a "representative" (i.e. lowest 
-    scoring) model.  The representative has its own score and restraint 
+    Represent a single validated design.  Each design is associated with 500
+    scores, 500 restraint distances, and a "representative" (i.e. lowest
+    scoring) model.  The representative has its own score and restraint
     distance, plus a path to a PDB structure.
     """
 
@@ -282,4 +344,3 @@ class Design (object):
 
 class IOError (IOError):
     no_stack_trace = True
-

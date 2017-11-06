@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-import sys, os, re, json, subprocess
+import sys, os, re, json, time, subprocess
 from . import pipeline
 
 def submit(script, workspace, **params):
@@ -22,7 +22,7 @@ def submit(script, workspace, **params):
 
     if test_run:
         nstruct = 50
-        max_runtime = '0:30:00'
+        max_runtime = '2:00:00'
 
     if nstruct is None:
         raise TypeError("sumbit() requires the keyword argument 'nstruct' for production runs.")
@@ -95,5 +95,7 @@ def run_command(command):
     print "Process ID:", process.pid
     print
     sys.stdout.flush()
-
     process.wait()
+    jobnumber = os.environ['JOB_ID'] + '.' + os.environ['SGE_TASK_ID']
+    print 'Job Number:', jobnumber
+    subprocess.call(['/usr/local/sge/bin/linux-x64/qstat','-j',jobnumber])

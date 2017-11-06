@@ -22,7 +22,7 @@ big_jobs.run_command([
         '-out:prefix', output_prefix,
         '-out:no_nstruct_label',
         '-out:overwrite',
-        '-out:pdb_gz', 
+        '-out:pdb_gz',
         '-out:mute', 'protocols.loops.loops_main',
         '-parser:protocol', workspace.build_script_path,
         '-parser:script_vars',
@@ -30,6 +30,8 @@ big_jobs.run_command([
             'cst_file=' + workspace.restraints_path,
             'loop_file=' + workspace.loops_path,
             'fast=' + ('yes' if test_run else 'no'),
+            'loop_start=' + str(workspace.loop_boundaries[0]),
+            'loop_end=' + str(workspace.loop_boundaries[1]),
         '-packing:resfile', workspace.resfile_path,
         '-constraints:cst_fa_file', workspace.restraints_path,
 ] +     workspace.fragments_flags(workspace.input_pdb_path) + [
