@@ -155,7 +155,7 @@ PIP approaches this problem by picking designs with a probability proportional
 to their Boltzmann-weighted scores.  This is naive in the sense that it only
 considers score (although we are interested in considering more metrics), but
 more intelligent than simply picking the lowest scores, which tend to be very
-structurally homogeneous::
+structurally homogeneous.
 
 In a production run, PIP will open a window to show you how the scores are distributed and
 which were picked.  As the command suggests, it worth looking at the cumulative
@@ -187,20 +187,50 @@ Visualize designs
    A screenshot of the pymol scene created by the ``compare_to_wildtype.sho`` script in the full pipeline.
 
 We provide a plugin script that visually compares wild type with mutant structures.
-The script runs ``pymol`` with the design superimposed on
-the wildtype structure, a number of useful selections pre-defined, the proteins
-rendered as cartoons, the ligands rendered as sticks, and the camera positioned
-with a good vantage point of the active-site loop. The plugin's philosophy is
+The plugin's philosophy is
 to focus on each mutation one-at-a-time to try to understand what interactions
 the wildtype residue was making and how those interactions are (or are not)
 being accommodated by the mutant residue. `Visit
 this page`__ for instructions on how to install and use ``wt_vs_mut``.
 
+.. note::
+
+   **Task 4:** Use the ``wt_vs_mut`` PyMOL script to compare the output structure from the validation step ``validate_designs_KSI_D38E_0001.pdb`` with the wild type crystal structure ``KSI_WT.pdb``. Follow the `wt_vs_mut`__ instructions to load the PyMOL visualization plugin.
+
+* In your terminal, launch PyMOL and load the two structures: ``pymol 4l7k_wt.pdb validate_designs_KSI_D38E_0001.pdb``
+* In PyMOL's terminal: ``run /path/to/wt_vs_mut.py``
+* ``hide all``
+* ``show car``
+* ``show sticks, chain Y and not h.``
+* ``align validate_designs_KSI_D38E_0001 and chain Y, KSI_WT and chain Y``
+* ``wt_vs_mut KSI_WT, validate_designs_KSI_D38E_0001``
+
 .. __: https://github.com/kalekundert/wt_vs_mut
+
+Discussion questions
+====================
+
+#. Did you find any mutations in your inspection of your validated design (from step ``Validate designs``) that might actually make sense? (Note: we wouldn't expect this to occur after such short simulations, but it is possible).
+#. Did you find any mutations that definitely do not look good?
+
+Compare design structures
+=========================
+
+We will now compare the validated designs PDB you generated in a short simulation (``validate_designs_KSI_D38E_0001.pdb``) with designs generated from a full run of the PIP protocol.
+
+.. figure:: funnel_0007.png
+   :align: center
+   :width: 80 %
+
+   An example of a validation PIP run that produces a good design funnel, where the singular energy minimia
+   (as measured in Rosetta Energy Units) coincides with highest restraint satisfaction.
+
+.. figure:: funnel_0042.png
+   :align: center
+   :width: 80 %
+
+   An example of a validation PIP run that produces a bad design funnel with multiple energy minima.
 
 .. note::
 
-   **Task 4:** Use the ``wt_vs_mut`` PyMOL script to compare
-
-
-Consider buried unsatisified hydrogen bonds.
+   **Task 5:** Examine the strucutres ``sample_output/output_A.pdb.gz``, ``sample_output/output_B.pdb.gz``, and your ``validate_designs_KSI_D38E_0001.pdb`` output, using whatever structure visualization methods you prefer. Can you determine if output structure "A" or output structure "B" corresponds to the good validation funnel above?
