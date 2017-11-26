@@ -1,18 +1,18 @@
 #!/usr/bin/env sh
 
-# Assume rosetta is installed in a directory called `rosetta` in this 
+# Assume rosetta is installed in a directory called `rosetta` in this
 # directory.  You can change this if Rosetta is installed elsewhere.
-ROSETTA=rosetta
+ROSETTA=~/rosetta
 
-# Assume all of the input files related to KSI are in a directory called 
-# `inputs` in this directory.  You can change this if you downloaded them 
+# Assume all of the input files related to KSI are in a directory called
+# `inputs` in this directory.  You can change this if you downloaded them
 # somewhere else.
 KSI_INPUTS=inputs
 
 # Name all the output files (a PDB and a log) with a consistent prefix.
 OUTPUT_PREFIX=validate_designs
 
-# Run rosetta with a very small number of iterations and rotamers.  This should 
+# Run rosetta with a very small number of iterations and rotamers.  This should
 # finish in 20 minutes, but the results will not be meaningful.
 stdbuf -oL $ROSETTA/source/bin/rosetta_scripts                                         \
     -database $ROSETTA/database                                             \
@@ -31,5 +31,3 @@ stdbuf -oL $ROSETTA/source/bin/rosetta_scripts                                  
 
 mv validate_designs_design_models_KSI_D38E_0001_0001.pdb \
    validate_designs_KSI_D38E_0001.pdb \
-
-
