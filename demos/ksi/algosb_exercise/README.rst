@@ -110,9 +110,9 @@ throughout this demo with the idea that your goal is just to run through the
 whole pipeline as quickly as possible.
 
 Once the simulations finish, we can download the results to our workstation and
-visualize them::
+visualize them
 
-.. image:: plot_funnels.png
+.. figure:: plot_funnels.png
    :align: center
 
    A screenshot of the ``plot_funnels`` GUI used in the full PIP pipeline.
