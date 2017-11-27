@@ -1,8 +1,12 @@
-*******************************
-Rescue the D38E mutation in KSI
-*******************************
+*******************************************
+Pull into Place (PIP) Step-by-Step Tutorial
+*******************************************
 
-Ketosteroid isomerase (KSI) is a model enzyme that catalyzes the rearrangement
+Model system
+============
+
+For the purposes of this tutorial, we will be examining
+Ketosteroid isomerase (KSI), which is a model enzyme that catalyzes the rearrangement
 of a double bond in steroid molecules.  Asp38 is the key catalytic residue
 responsible for taking a proton from one site and moving it to another:
 
