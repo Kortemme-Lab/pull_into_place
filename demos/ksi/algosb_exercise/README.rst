@@ -112,7 +112,7 @@ whole pipeline as quickly as possible.
 Once the simulations finish, we can download the results to our workstation and
 visualize them::
 
-.. figure:: plot_funnels.png
+.. image:: plot_funnels.png
    :align: center
 
    A screenshot of the ``plot_funnels`` GUI used in the full PIP pipeline.
