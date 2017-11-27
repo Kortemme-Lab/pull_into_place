@@ -12,7 +12,7 @@ responsible for taking a proton from one site and moving it to another:
 
 The enzyme is 200x less active when Asp38 is mutated to Glu (D38E), even though
 Asp and Glu have the same carboxyl (COOH) functional group.  The difference is
-that Glu has one more carbon in its sidechain, so the COOH is shifted out of
+that Glu has one more carbon in its side chain, so the COOH is shifted out of
 position by just over 1Å.  This demo will show everything you would need to do
 to use Pull Into Place (PIP) to redesign the active site loop to correct the
 position of the COOH in the D38E mutant.
@@ -30,8 +30,8 @@ For a real problem, PIP will most likely need to be run on a large cluster (as d
 
 You also need to have Rosetta compiled on your workstation.
 In general, PIP doesn't care where
-rosetta is installed; it just needs a path to the installation.  This tutorial
-will assume that rosetta is installed in ``~/rosetta`` such that::
+Rosetta is installed; it just needs a path to the installation.  This tutorial
+will assume that Rosetta is installed in ``~/rosetta`` such that::
 
    $ ls ~/rosetta/source/bin
    ...
@@ -51,7 +51,7 @@ All of the required input files have already been generated for you, but here ar
 ::
 
    Input PDB file: A structure containing the functional groups to be positioned.
-   This file should already be parse-able by rosetta, which often means it must be
+   This file should already be parse-able by Rosetta, which often means it must be
    stripped of waters and extraneous ligands.
 
    Loops file: A file specifying which backbone regions will be allowed to move.
@@ -64,36 +64,36 @@ All of the required input files have already been generated for you, but here ar
    Path to resfile: ~/ksi_inputs/resfile
 
    Restraints file: A file describing the geometry you're trying to design.  In
-   rosetta parlance, this is more often (inaccurately) called a constraint file.
+   Rosetta parlance, this is more often (inaccurately) called a constraint file.
    Note that restraints are not used during the validation step.
 
    Score function: A file that specifies weights for all the terms in the score
-   function, or the name of a standard rosetta score function.  The default is
-   talaris2014.  That should be ok unless you have some particular interaction
+   function, or the name of a standard Rosetta score function.  The default is
+   talaris2014.  That should be OK unless you have some particular interaction
    (e.g. ligand, DNA, etc.) that you want to score in a particular way.
 
-   Build script: An XML rosetta script that generates backbones capable of
+   Build script: An XML Rosetta script that generates backbones capable of
    supporting the desired geometry.  The default version of this script uses KIC
    with fragments in "ensemble-generation mode" (i.e. no initial build step).
 
-   Design script: An XML rosetta script that performs design (usually on a fixed
+   Design script: An XML Rosetta script that performs design (usually on a fixed
    backbone) to stabilize the desired geometry.  The default version of this
    script uses fixbb.
 
-   Validate script: An XML rosetta script that samples the designed loop to
+   Validate script: An XML Rosetta script that samples the designed loop to
    determine whether the desired geometry is really the global score minimum.  The
    default version of this script uses KIC with fragments in "ensemble-generation
    mode" (i.e. no initial build step).
 
    Flags file: A file containing command line flags that should be passed to every
-   invocation of rosetta for this design.  For example, if your design involves a
+   invocation of Rosetta for this design.  For example, if your design involves a
    ligand, put flags related to the ligand parameter files in this file.
 
 Build initial backbone models
 =============================
 
 The first actual design step in the pipeline is to generate a large number of
-backbone models that support the desired sidechain geometry.  This will be done
+backbone models that support the desired side chain geometry.  This will be done
 by running a flexible backbone simulation while applying the restraints we
 added to the workspace.
 
@@ -168,7 +168,7 @@ like what you'd want:
    A screenshot of the ``06_pick_designs_to_validate`` GUI.
 
 A production validation step consists of 500 independent loop modeling simulations for
-each design, without restraints. We now will use the standard loop modelling algorithm KIC
+each design, without restraints. We now will use the standard loop modeling algorithm KIC
 (instead of loophash KIC as in the initial build step).
 
  **Task 3:** Run the ``validate_designs.sh`` script
@@ -180,12 +180,12 @@ Visualize designs
    :align: center
    :width: 80 %
 
-   A screenshot of the pymol scene created by the ``compare_to_wildtype.sho`` script in the full pipeline.
+   A screenshot of the PyMOL scene created by the ``compare_to_wildtype.sho`` script in the full pipeline.
 
 We provide a plugin script that visually compares wild type with mutant structures.
 The plugin's philosophy is
 to focus on each mutation one-at-a-time to try to understand what interactions
-the wildtype residue was making and how those interactions are (or are not)
+the wild type residue was making and how those interactions are (or are not)
 being accommodated by the mutant residue. `Visit this page <https://github.com/kalekundert/wt_vs_mut>`_ for instructions on how to install and use ``wt_vs_mut``.
 
  **Task 4:** Use the ``wt_vs_mut`` PyMOL script to compare the output structure from the validation step ``validate_designs_KSI_D38E_0001.pdb`` with the wild type crystal structure ``KSI_WT.pdb``. Follow the `wt_vs_mut <https://github.com/kalekundert/wt_vs_mut>`_ instructions to load the PyMOL visualization plugin.
@@ -226,4 +226,4 @@ We will now compare the validated designs PDB you generated in a short simulatio
    An example of a validation PIP run that produces a bad design funnel with multiple energy minima.
 
 
-**Task 5:** Examine the strucutres ``sample_output/output_A.pdb.gz``, ``sample_output/output_B.pdb.gz``, and your ``validate_designs_KSI_D38E_0001.pdb`` output, using whatever structure visualization methods you prefer. Can you determine if output structure "A" or output structure "B" corresponds to the good validation funnel above?
+**Task 5:** Examine the structures ``sample_output/output_A.pdb.gz``, ``sample_output/output_B.pdb.gz``, and your ``validate_designs_KSI_D38E_0001.pdb`` output, using whatever structure visualization methods you prefer. Can you determine if output structure "A" or output structure "B" corresponds to the good validation funnel above?
