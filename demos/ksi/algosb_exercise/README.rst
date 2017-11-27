@@ -192,12 +192,16 @@ this page<https://github.com/kalekundert/wt_vs_mut>`_ for instructions on how to
 > **Task 4:** Use the ``wt_vs_mut`` PyMOL script to compare the output structure from the validation step ``validate_designs_KSI_D38E_0001.pdb`` with the wild type crystal structure ``KSI_WT.pdb``. Follow the `wt_vs_mut <https://github.com/kalekundert/wt_vs_mut>`_ instructions to load the PyMOL visualization plugin.
 
 * In your terminal, launch PyMOL and load the two structures: ``pymol 4l7k_wt.pdb validate_designs_KSI_D38E_0001.pdb``
-* In PyMOL's terminal: ``run /path/to/wt_vs_mut.py``
-* ``hide all``
-* ``show car``
-* ``show sticks, chain Y and not h.``
-* ``align validate_designs_KSI_D38E_0001 and chain Y, KSI_WT and chain Y``
-* ``wt_vs_mut KSI_WT, validate_designs_KSI_D38E_0001``
+* In PyMOL's terminal:
+
+::
+
+   run /path/to/wt_vs_mut.py
+   hide all
+   show car
+   show sticks, chain Y and not h.
+   align validate_designs_KSI_D38E_0001 and chain Y, KSI_WT and chain Y
+   wt_vs_mut KSI_WT, validate_designs_KSI_D38E_0001
 
 Discussion questions
 ====================
