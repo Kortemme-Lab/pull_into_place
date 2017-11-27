@@ -8,7 +8,7 @@ responsible for taking a proton from one site and moving it to another:
 
 .. image:: mechanism.svg
    :align: center
-   :width: 600 px
+   :width: 80 %
 
 The enzyme is 200x less active when Asp38 is mutated to Glu (D38E), even though
 Asp and Glu have the same carboxyl (COOH) functional group.  The difference is
@@ -19,7 +19,7 @@ position of the COOH in the D38E mutant.
 
 .. image:: abstract.svg
    :align: center
-   :width: 400 px
+   :width: 80 %
 
 Before you start
 ================
@@ -40,8 +40,7 @@ will assume that rosetta is installed in ``~/rosetta`` such that::
 
 If your Rosetta installation location varies, you will need to change the ``ROSETTA=`` variable at the top of each run script to the correct location.
 
-Finally, you need to download the loop hash database we'll be using.
-.. TODO link to loop hash DB here
+Finally, you need to `download and extract the loop hash database <https://guybrush.ucsf.edu/loophash_db.tar.gz>`_ we'll be using.
 Save it (or symlink it) directly into this folder with the folder name ``loophash_db``.
 
 Input information
@@ -114,6 +113,7 @@ visualize them
 
 .. figure:: plot_funnels.png
    :align: center
+   :width: 80 %
 
    A screenshot of the ``plot_funnels`` GUI used in the full PIP pipeline.
 
@@ -127,9 +127,7 @@ restraints too well, the restraints might too strong.  If too few models get
 within 1Å of the restraints, they might be too weak.  You can tune the weights
 of the restraints by manually editing ``restraints``.
 
-.. note::
-
-   **Task 1:** Run the ``build_models.sh`` script
+> **Task 1:** Run the ``build_models.sh`` script
 
 Stabilize good backbone models
 ==============================
@@ -140,9 +138,7 @@ those models.  It's worth noting that the first step in the pipeline already
 did some design, so the purpose of this step is more to quickly generate a
 diversity of designs than to introduce mutations for the first time.
 
-.. note::
-
-   **Task 2:** Run the ``design_models.sh`` script
+> **Task 2:** Run the ``design_models.sh`` script
 
 Validate good designs
 =====================
@@ -167,6 +163,7 @@ like what you'd want:
 
 .. figure:: 06_pick_designs_to_validate.png
    :align: center
+   :width: 80 %
 
    A screenshot of the ``06_pick_designs_to_validate`` GUI.
 
@@ -174,15 +171,14 @@ A production validation step consists of 500 independent loop modeling simulatio
 each design, without restraints. We now will use the standard loop modelling algorithm KIC
 (instead of loophash KIC as in the initial build step).
 
-.. note::
-
-   **Task 2:** Run the ``validate_designs.sh`` script
+> **Task 2:** Run the ``validate_designs.sh`` script
 
 Visualize designs
 =================
 
 .. figure:: compare_to_wildtype.png
    :align: center
+   :width: 80 %
 
    A screenshot of the pymol scene created by the ``compare_to_wildtype.sho`` script in the full pipeline.
 
@@ -191,11 +187,9 @@ The plugin's philosophy is
 to focus on each mutation one-at-a-time to try to understand what interactions
 the wildtype residue was making and how those interactions are (or are not)
 being accommodated by the mutant residue. `Visit
-this page`__ for instructions on how to install and use ``wt_vs_mut``.
+this page<https://github.com/kalekundert/wt_vs_mut>`_ for instructions on how to install and use ``wt_vs_mut``.
 
-.. note::
-
-   **Task 4:** Use the ``wt_vs_mut`` PyMOL script to compare the output structure from the validation step ``validate_designs_KSI_D38E_0001.pdb`` with the wild type crystal structure ``KSI_WT.pdb``. Follow the `wt_vs_mut`__ instructions to load the PyMOL visualization plugin.
+> **Task 4:** Use the ``wt_vs_mut`` PyMOL script to compare the output structure from the validation step ``validate_designs_KSI_D38E_0001.pdb`` with the wild type crystal structure ``KSI_WT.pdb``. Follow the `wt_vs_mut <https://github.com/kalekundert/wt_vs_mut>`_ instructions to load the PyMOL visualization plugin.
 
 * In your terminal, launch PyMOL and load the two structures: ``pymol 4l7k_wt.pdb validate_designs_KSI_D38E_0001.pdb``
 * In PyMOL's terminal: ``run /path/to/wt_vs_mut.py``
@@ -204,8 +198,6 @@ this page`__ for instructions on how to install and use ``wt_vs_mut``.
 * ``show sticks, chain Y and not h.``
 * ``align validate_designs_KSI_D38E_0001 and chain Y, KSI_WT and chain Y``
 * ``wt_vs_mut KSI_WT, validate_designs_KSI_D38E_0001``
-
-.. __: https://github.com/kalekundert/wt_vs_mut
 
 Discussion questions
 ====================
@@ -231,6 +223,4 @@ We will now compare the validated designs PDB you generated in a short simulatio
 
    An example of a validation PIP run that produces a bad design funnel with multiple energy minima.
 
-.. note::
-
-   **Task 5:** Examine the strucutres ``sample_output/output_A.pdb.gz``, ``sample_output/output_B.pdb.gz``, and your ``validate_designs_KSI_D38E_0001.pdb`` output, using whatever structure visualization methods you prefer. Can you determine if output structure "A" or output structure "B" corresponds to the good validation funnel above?
+> **Task 5:** Examine the strucutres ``sample_output/output_A.pdb.gz``, ``sample_output/output_B.pdb.gz``, and your ``validate_designs_KSI_D38E_0001.pdb`` output, using whatever structure visualization methods you prefer. Can you determine if output structure "A" or output structure "B" corresponds to the good validation funnel above?
