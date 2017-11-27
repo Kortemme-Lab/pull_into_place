@@ -111,7 +111,7 @@ whole pipeline as quickly as possible.
 Once the simulations finish, we can download the results to our workstation and
 visualize them
 
-.. figure:: plot_funnels.png
+.. image:: plot_funnels.png
    :align: center
    :width: 80 %
 
@@ -161,7 +161,7 @@ rule of thumb is that the designs being picked (represented by the circles)
 should be mostly, but not exclusively, low-scoring. The example CDF below looks about
 like what you'd want:
 
-.. figure:: 06_pick_designs_to_validate.png
+.. image:: 06_pick_designs_to_validate.png
    :align: center
    :width: 80 %
 
@@ -176,7 +176,7 @@ each design, without restraints. We now will use the standard loop modelling alg
 Visualize designs
 =================
 
-.. figure:: compare_to_wildtype.png
+.. image:: compare_to_wildtype.png
    :align: center
    :width: 80 %
 
@@ -214,14 +214,14 @@ Compare design structures
 
 We will now compare the validated designs PDB you generated in a short simulation (``validate_designs_KSI_D38E_0001.pdb``) with designs generated from a full run of the PIP protocol.
 
-.. figure:: funnel_0007.png
+.. image:: funnel_0007.png
    :align: center
    :width: 80 %
 
    An example of a validation PIP run that produces a good design funnel, where the singular energy minimia
    (as measured in Rosetta Energy Units) coincides with highest restraint satisfaction.
 
-.. figure:: funnel_0042.png
+.. image:: funnel_0042.png
    :align: center
    :width: 80 %
 
