@@ -186,8 +186,7 @@ We provide a plugin script that visually compares wild type with mutant structur
 The plugin's philosophy is
 to focus on each mutation one-at-a-time to try to understand what interactions
 the wildtype residue was making and how those interactions are (or are not)
-being accommodated by the mutant residue. `Visit
-this page<https://github.com/kalekundert/wt_vs_mut>`_ for instructions on how to install and use ``wt_vs_mut``.
+being accommodated by the mutant residue. `Visit this page <https://github.com/kalekundert/wt_vs_mut>`_ for instructions on how to install and use ``wt_vs_mut``.
 
  **Task 4:** Use the ``wt_vs_mut`` PyMOL script to compare the output structure from the validation step ``validate_designs_KSI_D38E_0001.pdb`` with the wild type crystal structure ``KSI_WT.pdb``. Follow the `wt_vs_mut <https://github.com/kalekundert/wt_vs_mut>`_ instructions to load the PyMOL visualization plugin.
 
@@ -218,9 +217,7 @@ We will now compare the validated designs PDB you generated in a short simulatio
    :align: center
    :width: 80 %
 
-   An example of a validation PIP run that produces a good design funnel, where the singular energy minimia
-   (as measured in Rosetta Energy Units) coincides with highest restraint satisfaction.
-
+   An example of a validation PIP run that produces a good design funnel, where the singular energy minima (as measured in Rosetta Energy Units) coincides with highest restraint satisfaction.
 
 .. figure:: funnel_0042.png
    :align: center
@@ -228,4 +225,5 @@ We will now compare the validated designs PDB you generated in a short simulatio
 
    An example of a validation PIP run that produces a bad design funnel with multiple energy minima.
 
- **Task 5:** Examine the strucutres ``sample_output/output_A.pdb.gz``, ``sample_output/output_B.pdb.gz``, and your ``validate_designs_KSI_D38E_0001.pdb`` output, using whatever structure visualization methods you prefer. Can you determine if output structure "A" or output structure "B" corresponds to the good validation funnel above?
+
+**Task 5:** Examine the strucutres ``sample_output/output_A.pdb.gz``, ``sample_output/output_B.pdb.gz``, and your ``validate_designs_KSI_D38E_0001.pdb`` output, using whatever structure visualization methods you prefer. Can you determine if output structure "A" or output structure "B" corresponds to the good validation funnel above?
