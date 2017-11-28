@@ -2,6 +2,8 @@
 Pull into Place (PIP) Step-by-Step Tutorial
 *******************************************
 
+The most up-to-date version of this tutorial `is available on GitHub <https://github.com/Kortemme-Lab/pull_into_place/tree/master/demos/ksi/algosb_exercise>`_.
+
 Model system
 ============
 
@@ -42,9 +44,9 @@ will assume that Rosetta is installed in ``~/rosetta`` such that::
    rosetta_scripts
    ...
 
-If your Rosetta installation location varies, you will need to change the ``ROSETTA=`` variable at the top of each run script to the correct location.
+If your Rosetta installation location varies, you will need to change the ``ROSETTA=`` variable at the top of each run script to the correct location (the path should already be correct if you are using the tutorial virtual machine).
 
-Finally, you need to `download and extract the loop hash database <https://guybrush.ucsf.edu/loophash_db.tar.gz>`_ we'll be using.
+Finally, you need to `download and extract the loop hash database <https://guybrush.ucsf.edu/loophash_db.tar.gz>`_ we'll be using (this is already done in the tutorial virtual machine).
 Save it (or symlink it) directly into this folder with the folder name ``loophash_db``.
 
 Input information
@@ -127,7 +129,7 @@ odds with each other, in the sense that models that are less physically
 realistic should be able to achieve more ideal geometries.  We can use the displayed
 score vs. restraint satisfaction plot to judge how
 wells these two goals were balanced.  If too many models superimpose with the
-restraints too well, the restraints might too strong.  If too few models get
+restraints too well, the restraints might be too strong.  If too few models get
 within 1Å of the restraints, they might be too weak.  You can tune the weights
 of the restraints by manually editing ``restraints``.
 
@@ -192,14 +194,14 @@ to focus on each mutation one-at-a-time to try to understand what interactions
 the wild type residue was making and how those interactions are (or are not)
 being accommodated by the mutant residue. `Visit this page <https://github.com/kalekundert/wt_vs_mut>`_ for instructions on how to install and use ``wt_vs_mut``.
 
- **Task 4:** Use the ``wt_vs_mut`` PyMOL script to compare the output structure from the validation step ``validate_designs_KSI_D38E_0001.pdb`` with the wild type crystal structure ``KSI_WT.pdb``. Follow the `wt_vs_mut <https://github.com/kalekundert/wt_vs_mut>`_ instructions to load the PyMOL visualization plugin.
+ **Task 4:** Use the ``wt_vs_mut`` PyMOL script to compare the output structure from the validation step ``validate_designs_KSI_D38E_0001.pdb`` with the wild type crystal structure ``KSI_WT.pdb``. Follow the `wt_vs_mut <https://github.com/kalekundert/wt_vs_mut>`_ instructions to load the PyMOL visualization plugin (this is already installed in the tutorial virtual machine).
 
 * In your terminal, launch PyMOL and load the two structures: ``pymol 4l7k_wt.pdb validate_designs_KSI_D38E_0001.pdb``
 * In PyMOL's terminal:
 
 ::
 
-   run /path/to/wt_vs_mut.py
+   run /path/to/wt_vs_mut.py (is /home/winter/TK/wt_vs_mut/wt_vs_mut.py in the virtual machine)
    hide all
    show car
    show sticks, chain Y and not h.
@@ -231,3 +233,5 @@ We will now compare the validated designs PDB you generated in a short simulatio
 
 
 **Task 5:** Examine the structures ``sample_output/output_A.pdb.gz``, ``sample_output/output_B.pdb.gz``, and your ``validate_designs_KSI_D38E_0001.pdb`` output, using whatever structure visualization methods you prefer. Can you determine if output structure "A" or output structure "B" corresponds to the good validation funnel above?
+
+.. Note: A is the good one
