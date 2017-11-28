@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+model_path=$1
+model_sele=$(basename ${model_path%.pdb.gz})
+model_name="design_${model_sele}"
+wt_path="$(dirname $(realpath $0))/KSI_WT.pdb"
+wt_sele=$(basename ${wt_path%.pdb})
+
+pymol -qx $wt_path $model_path                                              \
+    -d "create wildtype_surface, $wt_sele and chain a"                      \
+    -d "create design_surface, $model_sele and chain a"                     \
+    -d "select equ, resn equ"                                               \
+    -d "select loop, resi 26-51"                                            \
+    -d "select resfile, resi 36+38-45+53+199"                               \
+    -d "select none"                                                        \
+    -d "remove resn hoh"                                                    \
+    -d "zoom resi 38, 10"                                                   \
+    -d "center resi 38"                                                     \
+    -d "hide everything"                                                    \
+    -d "show cartoon"                                                       \
+    -d "show sticks, equ"                                                   \
+    -d "cartoon loop, loop"                                                 \
+    -d "hide everything, $model_sele and not loop"                          \
+    -d "hide everything, hydro"                                             \
+    -d "as surface, wildtype_surface"                                       \
+    -d "as surface, design_surface"                                         \
+    -d "disable wildtype_surface"                                           \
+    -d "disable design_surface"                                             \
+    -d "set cartoon_rect_length, 0.9"                                       \
+    -d "set cartoon_oval_length, 0.9"                                       \
+    -d "set stick_radius, 0.2"                                              \
+    -d "set transparency, 0.5"                                              \
+    -d "set_name $wt_sele, wildtype"                                        \
+    -d "set_name $model_sele, $model_name"                                  \
+    -d "alias ww, wt_vs_mut wildtype, $model_name"                          \
+    -d "set_view (                                                          \
+       0.7193032503,   -0.1634693891,   -0.6751872301,                      \
+      -0.0617329106,   -0.9831143618,    0.1722556353,                      \
+      -0.6919452548,   -0.0822221041,   -0.7172508240,                      \
+       0.0000000000,    0.0000000000,  -81.1679763794,                      \
+      19.3717613220,   70.9658966064,   10.4694824219,                      \
+      63.9934539795,   98.3424987793,  -20.0000000000 )"                    \
