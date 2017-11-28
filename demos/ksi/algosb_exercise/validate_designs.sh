@@ -2,7 +2,7 @@
 
 # Assume rosetta is installed in a directory called `rosetta` in this
 # directory.  You can change this if Rosetta is installed elsewhere.
-ROSETTA=~/bin/rosetta/rosetta_src_2017.45.59812_bundle/main
+ROSETTA=~/rosetta
 
 # Assume all of the input files related to KSI are in a directory called
 # `inputs` in this directory.  You can change this if you downloaded them
