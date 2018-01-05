@@ -120,9 +120,9 @@ def make_command_table(entry_points):
     # Figure out what the longest pipeline command is, so we know how much to 
     # indent the helper commands.
 
-    longest_pipeline_command = 0
+    col_width = 0
     for command in pipeline_commands:
-        longest_pipeline_command = max(len(command), longest_pipeline_command)
+        col_width = max(len(command), col_width)
 
     # Make the table.
 
@@ -131,8 +131,7 @@ def make_command_table(entry_points):
             pipeline_commands, helper_commands, fillvalue='')
 
     for commands in columns:
-        row = '        {0[0]:{1}}   {0[1]}'.format(
-                commands, longest_pipeline_command)
+        row = '        {0[0]:{1}}   {0[1]}'.format(commands, col_width)
         rows.append(row)
 
     return '\n'.join(rows)

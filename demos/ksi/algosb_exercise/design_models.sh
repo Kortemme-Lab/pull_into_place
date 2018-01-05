@@ -26,7 +26,7 @@ stdbuf -oL $ROSETTA/source/bin/rosetta_scripts                              \
         cst_file=$KSI_INPUTS/restraints                                     \
         relax_cycles=2                                                      \
     -packing:resfile $KSI_INPUTS/resfile                                    \
-    -relax:constrain_relax_to_start_coords                                  \
+    -relax:constrain_relax_to_start_coords yes                              \
     -extra_res_fa $KSI_INPUTS/EQU.fa.params                                 \
     -extra_res_cen $KSI_INPUTS/EQU.cen.params                               |
     tee $OUTPUT_PREFIX.log
