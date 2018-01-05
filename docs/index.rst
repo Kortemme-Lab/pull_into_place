@@ -5,9 +5,8 @@
    :hidden:
 
    install
-   Example Project <demos/ksi/README>
+   Short Example Project <demos/ksi/algosb_exercise/README>
+   Full Example Project <demos/ksi/README>
    usage
    api/index
    contrib
-
-
