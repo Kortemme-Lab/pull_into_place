@@ -22,6 +22,11 @@ Options:
     --max-memory MEM        [default: 1G]
         The memory limit for each design job.
 
+    --mkdir
+        Make the directory corresponding to this step in the pipeline, but 
+        don't do anything else.  This is useful if you want to create custom 
+        input files for just this step.
+
     --test-run
         Run on the short queue with a limited number of iterations.  This
         option automatically clears old results.
@@ -45,6 +50,8 @@ def main():
     workspace.check_rosetta()
     workspace.make_dirs()
 
+    if args['--mkdir']:
+        return
     if args['--clear'] or args['--test-run']:
         workspace.clear_outputs()
 

@@ -21,6 +21,11 @@ Options:
     --max-memory MEM        [default: 1G]
         The memory limit for each model building job.
 
+    --mkdir
+        Make the directory corresponding to this step in the pipeline, but 
+        don't do anything else.  This is useful if you want to create custom 
+        input files for just this step.
+
     --test-run
         Run on the short queue with a limited number of iterations.  This 
         option automatically clears old results.
@@ -34,25 +39,27 @@ from .. import pipeline, big_jobs
 
 @scripting.catch_and_print_errors()
 def main():
-    arguments = docopt.docopt(__doc__)
+    args = docopt.docopt(__doc__)
     cluster.require_qsub()
 
     # Setup the workspace.
 
-    workspace = pipeline.RestrainedModels(arguments['<workspace>'])
+    workspace = pipeline.RestrainedModels(args['<workspace>'])
     workspace.check_paths()
     workspace.check_rosetta()
     workspace.make_dirs()
 
-    if arguments['--clear'] or arguments['--test-run']:
+    if args['--mkdir']:
+        return
+    if args['--clear'] or args['--test-run']:
         workspace.clear_outputs()
 
     # Submit the model building job.
 
     big_jobs.submit(
             'pip_build.py', workspace,
-            nstruct=arguments['--nstruct'],
-            max_runtime=arguments['--max-runtime'],
-            max_memory=arguments['--max-memory'],
-            test_run=arguments['--test-run']
+            nstruct=args['--nstruct'],
+            max_runtime=args['--max-runtime'],
+            max_memory=args['--max-memory'],
+            test_run=args['--test-run']
     )
