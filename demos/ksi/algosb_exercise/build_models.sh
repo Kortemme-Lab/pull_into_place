@@ -14,7 +14,7 @@ OUTPUT_PREFIX=build_models
 
 # Run rosetta with a very small number of iterations and rotamers.  This should
 # finish in 20 minutes, but the results will not be meaningful.
-stdbuf -oL $ROSETTA/source/bin/rosetta_scripts                                         \
+stdbuf -oL $ROSETTA/source/bin/rosetta_scripts                              \
     -database $ROSETTA/database                                             \
     -in:file:s $KSI_INPUTS/KSI_D38E.pdb                                     \
     -in:file:native $KSI_INPUTS/KSI_WT.pdb                                  \
@@ -26,7 +26,7 @@ stdbuf -oL $ROSETTA/source/bin/rosetta_scripts                                  
         loop_file=$KSI_INPUTS/loops                                         \
         dont_mutate="26-35,37,38,46-51"                                     \
         fast="yes"                                                          \
-    -lh:db_path loophash_db                                     \
+    -lh:db_path loophash_db                                                 \
     -lh:loopsizes 6 7 8 9 10 11 12 13 14                                    \
     -constraints:cst_fa_file $KSI_INPUTS/restraints                         \
     -extra_res_fa $KSI_INPUTS/EQU.fa.params                                 \
