@@ -27,6 +27,5 @@ def main():
     args = docopt.docopt(__doc__)
     print structures.load(
             args['<directory>'],
-            args['--restraints'],
             not args['--recalc']).head()
 
