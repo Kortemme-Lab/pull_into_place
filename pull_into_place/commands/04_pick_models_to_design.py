@@ -30,9 +30,9 @@ Queries:
     picked.  The query strings use the same syntax of the query() method of
     pandas DataFrame objects, which is pretty similar to python syntax.
     Loosely speaking, each query must consist of a criterion name, a comparison
-    operator, and a comparison value.  Any filter title can be used as a criterion,
-    but spaces should be replaced with underscores, and "+" or "-" values should be
-    left out. 5 criterion names are recognized by default:
+    operator, and a comparison value.  Any filter title can be used as a
+    criterion, but spaces should be replaced with underscores, and "+" or "-"
+    values should be left out. 5 criterion names are recognized by default:
 
     "restraint_dist"
         The average distance between all the restrained atoms and their target
@@ -48,10 +48,11 @@ Queries:
     "total_score"
         The total score of a model.
 
-    If you would like to query based on a custom filter score, just type out the
-    name of the score, with underscores instead of spaces and without any "directional"
-    tags (i.e. [[+]] or [[-]]). For example, if the filter is named "PackStat Score [[+]]",
-    your query might look like "PackStat_Score > 0.67". 
+    If you would like to query based on a custom filter score, just type out 
+    the name of the score without any "directional tags (i.e. [[+]] or [[-]]),  
+    with underscores instead of spaces, and with any other non-alphanumeric 
+    characters removed.  For example, if the filter is named "PackStat Score 
+    [[+]]", your query would look like "packstat_score > 0.67".  
 
     Some example query strings:
 
@@ -61,6 +62,7 @@ Queries:
 
 import os, glob
 from klab import docopt, scripting
+from pandas.core.computation.ops import UndefinedVariableError
 from .. import pipeline, structures
 
 @scripting.catch_and_print_errors()
@@ -91,10 +93,17 @@ def main():
         cols = [c for c in all_score_dists.columns]
         for index, title in enumerate(cols):
             title = structures.parse_filter_name(title)[0]
-            title.replace(' ','_')
-            cols[index] = title.replace(' ','_')
+            cols[index] = slug_from_title(title)
         all_score_dists.columns = cols
-        best_score_dists = all_score_dists.query(query)
+
+        try:
+            best_score_dists = all_score_dists.query(query)
+        except UndefinedVariableError as e:
+            message = "{0}.  Did you mean:\n".format(str(e).capitalize())
+            for col in all_score_dists.columns:
+                message += '    {}\n'.format(col)
+            scripting.print_error_and_die(message)
+
         best_inputs = set(best_score_dists['path'])
 
         num_models += len(all_score_dists)
@@ -138,3 +147,9 @@ def main():
     if args['--dry-run']:
         print "(Dry run: no symlinks created.)"
 
+def slug_from_title(title):
+    slug = ""
+    for char in title:
+        if char.isalnum(): slug += char.lower()
+        if char in ' _-': slug += '_'
+    return slug.strip('_')
