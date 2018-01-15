@@ -92,7 +92,7 @@ Hotkeys:
     escape: Unfocus the search and description forms.
 """
 
-import os, glob, yaml, numpy as np
+import os, re, glob, yaml, numpy as np
 from .. import pipeline, structures
 
 def main():
@@ -107,9 +107,9 @@ def main():
 
     import show_my_designs as smd
 
-    class PipDesign (smd.Design):
+    class PipDesign (smd.Design): #
 
-        def _load_models(self, use_cache):
+        def _load_models(self, use_cache): #
             self._models = structures.load(
                     self.directory,
                     use_cache=use_cache,
@@ -143,6 +143,24 @@ def main():
         for record in records:
             title = structures.parse_filter_name(record)[0]
             smd.metric_titles[record] = unicode(title)
+
+    def get_metric_title(metric): #
+        match = re.match('restraint_dist_(.+)', metric)
+        if match:
+            name = match.group(1).upper()
+            return u"Restraint Satisfaction for {0} (Å)".format(name)
+        return get_metric_title.original_function(metric)
+        
+    def get_metric_guide(metric):
+        if metric.startswith('restraint_dist'):
+            return 1.0
+        return get_metric_guide.original_function(metric)
+        
+    get_metric_title.original_function = smd.get_metric_title
+    get_metric_guide.original_function = smd.get_metric_guide
+
+    smd.gui.get_metric_title = get_metric_title
+    smd.gui.get_metric_guide = get_metric_guide
 
     smd.metric_limits['total_score'] = lambda x: (min(x), np.percentile(x, 85))
     smd.metric_limits['restraint_dist'] = lambda x: (0, np.percentile(x, 95))

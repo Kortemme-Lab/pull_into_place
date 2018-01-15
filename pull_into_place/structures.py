@@ -11,6 +11,8 @@ example, caches generated with pandas 0.15 can't be read by pandas 0.14.
 
 import sys, os, re, glob, collections, gzip, re, yaml
 import numpy as np, scipy as sp, pandas as pd
+from scipy.spatial.distance import euclidean
+from pprint import pprint
 from . import pipeline
 
 
@@ -45,6 +47,7 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
     if require_io_dir and not any(
             os.path.samefile(pdb_dir, x) for x in workspace.io_dirs):
         raise IOError("'{}' is not an input or output directory".format(pdb_dir))
+
     # Find all the structures in the given directory, then decide which have
     # already been cached and which haven't.
 
@@ -70,10 +73,9 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
 
     # Calculate score and distance metrics for the uncached paths, then combine
     # the cached and uncached data into a single data frame.
+
     uncached_records = read_and_calculate(workspace, uncached_paths)
     all_records = pd.DataFrame(cached_records + uncached_records)
-
-
 
     # Make sure all the expected metrics were calculated.
 
@@ -101,19 +103,6 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
 
     return all_records
 
-class Restraint(object):
-    # Class for defining restraints. atom1_coords and atom2_coords are for AtomPair constraints.
-    # This should allow for relatively easy implementation of additional constraint types.
-    def __init__(self):
-        self.restraint_type = None
-        self.atom_name = None
-        self.residue_id = None
-        self.atom2_name = None
-        self.residue2_id = None
-        self.position = None # For AtomPair constraints, position is the desired distance between atoms.
-        self.atom1_coords = None
-        self.atom2_coords = None
-
 def read_and_calculate(workspace, pdb_paths):
     """
     Calculate a variety of score and distance metrics for the given structures.
@@ -126,48 +115,25 @@ def read_and_calculate(workspace, pdb_paths):
     # For example, the validation runs don't use restraints but the restraint
     # distance is a very important metric for deciding which designs worked.
 
-    restraints = []
-    filter_list = []
-    with open(workspace.restraints_path) as file:
-        for line in file:
-            if not line.startswith('#'):
-                fields = line.split()
-                restraint = Restraint()
-                restraint.restraint_type=fields[0]
-                restraint.atom_name=fields[1]
-                restraint.atom2_name=fields[3]
-                restraint.residue_id=fields[2]
-                restraint.residue2_id=fields[4]
-                restraint.position=None
-                if restraint.restraint_type == 'CoordinateConstraint':
-                    restraint.position=xyz_to_array(fields[5:8])
-                elif restraint.restraint_type=='AtomPair':
-                    restraint.position=float(fields[6])
-                restraints.append(restraint)
-
-
-            elif not line.strip():
-                pass
-
-            else:
-                print "Skipping unrecognized restraint: '{}...'".format(line[:46])
-
-    score_table_pattern = re.compile(r'^[A-Z]{3}(?:_[A-Z])?_([1-9]+) ')
-
+    restraints = parse_restraints(workspace.restraints_path)
 
     # Calculate score and distance metrics for each structure.
 
-    records = []
-    from scipy.spatial.distance import euclidean
     from klab.bio.basics import residue_type_3to1_map
+
+    records = []
+    filter_list = []
+    atom_xyzs = {}
+    score_table_pattern = re.compile(r'^[A-Z]{3}(?:_[A-Z])?_([1-9]+) ')
 
     for i, path in enumerate(pdb_paths):
         record = {'path': os.path.basename(path)}
         sequence = ""
+        sequence_map = {}
         last_residue_id = None
         dunbrack_index = None
         dunbrack_scores = []
-        restraint_distances = []
+
         # Update the user on our progress, because this is often slow.
 
         sys.stdout.write("\rReading '{}' [{}/{}]".format(
@@ -207,7 +173,7 @@ def read_and_calculate(workspace, pdb_paths):
             elif score_table_match:
                 residue_id = score_table_match.group(1)
                 for restraint in restraints:
-                    if restraint.residue_id == residue_id:
+                    if residue_id in restraint.residue_ids:
                         dunbrack_score = float(line.split()[dunbrack_index])
                         dunbrack_scores.append(dunbrack_score)
                         break
@@ -227,33 +193,50 @@ def read_and_calculate(workspace, pdb_paths):
 
             elif (line.startswith('ATOM') or line.startswith('HETATM')):
                 atom_name = line[12:16].strip()
-                residue_id = line[22:26].strip()
+                residue_id = int(line[22:26].strip())
                 residue_name = line[17:20].strip()
 
                 # Keep track of this model's sequence.
+
                 if line.startswith('ATOM'): 
                     if residue_id != last_residue_id:
-                        sequence += residue_type_3to1_map.get(residue_name, 'X')
+                        one_letter_code = residue_type_3to1_map.get(residue_name, 'X')
+                        sequence += one_letter_code
+                        sequence_map[residue_id] = one_letter_code
                         last_residue_id = residue_id
 
-                # See if this atom was restrained.
+                # Save the coordinate for this atom.  This will be used later 
+                # to calculate restraint distances.
 
-                for restraint in restraints:
-                    if (restraint.residue_id == residue_id and
-                            restraint.atom_name == atom_name):
-                        position = xyz_to_array(line[30:54].split())
-                        if restraint.restraint_type == 'CoordinateConstraint':
-                            distance = euclidean(restraint.position, position)
-                            restraint_distances.append(distance)
-                        elif restraint.restraint_type == 'AtomPair':
-                            restraint.atom1_coords = position
-                    if (restraint.residue2_id == residue_id and restraint.atom2_name == atom_name):
-                        if restraint.restraint_type == 'AtomPair':
-                             restraint.atom2_coords = xyz_to_array(line[30:54].split())
+                atom_xyzs[atom_name, residue_id] = xyz_to_array((
+                        line[30:38], line[38:46], line[46:54]))
+
+        # Finish calculating some records that depend on the whole structure.
+
+        record['sequence'] = sequence
+        if dunbrack_scores:
+            record['dunbrack_score'] = np.max(dunbrack_scores)
+
+        # Calculate how well each restraint was satisfied.
+
+        restraint_distances = []
+        residue_specific_restraint_distances = {}
 
         for restraint in restraints:
-            if restraint.restraint_type == 'AtomPair':
-                restraint_distances.append(abs(euclidean(restraint.atom1_coords, restraint.atom2_coords) - restraint.position))
+            d = restraint.distance_from_ideal(atom_xyzs)
+            restraint_distances.append(d)
+            for i in restraint.residue_ids:
+                residue_specific_restraint_distances.setdefault(i,[]).append(d)
+
+        if restraint_distances:
+            record['restraint_dist'] = np.max(restraint_distances)
+        if len(residue_specific_restraint_distances) > 1:
+            for i in residue_specific_restraint_distances:
+                key = 'restraint_dist_{0}{1}'.format(sequence_map[i].lower(), i)
+                record[key] = np.max(residue_specific_restraint_distances[i])
+
+        # Something with filters...
+
         filter_path = workspace.filters_list
         with open(filter_path, 'r+') as file:
             filter_list_cached = yaml.load(file)
@@ -263,16 +246,12 @@ def read_and_calculate(workspace, pdb_paths):
             for f in filter_list:
                 if f not in filter_list_cached:
                     new_filters.append(f)
+
         if new_filters:
             filter_list_to_cache = filter_list_cached + new_filters
             with open(filter_path, 'w') as file:
                 yaml.dump(filter_list_to_cache,file)
 
-        record['sequence'] = sequence
-        if dunbrack_scores:
-            record['dunbrack_score'] = np.max(dunbrack_scores)
-        if restraint_distances:
-            record['restraint_dist'] = np.mean(restraint_distances)
         records.append(record)
 
     if pdb_paths:
@@ -280,13 +259,28 @@ def read_and_calculate(workspace, pdb_paths):
 
     return records
 
-def xyz_to_array(xyz):
-    """
-    Convert a list of strings representing a 3D coordinate to floats and return
-    the coordinate as a ``numpy`` array.
-    """
-    return np.array([float(x) for x in xyz])
+def parse_restraints(path):
+    restraints = []
+    parsers = {
+            'CoordinateConstraint': CoordinateRestraint,
+            'AtomPairConstraint': AtomPairRestraint,
+    }
 
+    with open(path) as file:
+        for line in file:
+            if not line.strip(): continue
+            if line.startswith('#'): continue
+
+            tokens = line.split()
+            type, args = tokens[0], tokens[1:]
+
+            if type not in parsers:
+                raise IOError("Cannot parse '{0}' restraints.".format(type))
+
+            restraint = parsers[type](args)
+            restraints.append(restraint)
+
+    return restraints
 
 def parse_filter_name(name):
     found = re.search(r"\[\[(.*?)\]\]",name)
@@ -297,6 +291,39 @@ def parse_filter_name(name):
     else:
         title = name
     return title, direction
+
+def xyz_to_array(xyz):
+    """
+    Convert a list of strings representing a 3D coordinate to floats and return
+    the coordinate as a ``numpy`` array.
+    """
+    return np.array([float(x) for x in xyz])
+
+
+class CoordinateRestraint(object):
+
+    def __init__(self, args):
+        self.atom_name = args[0]
+        self.residue_id = int(args[1])
+        self.residue_ids = [self.residue_id]
+        self.atom = self.atom_name, self.residue_id
+        self.coord = xyz_to_array(args[4:7])
+
+    def distance_from_ideal(self, atom_xyzs):
+        return euclidean(self.coord, atom_xyzs[self.atom])
+
+
+class AtomPairRestraint(object):
+
+    def __init__(self, args):
+        self.atom_names = [args[0], args[2]]
+        self.residue_ids = [int(args[i]) for i in (1,3)]
+        self.atom_pair = zip(self.atom_names, self.residue_ids)
+
+    def distance_from_ideal(self, atom_xyzs):
+        coords = [atom_xyzs[x] for x in self.atom_pair]
+        return euclidean(*coords)
+
 
 class Design (object):
     """
@@ -311,7 +338,7 @@ class Design (object):
         self.structures = load(directory)
         self.loops = pipeline.load_loops(directory)
         self.resfile = pipeline.load_resfile(directory)
-        self.representative = self.rep = np.argmin(self.scores)
+        self.representative = self.rep = self.scores.idxmin()
 
     def __getitem__(self, key):
         return self.structures[key]
