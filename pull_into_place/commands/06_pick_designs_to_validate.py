@@ -1,22 +1,26 @@
 #!/usr/bin/env python2
 
 """\
-Pick a set of designs to validate.  This is actually a rather challenging task 
-because so few designs can be validated.  Typically the decision is made based 
-on sequence identity and rosetta score.  It might be nice to add a clustering 
-component as well.
+Pick the designs that are at or near the Pareto front of the given metrics to 
+validate in the next step.
 
 Usage:
     pull_into_place 06_pick_designs_to_validate
-            <workspace> <round> [<queries>...] [options]
+            <workspace> <round> <metrics>... [options]
 
 Options:
-    --num NUM, -n NUM           [default: 50]
-        The number of designs to pick.  The code can gets stuck and run for a 
-        long time if this is too close to the number of design to pick from.
-
-    --temp TEMP, -t TEMP        [default: 2.0]
-        The parameter controlling how often low scoring designs are picked.
+    --depth LEVEL, -n LEVEL         [default: 1]
+        The number of Pareto fronts to return.  In other words, if --depth=2, 
+        the Pareto front of all the design will be calculated, then those 
+        designs (and any within epsilon of them) will be set aside, then the 
+        Pareto front of the remaining designs will be calculated, then the 
+        union of both fronts will be selected.
+        
+    --epsilon PERCENT, -e PERCENT   [default: 0.1]
+        How similar two designs can be in all the metrics considered before 
+        they are considered the same and one is excluded from the Pareto front 
+        (even if it is non-dominated).  This is roughly in units of percent of 
+        the range of the points.
 
     --clear, -x
         Forget about any designs that were previously picked for validation.
@@ -24,27 +28,77 @@ Options:
     --recalc, -f
         Recalculate all the metrics that will be used to choose designs.
 
-    --dry-run
+    --dry-run, -d
         Don't actually fill in the input directory of the validation workspace.  
         Instead just report how many designs would be picked.
+
+Metrics:
+    The given metrics specify which scores will be used to construct the Pareto 
+    front.  You can refer to any of the metrics available in the 'plot_funnels' 
+    GUI by making the title lowercase, replacing any spaces or dashes with 
+    underscores, and removing any special characters.
+
+    In order for this to work, PIP needs to understand whether high values or 
+    low values are favorable for each individual metric.  This is taken care of 
+    for all the built-in metrics, but if you've added any filters to the 
+    pipeline, you need to specify this by adding a short code to your filters' 
+    names: "[+]" is bigger is better, or "[-]" if smaller is better.
+
+    You can also specify thresholds for each metric being considered.  This is 
+    done using the same syntax of the query() method of pandas DataFrame 
+    objects, which is pretty similar to python syntax.  Loosely speaking, each 
+    query must consist of a criterion name, a comparison operator, and a 
+    comparison value.  There is an example of this syntax below.
+
+Tuning:
+    Depending on the round, you often want to validate between 50-500 designs.  
+    However, there's no direct way to control exactly how many designs get 
+    selected.  Instead, you have to use the --depth and --epsilon options to 
+    tune both the quantity and diversity of designs that are selected.
+
+    Increasing --depth increases the number of designs that are selected, 
+    because it includes designs that are the given number of steps back from 
+    the Pareto front.
+
+    Increasing --epsilon decreases the number of designs that are selected, but 
+    increases the diversity of those designs, because it excludes designs that 
+    have very similar scores across all the metrics being considered.
+    
+Examples:
+    A basic selection:
+    $ pull_into_place 06_pick /path/to/project 1 \
+            total_score restraint_dist
+
+    Assuming we've added a filter called "Hydrophobic SASA [-]":
+    $ pull_into_place 06_pick /path/to/project 1 \
+            total_score restraint_dist hydrophobic_sasa
+
+    Threshold the restraint distance:
+    $ pull_into_place 06_pick /path/to/project 1 \
+            total_score 'restraint_dist < 1.0'
+
+    Increase the number of models to select:
+    $ pull_into_place 06_pick /path/to/project 1 \
+            total_score restraint_dist -d5
+
+    Decrease the number of models to select:
+    $ pull_into_place 06_pick /path/to/project 1 \
+            total_score restraint_dist -e5
 """
 
-import os, sys
+import os, sys, re
+import pandas as pd
 from numpy import *
 from klab import docopt, scripting
 from .. import pipeline, structures
+from pprint import pprint
 
 @scripting.catch_and_print_errors()
 def main():
     args = docopt.docopt(__doc__)
     root = args['<workspace>']
     round = args['<round>']
-    query = ' and '.join(args['<queries>'])
-    temp = float(args['--temp'])
-
-    # Import ``pylab`` after handling the help message, because otherwise 
-    # ``matplotlib`` sometimes issues warnings that then show up in the docs.
-    import pylab
+    metrics, queries = parse_metrics(args['<metrics>'])
 
     workspace = pipeline.ValidatedDesigns(root, round)
     workspace.check_paths()
@@ -57,7 +111,7 @@ def main():
 
     # Get sequences and scores for each design.
 
-    seqs_scores = structures.load(
+    seqs_scores, score_metadata = structures.load(
             predecessor.output_dir,
             use_cache=not args['--recalc'],
     )
@@ -66,8 +120,8 @@ def main():
 
     # If a query was given on the command line, find models that satisfy it.
 
-    if query:
-        seqs_scores = seqs_scores.query(query)
+    if queries:
+        seqs_scores = seqs_scores.query(' and '.join(queries))
         print '    minus given query:        ', len(seqs_scores)
 
     # Keep only the lowest scoring model for each set of identical sequences.
@@ -78,6 +132,15 @@ def main():
             reset_index(drop=True)
     print '    minus duplicate sequences:', len(seqs_scores)
     
+    # Remove designs that aren't in the Pareto front.
+
+    seqs_scores = structures.find_pareto_front(
+            seqs_scores, score_metadata, metrics,
+            depth=int(args['--depth']),
+            epsilon=float(args['--epsilon']),
+    )
+    print '    minus Pareto dominated:   ', len(seqs_scores)
+
     # Remove designs that have already been picked.
 
     existing_inputs = set(
@@ -87,82 +150,36 @@ def main():
     print '    minus current inputs:     ', len(seqs_scores)
     print
 
-    # Use a Boltzmann weighting scheme to pick designs.
-
-    seq_scores = seqs_scores.sort_values(by='total_score')
-    
-    scores = seqs_scores.total_score.values
-    scores -= median(scores)
-    weights = exp(-scores / temp)
-    indices = arange(len(scores))
-
-    pdf = array(weights)
-    cdf = cumsum(pdf) / sum(pdf)
-
-    num_to_pick = min(int(args['--num']), len(scores))
-    picked_indices = set()
-
-    while len(picked_indices) < num_to_pick:
-        choice = random.random()
-        picked_index = indices[cdf > choice][0]
-        picked_indices.add(picked_index)
-
-    picked_indices = sorted(picked_indices)
-
-    # Show the user the probability distributions used to pick designs.
-
-    raw_input("""\
-Press [enter] to view the designs that were picked and the distributions that
-were used to pick them.  Pay particular attention to the CDF.  If it is too
-flat, the temperature (T={0}) is too high and designs are essentially being
-picked randomly.  If it is too sharp, the temperature is too low and only the 
-highest scoring designs are being picked.
-""".format(temp))
-
-    color = '#204a87'   # Tango dark blue
-    base_format = dict(color=color)
-    picked_format = dict(marker='o', ls='none', mfc=color, mec='none')
-
-    pylab.figure(num=1, figsize=(8,3))
-
-    pylab.subplot(1, 3, 1)
-    pylab.title('Rosetta Scores')
-    pylab.plot(indices, scores, **base_format)
-    pylab.plot(picked_indices, scores[picked_indices], **picked_format)
-
-    pylab.subplot(1, 3, 2)
-    pylab.title('Boltzmann PDF')
-    pylab.plot(indices, pdf, **base_format)
-    pylab.plot(picked_indices, pdf[picked_indices], **picked_format)
-    pylab.yscale('log')
-
-    pylab.subplot(1, 3, 3)
-    pylab.title('Boltzmann CDF')
-    pylab.plot(indices, cdf, **base_format)
-    pylab.plot(picked_indices, cdf[picked_indices], **picked_format)
-
-    pylab.tight_layout()
-    pylab.show()
-
-    if raw_input("Accept these picks? [Y/n] ") == 'n':
-        print "Aborting."
-        sys.exit()
-
-    # Make symlinks to the picked designs.
-    
     if not args['--dry-run']:
         existing_ids = set(
                 int(x[0:-len('.pdb.gz')])
-                for x in os.listdir(workspace.input_dir))
+                for x in os.listdir(workspace.input_dir)
+                if x.endswith('.pdb.gz'))
         next_id = max(existing_ids) + 1 if existing_ids else 0
 
-        for id, picked_index in enumerate(picked_indices, next_id):
-            basename = seqs_scores.iloc[picked_index]['path']
+        for id, picked_index in enumerate(seqs_scores.index, next_id):
+            basename = seqs_scores.loc[picked_index]['path']
             target = os.path.join(predecessor.output_dir, basename)
             link_name = os.path.join(workspace.input_dir, '{0:04}.pdb.gz')
             scripting.relative_symlink(target, link_name.format(id))
 
-    print "Picked {} designs.".format(len(picked_indices))
+    print "Picked {} designs.".format(len(seqs_scores))
 
     if args['--dry-run']:
         print "(Dry run: no symlinks created.)"
+
+def parse_metrics(args):
+    metrics = set()
+    queries = []
+
+    for arg in args:
+        expr = re.match('(\w+)\s*[=!<> ].*', arg)
+        if expr:
+            metrics.add(expr.group(1))
+            queries.append(arg)
+        else:
+            metrics.add(arg)
+
+    return metrics, queries
+
+

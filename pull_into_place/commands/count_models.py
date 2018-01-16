@@ -19,15 +19,16 @@ Options:
         being regenerated in a directory that is not a workspace.
 
 Queries:
-    The query string uses the same syntax as the query() method of pandas 
+    The query strings use the same syntax of the query() method of pandas 
     DataFrame objects, which is pretty similar to python syntax.  Loosely 
     speaking, each query must consist of a criterion name, a comparison 
-    operator, and a comparison value.  Only 5 criterion names are recognized:
+    operator, and a comparison value.  Five criterion names are recognized by 
+    default:
 
     "restraint_dist"
         The average distance between all the restrained atoms and their target 
-        positions in a model. 
-    "loop_dist"
+        positions in a model.
+    "loop_rmsd"
         The backbone RMSD of a model relative to the input structure.
     "buried_unsat_score"
         The change in the number of buried unsatisfied H-bonds in a model 
@@ -37,6 +38,12 @@ Queries:
         restrained during the loopmodel simulation.
     "total_score"
         The total score of a model.
+
+    You can also include in your query any of the filters that were used to 
+    score the models in question.  To do this, use the filter's title in 
+    lowercase with underscores instead of spaces and any bracketed expressions 
+    or non-alphanumeric characters removed.  For example, for a filter named 
+    "PackStat Score [[+]]", a query would look like "packstat_score > 0.67".
 
     Some example query strings:
 

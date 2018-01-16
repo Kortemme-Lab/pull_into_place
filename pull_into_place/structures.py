@@ -1,6 +1,8 @@
 #!/usr/bin/env python2
 # encoding: utf-8
 
+from __future__ import division
+
 """\
 This module provides a function that will read a directory of PDB files and
 return a pandas data frame containing a number of score, distance, and sequence
@@ -394,13 +396,120 @@ def xyz_to_array(xyz):
     return np.array([float(x) for x in xyz])
 
 
+def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=1e-7):
+    """
+    Return the subset of the given metrics that are Pareto optimal with respect 
+    to the given columns.
+
+    Arguments
+    =========
+    metrics: DataFrame
+        A dataframe where each row is a different model or design and each 
+        column is a different score metric.
+
+    metadata: dict
+        Extra information about each score metric, in particular whether or not 
+        bigger values are considered better or worse.  You can get this data 
+        structure from structures.load().
+
+    columns: list
+        The score metrics to consider when calculating the Pareto front.
+
+    depth: int
+        The number of Pareto fronts to return.  In other words, if depth=2, the 
+        Pareto front will be calculated, then those points (and any within 
+        epsilon of them) will be set aside, then the Pareto front of the 
+        remaining points will be calculated, then the union of both fronts will 
+        be returned.
+
+    epsilon: float
+        How close two points can be (in all the dimensions considered) before 
+        they are considered the same and one is excluded from the Pareto front 
+        (even if it is non-dominated).  This is roughly in units of percent of 
+        the range of the points.
+
+    Returns
+    =======
+    front: DataFrame
+        The subset of the given metrics that is Pareto optimal with respect to 
+        the given score metrics.
+
+    There are several ways to tune the number of models that are returned by 
+    this function.  These are important to know, because this function is used 
+    to filter models between rounds of design, and there are always practical 
+    constraints on the number of models that can be carried on:
+
+    - Columns: This is only mentioned for completeness, because you should pick 
+      your score metrics based on which scores you think are informative, not 
+      based on how many models you need.  But increasing the number of score 
+      metrics increases the number of models that are selected, sometimes 
+      dramatically.
+
+    - Depth: Increasing the depth increases the number of models that are 
+      selected by including models that are just slightly behind the Pareto 
+      front.
+
+    - Epsilon: Increasing the epsilon decreases the number of models that are 
+      selected by discarding the models in the Pareto front that are too 
+      similar to each other.
+      
+    In short, tune depth to get more models and epsilon to get fewer.  You 
+    can also tune both at once to get a large but diverse set of models.
+    """
+    import pareto
+
+    indices_from_cols = lambda xs: [metrics.columns.get_loc(x) for x in xs]
+    percentile = lambda x, q: metrics[x].quantile(q/100)
+    epsilons_from_cols = lambda xs: [
+            epsilon * abs(percentile(x, 90) - percentile(x, 10)) / (90 - 10)
+            for x in xs]
+
+    epsilons = epsilons_from_cols(columns)
+    maximize = [x for x in columns if metadata[x].direction == '+']
+    maximize_indices = indices_from_cols(maximize)
+    column_indices = indices_from_cols(columns)
+
+    def boxify(df): #
+        boxed_df = pd.DataFrame()
+        for col, eps in zip(columns, epsilons):
+            boxed_df[col] = np.floor(df[col] / eps)
+        return boxed_df
+
+    mask = np.zeros(len(metrics), dtype='bool')
+    too_close = np.zeros(len(metrics), dtype='bool')
+    all_boxes = boxify(metrics)
+    labeled_metrics = metrics.copy()
+    labeled_metrics['_pip_index'] = metrics.index
+    id = labeled_metrics.columns.get_loc('_pip_index')
+
+    for i in range(depth):
+        # Figure out which points are within epsilon of points that are already 
+        # in the front, so they can be excluded from the search.  Without this, 
+        # points that are rejected for being too similar at one depth will be 
+        # included in the next depth.
+        front_boxes = boxify(metrics[mask])
+        for i, row in front_boxes.iterrows():
+            too_close |= all_boxes.apply(
+                    lambda x: (x == row).all(), axis='columns')
+
+        candidates = [labeled_metrics[too_close == False]]
+        front = pareto.eps_sort(
+                candidates, column_indices, epsilons, maximize=maximize_indices)
+
+        for row in front:
+            assert not mask[row[id]]
+            mask[row[id]] = True
+
+    return metrics[mask]
+
+
 class ScoreMetadata(object):
 
     def __init__(self, title, dir='-', guide=None, lower=None, upper=None, order=None, name=None):
         self.title = title
         self.name = name or name_from_title(title)
         self.order = order
-        self.direction = {'+': 1, '-': -1}[dir]
+        self.direction = dir
         self.guide = guide and float(guide)
         self.lower = lower
         self.upper = upper
@@ -425,11 +534,14 @@ class ScoreMetadata(object):
                 cutoff(upper, x, max(x)),
         )
 
+    def __repr__(self):
+        return '<ScoreMetadata name="{0}">'.format(self.name)
+
     def to_dict(self):
         d = {}
         d['title'] = self.title
         d['name'] = self.name
-        d['dir'] = {1: '+', -1: '-'}[self.direction]
+        d['dir'] = self.direction
 
         if self.guide:
             d['guide'] = self.guide

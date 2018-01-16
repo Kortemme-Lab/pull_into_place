@@ -30,14 +30,13 @@ Queries:
     picked.  The query strings use the same syntax of the query() method of
     pandas DataFrame objects, which is pretty similar to python syntax.
     Loosely speaking, each query must consist of a criterion name, a comparison
-    operator, and a comparison value.  Any filter title can be used as a
-    criterion, but spaces should be replaced with underscores, and "+" or "-"
-    values should be left out. 5 criterion names are recognized by default:
+    operator, and a comparison value.  Five criterion names are recognized by
+    default:
 
     "restraint_dist"
         The average distance between all the restrained atoms and their target
         positions in a model.
-    "loop_dist"
+    "loop_rmsd"
         The backbone RMSD of a model relative to the input structure.
     "buried_unsat_score"
         The change in the number of buried unsatisfied H-bonds in a model
@@ -48,11 +47,11 @@ Queries:
     "total_score"
         The total score of a model.
 
-    If you would like to query based on a custom filter score, just type out 
-    the name of the score without any "directional tags (i.e. [[+]] or [[-]]),  
-    with underscores instead of spaces, and with any other non-alphanumeric 
-    characters removed.  For example, if the filter is named "PackStat Score 
-    [[+]]", your query would look like "packstat_score > 0.67".  
+    You can also include in your query any of the filters that were used to
+    score the models in question.  To do this, use the filter's title in
+    lowercase with underscores instead of spaces and any bracketed expressions
+    or non-alphanumeric characters removed.  For example, for a filter named
+    "PackStat Score [[+]]", a query would look like "packstat_score > 0.67".
 
     Some example query strings:
 
