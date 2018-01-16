@@ -110,65 +110,13 @@ def main():
     class PipDesign (smd.Design): #
 
         def _load_models(self, use_cache): #
-            self._models = structures.load(
+            self._models, self._metrics = structures.load(
                     self.directory,
                     use_cache=use_cache,
                     require_io_dir=False,
             )
 
-    try:
-        workspace = pipeline.workspace_from_dir(args['<pdb_directories>'][0])
-    except pipeline.WorkspaceNotFound:
-        raise IOError("'{}' is not a workspace".format(pdb_dir))
-
-    filter_path = workspace.filters_list
     smd.gui.Design = PipDesign
-
-    try:
-        with open(filter_path,'r') as file:
-            records = yaml.load(file)
-    except IOError:
-        with open(filter_path,'w') as file:
-            records = []
-
-    smd.default_x_metric = 'restraint_dist'
-    smd.default_y_metric = 'total_score'
-
-    smd.metric_titles['total_score'] = u"Total Score (REU)"
-    smd.metric_titles['dunbrack_score'] = u"Dunbrack Score (REU)"
-    smd.metric_titles['buried_unsat_score'] = u"Δ Buried Unsats"
-    smd.metric_titles['restraint_dist'] = u"Restraint Satisfaction (Å)"
-    smd.metric_titles['loop_dist'] = u"Loop RMSD (Å)"
-    if records:
-        for record in records:
-            title = structures.parse_filter_name(record)[0]
-            smd.metric_titles[record] = unicode(title)
-
-    def get_metric_title(metric): #
-        match = re.match('restraint_dist_(.+)', metric)
-        if match:
-            name = match.group(1).upper()
-            return u"Restraint Satisfaction for {0} (Å)".format(name)
-        return get_metric_title.original_function(metric)
-        
-    def get_metric_guide(metric):
-        if metric.startswith('restraint_dist'):
-            return 1.0
-        return get_metric_guide.original_function(metric)
-        
-    get_metric_title.original_function = smd.get_metric_title
-    get_metric_guide.original_function = smd.get_metric_guide
-
-    smd.gui.get_metric_title = get_metric_title
-    smd.gui.get_metric_guide = get_metric_guide
-
-    smd.metric_limits['total_score'] = lambda x: (min(x), np.percentile(x, 85))
-    smd.metric_limits['restraint_dist'] = lambda x: (0, np.percentile(x, 95))
-    smd.metric_limits['loop_dist'] = lambda x: (0, np.percentile(x, 95))
-
-    smd.metric_guides['restraint_dist'] = 1.0
-    smd.metric_guides['loop_dist'] = 1.0
-
     smd.show_my_designs(
             args['<pdb_directories>'],
             use_cache=not args['--force'],

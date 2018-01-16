@@ -30,7 +30,7 @@ def main():
     output_path = args['<pdf_output>']
 
     if directory:
-        models = structures.load(directory)
+        models, filters = structures.load(directory)
         resfile = pipeline.load_resfile(directory)
         resis = sorted(int(i) for i in resfile.designable)
         print resis

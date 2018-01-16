@@ -84,7 +84,7 @@ def main():
     for input_subdir in predecessor.output_subdirs:
         # Find models meeting the criteria specified on the command line.
 
-        all_score_dists = structures.load(
+        all_score_dists, filters = structures.load(
                 input_subdir,
                 use_cache=not args['--recalc'],
         )

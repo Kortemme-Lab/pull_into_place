@@ -27,5 +27,5 @@ def main():
     args = docopt.docopt(__doc__)
     print structures.load(
             args['<directory>'],
-            not args['--recalc']).head()
+            not args['--recalc'])[0].head()
 
