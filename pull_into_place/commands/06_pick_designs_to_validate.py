@@ -134,10 +134,17 @@ def main():
     
     # Remove designs that aren't in the Pareto front.
 
+    def progress(i, depth, j, front): #
+        sys.stderr.write('\x1b[2K\r    minus Pareto dominated:    calculating... [{}/{}] [{}/{}]'.format(i, depth, j, front))
+        if i == depth and j == front:
+            sys.stderr.write('\x1b[2K\r')
+        sys.stderr.flush()
+
     seqs_scores = structures.find_pareto_front(
             seqs_scores, score_metadata, metrics,
             depth=int(args['--depth']),
             epsilon=float(args['--epsilon']),
+            progress=progress,
     )
     print '    minus Pareto dominated:   ', len(seqs_scores)
 

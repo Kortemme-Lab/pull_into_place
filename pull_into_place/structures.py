@@ -396,7 +396,7 @@ def xyz_to_array(xyz):
     return np.array([float(x) for x in xyz])
 
 
-def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=1e-7):
+def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=1e-7, progress=None):
     """
     Return the subset of the given metrics that are Pareto optimal with respect 
     to the given columns.
@@ -427,6 +427,13 @@ def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=1e-7):
         they are considered the same and one is excluded from the Pareto front 
         (even if it is non-dominated).  This is roughly in units of percent of 
         the range of the points.
+
+    progress: func
+        A function that will be called in the innermost loop as follows:
+        `progress(curr_depth, tot_depth, curr_hit, tot_hits)`.  This is 
+        primarily intended to allow the caller to present a progress bar, since 
+        increasing the depth can dramatically increase the amount of time this 
+        function takes.
 
     Returns
     =======
@@ -488,7 +495,8 @@ def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=1e-7):
         # points that are rejected for being too similar at one depth will be 
         # included in the next depth.
         front_boxes = boxify(metrics[mask])
-        for i, row in front_boxes.iterrows():
+        for j, (_, row) in enumerate(front_boxes.iterrows()):
+            if progress: progress(i+1, depth, j+1, len(front_boxes))
             too_close |= all_boxes.apply(
                     lambda x: (x == row).all(), axis='columns')
 
