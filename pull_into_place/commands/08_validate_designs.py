@@ -16,7 +16,7 @@ Options:
     --max-runtime TIME      [default: 24:00:00]
         The runtime limit for each validation job.
 
-    --max-memory MEM        [default: 1G]
+    --max-memory MEM        [default: 2G]
         The memory limit for each validation job.
 
     --mkdir

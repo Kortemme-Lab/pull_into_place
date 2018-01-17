@@ -19,7 +19,7 @@ Options:
         should work fine more often than not, but you also shouldn't be
         surprised if you need to increase this.
 
-    --max-memory MEM        [default: 1G]
+    --max-memory MEM        [default: 2G]
         The memory limit for each design job.
 
     --mkdir
