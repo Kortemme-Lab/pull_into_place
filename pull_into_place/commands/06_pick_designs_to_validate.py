@@ -98,7 +98,6 @@ def main():
     args = docopt.docopt(__doc__)
     root = args['<workspace>']
     round = args['<round>']
-    metrics, queries = parse_metrics(args['<metrics>'])
 
     workspace = pipeline.ValidatedDesigns(root, round)
     workspace.check_paths()
@@ -108,13 +107,14 @@ def main():
         workspace.clear_inputs()
 
     predecessor = workspace.predecessor
-
-    # Get sequences and scores for each design.
-
     seqs_scores, score_metadata = structures.load(
             predecessor.output_dir,
             use_cache=not args['--recalc'],
     )
+    metrics, queries = parse_metrics(args['<metrics>'], score_metadata)
+
+    # Get sequences and scores for each design.
+
     seqs_scores.dropna(inplace=True)
     print 'Total number of designs:      ', len(seqs_scores)
 
@@ -168,7 +168,7 @@ def main():
     if args['--dry-run']:
         print "(Dry run: no symlinks created.)"
 
-def parse_metrics(args):
+def parse_metrics(args, metadata):
     metrics = set()
     queries = []
 
@@ -179,6 +179,19 @@ def parse_metrics(args):
             queries.append(arg)
         else:
             metrics.add(arg)
+
+    unknown_metrics = metrics - set(metadata)
+    if unknown_metrics:
+        message = """\
+The following metrics are not understood:
+{0}
+
+Did you mean:
+{1}""" + '\n\n'
+        not_understood = '\n'.join('    ' + x for x in sorted(unknown_metrics))
+        did_you_mean = '\n'.join('    ' + x for x in sorted(metadata))
+        scripting.print_error_and_die(
+                message.format(not_understood, did_you_mean))
 
     return metrics, queries
 
