@@ -226,11 +226,14 @@ def read_and_calculate(workspace, pdb_paths):
 
                 # Keep track of this model's sequence.
 
-                if line.startswith('ATOM'): 
-                    if residue_id != last_residue_id:
+                if residue_id != last_residue_id:
+                    if line.startswith('ATOM'): 
                         one_letter_code = residue_type_3to1_map.get(residue_name, 'X')
                         sequence += one_letter_code
                         sequence_map[residue_id] = one_letter_code
+                        last_residue_id = residue_id
+                    elif line.startswith('HETATM'):
+                        sequence_map[residue_id] = 'L'
                         last_residue_id = residue_id
 
                 # Save the coordinate for this atom.  This will be used later 
@@ -297,6 +300,7 @@ def parse_restraints(path):
             'AtomPairConstraint': AtomPairRestraint,
             'AtomPair': AtomPairRestraint,
             'Dihedral': DihedralRestraint,
+            'NamedAngle': AngleRestraint,
     }
 
     with open(path) as file:
@@ -404,7 +408,7 @@ def angle(array_of_xyzs):
     """
     ab = array_of_xyzs[0] - array_of_xyzs[1]
     cb = array_of_xyzs[2] - array_of_xyzs[1]
-    return np.arccos((np.dot(ab,cb)) / (np.sqrt(ab[0]**2 + ab[1]**2  \ 
+    return np.arccos((np.dot(ab,cb)) / (np.sqrt(ab[0]**2 + ab[1]**2  \
         + ab[2]**2) * np.sqrt(cb[0]**2 + cb[1]**2 + cb[2]**2)))
 
 def dihedral(array_of_xyzs):
@@ -438,7 +442,7 @@ def dihedral(array_of_xyzs):
     # matter
     x = np.dot(v, w)
     y = np.dot(np.cross(vector2, v), w)
-    principal_dihedral = np.arctan2(y,x)
+    principle_dihedral = np.arctan2(y,x)
     # I'm leaving this variable explicit because it should be clear that
     # we need to make sure there are no non-principle angles that better
     # satisfy the constraint for some reason, but that needs to be done
@@ -646,12 +650,12 @@ class DihedralRestraint(object):
         self.ideal_dihedral = float(args[9])
 
     def distance_from_ideal(self, atom_xyzs):
-        coords = [atom_xyzs[x] for x in self.atom_pair]
-        dihedral = dihedral(coords)
+        coords = [atom_xyzs[x] for x in self.atoms]
+        measured_dihedral = dihedral(coords)
         # Make sure we don't get the wrong number because of
         # non-principle angles:
-        dihedrals = [dihedral - self.ideal_dihedral, dihedral + (2 * \
-                np.pi) - self.ideal_dihedral, dihedral - (2 * np.pi) - \
+        dihedrals = [measured_dihedral - self.ideal_dihedral, measured_dihedral + (2 * \
+                np.pi) - self.ideal_dihedral, measured_dihedral - (2 * np.pi) - \
                     self.ideal_dihedral]
         return min(dihedrals) 
 
@@ -659,17 +663,17 @@ class AngleRestraint(object):
 
     def __init__(self, args):
         self.atom_names = [args[0],args[2],args[4],args[6]]
-        self.residue_ids = [int(args[i]) for i in (1,3,5,7)]
+        self.residue_ids = [int(args[i]) for i in (1,3,5)]
         self.atoms = zip(self.atom_names, self.residue_ids)
-        self.ideal_angle = float(args[9])
+        self.ideal_angle = float(args[7])
 
     def distance_from_ideal(self, atom_xyzs):
-        coords = [atom_xyzs[x] for x in self.atom_pair]
-        angle = self.angle(coords)
+        coords = [atom_xyzs[x] for x in self.atoms]
+        measured_angle = angle(coords)
         # Make sure we don't get the wrong number because of
         # non-principle angles:
-        angles = [angle - self.ideal_angle, angle + (2 * np.pi) -
-                self.ideal_angle, angle - (2 * np.pi) -
+        angles = [measured_angle - self.ideal_angle, measured_angle + (2 * np.pi) -
+                self.ideal_angle, measured_angle - (2 * np.pi) -
                 self.ideal_angle]
         return min(angles)
 
