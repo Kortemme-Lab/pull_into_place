@@ -233,7 +233,7 @@ def read_and_calculate(workspace, pdb_paths):
                         sequence_map[residue_id] = one_letter_code
                         last_residue_id = residue_id
                     elif line.startswith('HETATM'):
-                        sequence_map[residue_id] = 'L'
+                        sequence_map[residue_id] = 'Lig'
                         last_residue_id = residue_id
 
                 # Save the coordinate for this atom.  This will be used later 
