@@ -647,6 +647,13 @@ class DihedralRestraint(object):
 
     def distance_from_ideal(self, atom_xyzs):
         coords = [atom_xyzs[x] for x in self.atom_pair]
+        dihedral = dihedral(coords)
+        # Make sure we don't get the wrong number because of
+        # non-principle angles:
+        dihedrals = [dihedral - self.ideal_dihedral, dihedral + (2 * \
+                np.pi) - self.ideal_dihedral, dihedral - (2 * np.pi) - \
+                    self.ideal_dihedral]
+        return min(dihedrals) 
 
 class AngleRestraint(object):
 
@@ -658,7 +665,13 @@ class AngleRestraint(object):
 
     def distance_from_ideal(self, atom_xyzs):
         coords = [atom_xyzs[x] for x in self.atom_pair]
-
+        angle = self.angle(coords)
+        # Make sure we don't get the wrong number because of
+        # non-principle angles:
+        angles = [angle - self.ideal_angle, angle + (2 * np.pi) -
+                self.ideal_angle, angle - (2 * np.pi) -
+                self.ideal_angle]
+        return min(angles)
 
 class Design (object):
     """
