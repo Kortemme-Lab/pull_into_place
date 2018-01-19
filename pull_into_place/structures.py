@@ -1,4 +1,7 @@
 #!/usr/bin/env python2
+# encoding: utf-8
+
+from __future__ import division
 
 """\
 This module provides a function that will read a directory of PDB files and
@@ -11,6 +14,8 @@ example, caches generated with pandas 0.15 can't be read by pandas 0.14.
 
 import sys, os, re, glob, collections, gzip, re, yaml
 import numpy as np, scipy as sp, pandas as pd
+from scipy.spatial.distance import euclidean
+from pprint import pprint
 from . import pipeline
 
 def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
@@ -44,13 +49,14 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
     if require_io_dir and not any(
             os.path.samefile(pdb_dir, x) for x in workspace.io_dirs):
         raise IOError("'{}' is not an input or output directory".format(pdb_dir))
+
     # Find all the structures in the given directory, then decide which have
     # already been cached and which haven't.
 
     pdb_paths = glob.glob(os.path.join(pdb_dir, '*.pdb.gz'))
     base_pdb_names = set(os.path.basename(x) for x in pdb_paths)
-    cache_path = os.path.join(pdb_dir, 'distances.pkl')
-    filter_path = workspace.filters_list
+    cache_path = os.path.join(pdb_dir, 'metrics.pkl')
+    metadata_path = os.path.join(pdb_dir, 'metrics.yml')
 
     if use_cache and os.path.exists(cache_path):
         try:
@@ -67,12 +73,20 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
         cached_records = []
         uncached_paths = pdb_paths
 
+    metadata = {}
+    if use_cache and os.path.exists(metadata_path):
+        with open(metadata_path) as file:
+            metadata_list = [ScoreMetadata(**x) for x in yaml.load(file)]
+            metadata = {x.name: x for x in metadata_list}
+
     # Calculate score and distance metrics for the uncached paths, then combine
     # the cached and uncached data into a single data frame.
-    uncached_records = read_and_calculate(workspace, uncached_paths)
+
+    uncached_records, uncached_metadata = \
+            read_and_calculate(workspace, uncached_paths)
+
     all_records = pd.DataFrame(cached_records + uncached_records)
-
-
+    metadata.update(uncached_metadata)
 
     # Make sure all the expected metrics were calculated.
 
@@ -90,6 +104,8 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
     # next time.
 
     all_records.to_pickle(cache_path)
+    with open(metadata_path, 'w') as file:
+        yaml.dump([v.to_dict() for k,v in metadata.items()], file)
 
     # Report how many structures had to be cached, in case the caller is
     # interested, and return to loaded data frame.
@@ -98,10 +114,7 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
         job_report['new_records'] = len(uncached_records)
         job_report['old_records'] = len(cached_records)
 
-
-    return all_records
-
-
+    return all_records, metadata
 
 def read_and_calculate(workspace, pdb_paths):
     """
@@ -115,127 +128,26 @@ def read_and_calculate(workspace, pdb_paths):
     # For example, the validation runs don't use restraints but the restraint
     # distance is a very important metric for deciding which designs worked.
 
-    #Restraint = collections.namedtuple('R', 'restraint_type atom1 atom2 atom3 atom4 atom1_pose atom2_pose atom3_pose atom4_pose restraint_value position')
-    restraints = []
-    filter_list = []
-    with open(workspace.restraints_path) as file:
-        for line in file:
-            if line.startswith('CoordinateConstraint'):
-                fields = line.split()
-                restraint = {}
-                restraint['atom1'] = [fields[1],fields[2],None]
-                restraint['restraint_value'] = fields[9]
-                restraint['position'] = xyz_to_array(fields[5:8])
-                restraint['restraint_type'] = fields[0]
-                """
-                restraint = Restraint(
-                        atom1=[fields[1],fields[2]],
-                        restraint_value = fields[9],
-                        position=xyz_to_array(fields[5:8]),
-                        atom2=None,
-                        atom3=None,
-                        atom4=None,
-                        restraint_type=fields[0],
-                        atom1_pose=None,
-                        atom2_pose=None,
-                        atom3_pose=None,
-                        atom4_pose=None
-                        )
-                """
-                restraints.append(restraint)
-            elif line.startswith('AtomPair'):
-                fields = line.split()
-                restraint = {}
-                restraint['atom1'] = [fields[1],fields[2],None]
-                restraint['atom2'] = [fields[3],fields[4],None]
-                restraint['restraint_value'] = fields[6]
-                restraint['restraint_type'] = fields[0]
-                """
-                restraint = Restraint (
-                        atom1=[fields[1],fields[2]],
-                        atom2=[fields[3],fields[4]],
-                        restraint_value=fields[6],
-                        atom3=None,
-                        atom4=None,
-                        restraint_type=fields[0],
-                        atom1_pose=None,
-                        atom2_pose=None,
-                        atom3_pose=None,
-                        atom4_pose=None,
-                        position=None
-                )
-                """
-                restraints.append(restraint)
-            elif line.startswith('NamedAngle'):
-                fields = line.split()
-                restraint = {}
-                restraint['atom1'] = [fields[1],fields[2],None]
-                restraint['atom2'] = [fields[3],fields[4],None]
-                restraint['atom3'] = [fields[5],fields[6],None]
-                restraint['restraint_value'] = fields[8]
-                restraint['restraint_type'] = fields[0]
-                """
-                restraint = Restraint (
-                        atom1=[fields[1],fields[2]],
-                        atom2=[fields[3],fields[4]],
-                        atom3=[fields[5],fields[6]],
-                        restraint_value=fields[8],
-                        atom4=None,
-                        restraint_type=fields[0],
-                        atom1_pose=None,
-                        atom2_pose=None,
-                        atom3_pose=None,
-                        atom4_pose=None,
-                        position=None
-                )
-                """
-                restraints.append(restraint)
-            elif line.startswith('Dihedral'):
-                fields = line.split()
-                restraint = {}
-                restraint['atom1'] = [fields[1],fields[2],None]
-                restraint['atom2'] = [fields[3],fields[4],None]
-                restraint['atom3'] = [fields[5],fields[6],None]
-                restraint['atom4'] = [fields[7],fields[8],None]
-                restraint['restraint_value'] = fields[10]
-                restraint['restraint_type'] = fields[0]
-                """
-                restraint = Restraint (
-                        atom1=[fields[1],fields[2]],
-                        atom2=[fields[3],fields[4]],
-                        atom3=[fields[5],fields[6]],
-                        atom4=[fields[7],fields[8]],
-                        restraint_value = fields[10],
-                        restraint_type=fields[0],
-                        atom1_pose=None,
-                        atom2_pose=None,
-                        atom3_pose=None,
-                        atom4_pose=None,
-                        position=None
-                )
-                """
-                restraints.append(restraint)
-
-            elif not line.strip():
-                pass
-
-            else:
-                print "Skipping unrecognized restraint: '{}...'".format(line[:46])
-
-    score_table_pattern = re.compile(r'^[A-Z]{3}(?:_[A-Z])?_([1-9]+) ')
+    restraints = parse_restraints(workspace.restraints_path)
 
     # Calculate score and distance metrics for each structure.
 
-    records = []
-    from scipy.spatial.distance import euclidean
     from klab.bio.basics import residue_type_3to1_map
+
+    records = []
+    metadata = {}
+    num_restraints = len(restraints) + 1
+    atom_xyzs = {}
+    score_table_pattern = re.compile(r'^[A-Z]{3}(?:_[A-Z])?_([1-9]+) ')
 
     for i, path in enumerate(pdb_paths):
         record = {'path': os.path.basename(path)}
         sequence = ""
+        sequence_map = {}
         last_residue_id = None
         dunbrack_index = None
         dunbrack_scores = []
+
         # Update the user on our progress, because this is often slow.
 
         sys.stdout.write("\rReading '{}' [{}/{}]".format(
@@ -263,10 +175,13 @@ def read_and_calculate(workspace, pdb_paths):
                     dunbrack_index and score_table_pattern.match(line)
 
             if line.startswith('pose'):
+                meta = ScoreMetadata(
+                        name='total_score',
+                        title='Total Score (REU)',
+                        order=1,
+                )
                 record['total_score'] = float(line.split()[1])
-
-            elif line.startswith('delta_buried_unsats'):
-                record['buried_unsat_score'] = float(line.split()[1])
+                metadata[meta.name] = meta
 
             elif line.startswith('label'):
                 fields = line.split()
@@ -275,95 +190,205 @@ def read_and_calculate(workspace, pdb_paths):
             elif score_table_match:
                 residue_id = score_table_match.group(1)
                 for restraint in restraints:
-                    for key in restraint:
-                        try:
-                            if restraint[key][1] == residue_id:
-                                dunbrack_score = float(line.split()[dunbrack_index])
-                                dunbrack_scores.append(dunbrack_score)
-                                break
-                        except:
-                            pass
+                    if residue_id in restraint.residue_ids:
+                        dunbrack_score = float(line.split()[dunbrack_index])
+                        dunbrack_scores.append(dunbrack_score)
+                        break
 
             elif line.startswith('EXTRA_SCORE_'):
-                filter_value = float(line.rsplit()[-1:][0])
-                filter_name = " ".join(line.rsplit()[:-1])[12:]
-                record[filter_name] = filter_value
-                if filter_name not in filter_list:
-                    filter_list.append(filter_name)
+                tokens = line[len('EXTRA_SCORE_'):].rsplit(None, 1)
+                meta = parse_filter(tokens[0], 5)
+                record[meta.name] = float(tokens[1])
+                metadata[meta.name] = meta
 
             elif line.startswith('delta_buried_unsats'):
-                record['buried_unsat_score'] = float(line.split()[1])
+                meta = ScoreMetadata(
+                        name='buried_unsats',
+                        title='Δ Buried Unsats',
+                        order=5,
+                )
+                record['buried_unsats'] = float(line.split()[1])
+                metadata[meta.name] = meta
 
             elif line.startswith('loop_backbone_rmsd'):
-                record['loop_dist'] = float(line.split()[1])
+                meta = ScoreMetadata(
+                        name='loop_rmsd',
+                        title='Loop RMSD (Å)',
+                        guide=1.0, lower=0.0, upper='95%', order=4,
+                )
+                record['loop_rmsd'] = float(line.split()[1])
+                metadata[meta.name] = meta
 
-            elif line.startswith('ATOM') or line.startswith('HETATM'):
+            elif (line.startswith('ATOM') or line.startswith('HETATM')):
                 atom_name = line[12:16].strip()
-                residue_id = line[22:26].strip()
+                residue_id = int(line[22:26].strip())
                 residue_name = line[17:20].strip()
 
                 # Keep track of this model's sequence.
 
-                if residue_id != last_residue_id and line.startswith('ATOM'):
-                    sequence += residue_type_3to1_map.get(residue_name, 'X')
-                    last_residue_id = residue_id
+                if line.startswith('ATOM'): 
+                    if residue_id != last_residue_id:
+                        one_letter_code = residue_type_3to1_map.get(residue_name, 'X')
+                        sequence += one_letter_code
+                        sequence_map[residue_id] = one_letter_code
+                        last_residue_id = residue_id
 
-                # See if this atom was restrained.
+                # Save the coordinate for this atom.  This will be used later 
+                # to calculate restraint distances.
 
-                for restraint in restraints:
-                    if restraint['restraint_type'] == 'CoordinateConstraint':
-                        try:
-                            if (restraint['atom1'][1] == residue_id and
-                                    restraint['atom1'][0] == atom_name):
-                                restraint = restraint._replace(atom1_pose = xyz_to_array(line[30:54].split()))
-                        except:
-                            print "Error: Something went wrong with your coordinate constraints."
-                            pass
-                    else:
-                        for key in restraint:
-                            try:
-                                if restraint[key][0] == atom_name and restraint[key][1] == residue_id:
-                                    restraint[key][2] = xyz_to_array(line[30:54].split())
-                            except:
-                                print "Error: Something went wrong with your constraints."
-                                pass
+                atom_xyzs[atom_name, residue_id] = xyz_to_array((
+                        line[30:38], line[38:46], line[46:54]))
 
-
-        filter_path = workspace.filters_list
-        with open(filter_path, 'r+') as file:
-            filter_list_cached = yaml.load(file)
-            if not filter_list_cached:
-                filter_list_cached = []
-            new_filters = []
-            for f in filter_list:
-                if f not in filter_list_cached:
-                    new_filters.append(f)
-        if new_filters:
-            with open(filter_path, 'w') as file:
-                filter_list_to_cache = filter_list_cached + new_filters
-                yaml.dump(filter_list_to_cache,file)
+        # Finish calculating some records that depend on the whole structure.
 
         record['sequence'] = sequence
         if dunbrack_scores:
+            meta = ScoreMetadata(
+                    name='dunbrack_score',
+                    title='Dunbrack Score (REU)',
+                    order=5,
+            )
             record['dunbrack_score'] = np.max(dunbrack_scores)
-        restraint_distances = parse_distance_restraints(restraints)
+            metadata[meta.name] = meta
+
+        # Calculate how well each restraint was satisfied.
+
+        restraint_distances = []
+        residue_specific_restraint_distances = {}
+
+        for restraint in restraints:
+            d = restraint.distance_from_ideal(atom_xyzs)
+            restraint_distances.append(d)
+            for i in restraint.residue_ids:
+                residue_specific_restraint_distances.setdefault(i,[]).append(d)
+
         if restraint_distances:
+            meta = ScoreMetadata(
+                    name='restraint_dist',
+                    title='Restraint Satisfaction (Å)',
+                    guide=1.0, lower=0.0, upper='95%', order=2,
+            )
             record['restraint_dist'] = np.max(restraint_distances)
-        restraint_angles = parse_angle_restraints(restraints)
-        if restraint_angles:
-            record['restraint_angles'] = np.max(restraint_angles)
-        restraint_dihedrals = parse_dihedral_restraints(restraints)
-        if restraint_dihedrals:
-            record['restraint_dihedrals'] = np.max(restraint_dihedrals)
-        if restraint_angles and restraint_dihedrals and restraint_distances:
-            record['restraint_sum'] = record['restraint_dist'] + record['restraint_angles'] + record['restraint_dihedrals']
+            metadata[meta.name] = meta
+
+        if len(residue_specific_restraint_distances) > 1:
+            for i in residue_specific_restraint_distances:
+                res = '{0}{1}'.format(sequence_map[i], i)
+                key = 'restraint_dist_{0}'.format(res.lower())
+                meta = ScoreMetadata(
+                        name=key,
+                        title='Restraint Satisfaction for {0} (Å)'.format(res),
+                        guide=1.0, lower=0.0, upper='95%', order=3,
+                )
+                record[key] = np.max(residue_specific_restraint_distances[i])
+                metadata[meta.name] = meta
 
         records.append(record)
 
     if pdb_paths:
         sys.stdout.write('\n')
 
-    return records
+    return records, metadata
+
+def parse_restraints(path):
+    restraints = []
+    parsers = {
+            'CoordinateConstraint': CoordinateRestraint,
+            'AtomPairConstraint': AtomPairRestraint,
+            'AtomPair': AtomPairRestraint,
+            'Dihedral': DihedralRestraint,
+    }
+
+    with open(path) as file:
+        for line in file:
+            if not line.strip(): continue
+            if line.startswith('#'): continue
+
+            tokens = line.split()
+            type, args = tokens[0], tokens[1:]
+
+            if type not in parsers:
+                raise IOError("Cannot parse '{0}' restraints.".format(type))
+
+            restraint = parsers[type](args)
+            restraints.append(restraint)
+
+    return restraints
+
+def parse_filter(desc, default_order=None):
+    """
+    Parse a filter name to get information about how to interpret and display 
+    that filter.  For example, consider the following filter name:
+
+        "Foldability Filter [+|guide 0.1]"
+
+    Everything outside the brackets is the name of the filter.  This is 
+    converted into a simpler name which can be referred to later on by making 
+    everything lower case, dropping anything inside of parentheses, replacing 
+    non-ASCII characters with ASCII one (on a best-effort basis, some letters 
+    may be dropped), and replacing spaces and dashes with underscores (expect 
+    trailing spaces, which are removed).
+
+    Everything in the brackets provides metadata about the filter.  All 
+    metadata is optional.  Different pieces of metadata are separated by 
+    vertical bars, and do not have to be labeled.  If unlabeled, the metadata 
+    are interpreted in the following order:
+
+    1. Direction (i.e. '+' or '-', are higher or lower values better?)
+    2. Order (i.e. how to sort a list of filters?)
+    3. Guide (i.e. where should a dashed line be drawn in the GUI?)
+    4. Lower limit (i.e. the default lower limit in the GUI)
+    5. Upper limit (i.e. the default upper limit in the GUI)
+
+    If labeled, the data can appear in any order.  The labels corresponding to 
+    the above arguments are abbreviated as follows: 'dir', 'order', 'guide', 
+    'lower', 'upper'.  No unlabeled metadata can appear after any labeled 
+    metadata.
+    """
+    meta = re.search(r'\[\[?(.*?)\]\]?', desc)
+
+    if not meta:
+        return ScoreMetadata(desc)
+
+    args = {}
+    if default_order is not None:
+        args['order'] = default_order
+
+    title = desc[:meta.start()] + desc[meta.end():]
+    tokens = meta.group(1).split('|')
+    default_keys = 'dir', 'order', 'guide', 'min', 'max'
+    default_ok = True
+
+    for i, token in enumerate(tokens):
+        try:
+            key, value = token.strip().split(None, 1)
+            # Stop using the defaults once we've been given an explicit key.
+            default_ok = False
+        except ValueError:
+            if default_ok and i < len(default_keys):
+                key, value = default_keys[i], token
+            else:
+                raise IOError("Unknown key for '{0}' in filter '{1}'".format(token, desc))
+
+        args[key] = value
+
+    return ScoreMetadata(title, **args)
+
+def name_from_title(title):
+    from unicodedata import normalize
+
+    # Replace any whitespace with an underscore.
+    name = re.sub(r'[ _-]+', '_', title)
+
+    # Try to replace unicode characters with alphanumeric ASCII ones.
+    name = normalize('NFKD', unicode(name)).encode('ascii', 'ignore')
+    name = ''.join(x for x in name if x.isalnum() or x in '_')
+    name = name.strip('_')
+
+    # Make everything lower case.
+    name = name.lower()
+
+    return name
 
 def xyz_to_array(xyz):
     """
@@ -372,92 +397,267 @@ def xyz_to_array(xyz):
     """
     return np.array([float(x) for x in xyz])
 
-def parse_filter_name(name):
-    found = re.search(r"\[\[(.*?)\]\]",name)
-    direction = None
-    if found:
-        title = re.sub(' +',' ',re.sub(r'\[\[(.*?)\]\]','',name).rstrip())
-        direction = found.group(1)
-    else:
-        title = name
-    return title, direction
+def angle(array_of_xyzs):
+    """
+    Calculates angle between three coordinate points (I could not find a package
+    that does this but if one exists that would probably be better). Used for Angle constraints. 
+    """
+    ab = array_of_xyzs[0] - array_of_xyzs[1]
+    cb = array_of_xyzs[2] - array_of_xyzs[1]
+    return np.arccos((np.dot(ab,cb)) / (np.sqrt(ab[0]**2 + ab[1]**2  \ 
+        + ab[2]**2) * np.sqrt(cb[0]**2 + cb[1]**2 + cb[2]**2)))
 
-def parse_distance_restraints(restraints):
-    from scipy.spatial.distance import euclidean
-    restraint_distances = []
-    for restraint in restraints:
-        if restraint['restraint_type'] == 'CoordinateConstraint':
-            distance = euclidean(restraint['atom1'][2], restraint['position'])
-            restraint_distances.append(abs(distance - float(restraint['restraint_value'])))
-        elif restraint['restraint_type'] == 'AtomPair':
-            try:
-                distance = euclidean(restraint['atom1'][2], restraint['atom2'][2])
-                restraint_distances.append(abs(distance - float(restraint['restraint_value'])))
-            except:
-                pass
-    return restraint_distances
+def dihedral(array_of_xyzs):
+    """
+    Calculates dihedral angle between four coordinate points. Used for
+    dihedral constraints. 
+    """
+    p1 = array_of_xyzs[0]
+    p2 = array_of_xyzs[1]
+    p3 = array_of_xyzs[2]
+    p4 = array_of_xyzs[3]
 
-def parse_angle_restraints(restraints):
-    restraint_angle_satisfaction = []
-    for restraint in restraints:
-        temp_angles = []
-        if restraint['restraint_type'] == 'NamedAngle':
-            try:
-                A = restraint['atom1'][2]
-                B = restraint['atom2'][2]
-                C = restraint['atom3'][2]
-                # vectors between points:
-                ab = A - B
-                cb = C - B
-                angle = np.arccos((np.dot(ab, cb)) / (np.sqrt(ab[0]**2 + ab[1]**2 + ab[2]**2) * np.sqrt(cb[0]**2 + cb[1]**2 + cb[2]**2)))
-                rv = float(restraint['restraint_value'])
-                temp_angles.append(abs(angle - rv))
-                temp_angles.append(abs((angle - 2 * np.pi) - rv))
-                temp_angles.append(abs((angle + 2 * np.pi) - rv))
-                restraint_angle_satisfaction.append(np.min(temp_angles))
-            except:
-                pass
-    return restraint_angle_satisfaction
+    vector1 = -1.0 * (p2 - p1)
+    vector2 = p3 - p2
+    vector3 = p4 - p3
 
-def parse_dihedral_restraints(restraints):
-    restraint_dihedrals = []
-    for restraint in restraints:
-        temp_dihedrals = []
-        if restraint['restraint_type'] == 'Dihedral':
-            try:
-                p1 = restraint['atom1'][2]
-                p2 = restraint['atom2'][2]
-                p3 = restraint['atom3'][2]
-                p4 = restraint['atom4'][2]
+    # Normalize vector so as not to influence magnitude of vector
+    # rejections
+    vector2 /= np.linalg.norm(vector2)
 
-                vector1 = -1.0 * (p2 - p1)
-                vector2 = p3 - p2
-                vector3 = p4 - p3
+    # Vector rejections:
+    # v = projection of vector1 onto plane perpendicular to vector2
+    #   = vector1 - component that aligns with vector2
+    # w = projection of vector3 onto plane perpendicular to vector2
+    #   = vector3 = component that aligns with vector2
+    v = vector1 - np.dot(vector1, vector2) * vector2
+    w = vector3 - np.dot(vector3, vector2) * vector2
 
-                # Normalize vector so as not to influence magnitude of vector rejections
-                vector2 /= np.linalg.norm(vector2)
+    # Angle between v and w in a plane that is the torsion angle
+    # v and w not normalized explicitly, but we use tan so that doesn't
+    # matter
+    x = np.dot(v, w)
+    y = np.dot(np.cross(vector2, v), w)
+    principal_dihedral = np.arctan2(y,x)
+    # I'm leaving this variable explicit because it should be clear that
+    # we need to make sure there are no non-principle angles that better
+    # satisfy the constraint for some reason, but that needs to be done
+    # outside this function. 
+    return principle_dihedral
 
-                # Vector rejections:
-                # v = projection of vector1 onto plane perpendicular to vector2
-                #   = vector1 - component that aligns with vector2
-                # w = projection of vector3 onto plane perpendicular to vector2
-                #   = vector3 - component that aligns with vector2
-                v = vector1 - np.dot(vector1, vector2) * vector2
-                w = vector3 - np.dot(vector3, vector2) * vector2
+def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=1e-7, progress=None):
+    """
+    Return the subset of the given metrics that are Pareto optimal with respect 
+    to the given columns.
 
-                # Angle between v and w in a plane is the torsion angle.
-                # v and w not normalized but we'll use tan so it doesn't matter.
-                x = np.dot(v, w)
-                y = np.dot(np.cross(vector2,v),w)
-                principal_dihedral = np.arctan2(y,x)
-                rv = float(restraint['restraint_value'])
-                temp_dihedrals.append(abs(principal_dihedral -rv))
-                temp_dihedrals.append(abs((principal_dihedral - 2 * np.pi) - rv))
-                temp_dihedrals.append(abs((principal_dihedral + 2 * np.pi) - rv))
-                restraint_dihedrals.append(np.min(temp_dihedrals))
-            except:
-                pass
-    return restraint_dihedrals
+    Arguments
+    =========
+    metrics: DataFrame
+        A dataframe where each row is a different model or design and each 
+        column is a different score metric.
+
+    metadata: dict
+        Extra information about each score metric, in particular whether or not 
+        bigger values are considered better or worse.  You can get this data 
+        structure from structures.load().
+
+    columns: list
+        The score metrics to consider when calculating the Pareto front.
+
+    depth: int
+        The number of Pareto fronts to return.  In other words, if depth=2, the 
+        Pareto front will be calculated, then those points (and any within 
+        epsilon of them) will be set aside, then the Pareto front of the 
+        remaining points will be calculated, then the union of both fronts will 
+        be returned.
+
+    epsilon: float
+        How close two points can be (in all the dimensions considered) before 
+        they are considered the same and one is excluded from the Pareto front 
+        (even if it is non-dominated).  This is roughly in units of percent of 
+        the range of the points.
+
+    progress: func
+        A function that will be called in the innermost loop as follows:
+        `progress(curr_depth, tot_depth, curr_hit, tot_hits)`.  This is 
+        primarily intended to allow the caller to present a progress bar, since 
+        increasing the depth can dramatically increase the amount of time this 
+        function takes.
+
+    Returns
+    =======
+    front: DataFrame
+        The subset of the given metrics that is Pareto optimal with respect to 
+        the given score metrics.
+
+    There are several ways to tune the number of models that are returned by 
+    this function.  These are important to know, because this function is used 
+    to filter models between rounds of design, and there are always practical 
+    constraints on the number of models that can be carried on:
+
+    - Columns: This is only mentioned for completeness, because you should pick 
+      your score metrics based on which scores you think are informative, not 
+      based on how many models you need.  But increasing the number of score 
+      metrics increases the number of models that are selected, sometimes 
+      dramatically.
+
+    - Depth: Increasing the depth increases the number of models that are 
+      selected by including models that are just slightly behind the Pareto 
+      front.
+
+    - Epsilon: Increasing the epsilon decreases the number of models that are 
+      selected by discarding the models in the Pareto front that are too 
+      similar to each other.
+      
+    In short, tune depth to get more models and epsilon to get fewer.  You 
+    can also tune both at once to get a large but diverse set of models.
+    """
+    import pareto
+
+    indices_from_cols = lambda xs: [metrics.columns.get_loc(x) for x in xs]
+    percentile = lambda x, q: metrics[x].quantile(q/100)
+    epsilons_from_cols = lambda xs: [
+            epsilon * abs(percentile(x, 90) - percentile(x, 10)) / (90 - 10)
+            for x in xs]
+
+    epsilons = epsilons_from_cols(columns)
+    maximize = [x for x in columns if metadata[x].direction == '+']
+    maximize_indices = indices_from_cols(maximize)
+    column_indices = indices_from_cols(columns)
+
+    def boxify(df): #
+        boxed_df = pd.DataFrame()
+        for col, eps in zip(columns, epsilons):
+            boxed_df[col] = np.floor(df[col] / eps)
+        return boxed_df
+
+    mask = np.zeros(len(metrics), dtype='bool')
+    too_close = np.zeros(len(metrics), dtype='bool')
+    all_boxes = boxify(metrics)
+    labeled_metrics = metrics.copy()
+    labeled_metrics['_pip_index'] = metrics.index
+    id = labeled_metrics.columns.get_loc('_pip_index')
+
+    for i in range(depth):
+        # Figure out which points are within epsilon of points that are already 
+        # in the front, so they can be excluded from the search.  Without this, 
+        # points that are rejected for being too similar at one depth will be 
+        # included in the next depth.
+        front_boxes = boxify(metrics[mask])
+        for j, (_, row) in enumerate(front_boxes.iterrows()):
+            if progress: progress(i+1, depth, j+1, len(front_boxes))
+            too_close |= all_boxes.apply(
+                    lambda x: (x == row).all(), axis='columns')
+
+        candidates = [labeled_metrics[too_close == False]]
+        front = pareto.eps_sort(
+                candidates, column_indices, epsilons, maximize=maximize_indices)
+
+        for row in front:
+            assert not mask[row[id]]
+            mask[row[id]] = True
+
+    return metrics[mask]
+
+
+class ScoreMetadata(object):
+
+    def __init__(self, title, dir='-', guide=None, lower=None, upper=None, order=None, name=None):
+        self.title = title
+        self.name = name or name_from_title(title)
+        self.order = order
+        self.direction = dir
+        self.guide = guide and float(guide)
+        self.lower = lower
+        self.upper = upper
+
+        def cutoff(limit, x, default):
+            if limit is None:
+                return default
+
+            if isinstance(limit, (str, unicode)):
+                if limit.endswith('%'):
+                    value = float(limit[:-1])
+                    return np.percentile(x, value)
+                else:
+                    return float(value)
+
+            else:
+                return limit
+
+
+        self.limits = lambda x: (
+                cutoff(lower, x, min(x)),
+                cutoff(upper, x, max(x)),
+        )
+
+    def __repr__(self):
+        return '<ScoreMetadata name="{0}">'.format(self.name)
+
+    def to_dict(self):
+        d = {}
+        d['title'] = self.title
+        d['name'] = self.name
+        d['dir'] = self.direction
+
+        if self.guide:
+            d['guide'] = self.guide
+        if self.lower:
+            d['lower'] = self.lower
+        if self.upper:
+            d['upper'] = self.upper
+        if self.order:
+            d['order'] = self.order
+
+        return d
+
+
+class CoordinateRestraint(object):
+
+    def __init__(self, args):
+        self.atom_name = args[0]
+        self.residue_id = int(args[1])
+        self.residue_ids = [self.residue_id]
+        self.atom = self.atom_name, self.residue_id
+        self.coord = xyz_to_array(args[4:7])
+
+    def distance_from_ideal(self, atom_xyzs):
+        return euclidean(self.coord, atom_xyzs[self.atom])
+
+
+class AtomPairRestraint(object):
+
+    def __init__(self, args):
+        self.atom_names = [args[0], args[2]]
+        self.residue_ids = [int(args[i]) for i in (1,3)]
+        self.atom_pair = zip(self.atom_names, self.residue_ids)
+        self.ideal_distance = float(args[5])
+
+    def distance_from_ideal(self, atom_xyzs):
+        coords = [atom_xyzs[x] for x in self.atom_pair]
+        return euclidean(*coords) - self.ideal_distance
+
+class DihedralRestraint(object):
+
+    def __init__(self, args):
+        self.atom_names = [args[0],args[2],args[4],args[6]]
+        self.residue_ids = [int(args[i]) for i in (1,3,5,7)]
+        self.atoms = zip(self.atom_names, self.residue_ids)
+        self.ideal_dihedral = float(args[9])
+
+    def distance_from_ideal(self, atom_xyzs):
+        coords = [atom_xyzs[x] for x in self.atom_pair]
+
+class AngleRestraint(object):
+
+    def __init__(self, args):
+        self.atom_names = [args[0],args[2],args[4],args[6]]
+        self.residue_ids = [int(args[i]) for i in (1,3,5,7)]
+        self.atoms = zip(self.atom_names, self.residue_ids)
+        self.ideal_angle = float(args[9])
+
+    def distance_from_ideal(self, atom_xyzs):
+        coords = [atom_xyzs[x] for x in self.atom_pair]
 
 
 class Design (object):
@@ -473,7 +673,7 @@ class Design (object):
         self.structures = load(directory)
         self.loops = pipeline.load_loops(directory)
         self.resfile = pipeline.load_resfile(directory)
-        self.representative = self.rep = np.argmin(self.scores)
+        self.representative = self.rep = self.scores.idxmin()
 
     def __getitem__(self, key):
         return self.structures[key]
