@@ -654,9 +654,9 @@ class DihedralRestraint(object):
         measured_dihedral = dihedral(coords)
         # Make sure we don't get the wrong number because of
         # non-principle angles:
-        dihedrals = [measured_dihedral - self.ideal_dihedral, measured_dihedral + (2 * \
-                np.pi) - self.ideal_dihedral, measured_dihedral - (2 * np.pi) - \
-                    self.ideal_dihedral]
+        dihedrals = [abs(measured_dihedral - self.ideal_dihedral), abs(measured_dihedral + (2 * \
+                np.pi) - self.ideal_dihedral), abs(measured_dihedral - (2 * np.pi) - \
+                    self.ideal_dihedral)]
         return min(dihedrals) 
 
 class AngleRestraint(object):
@@ -672,9 +672,9 @@ class AngleRestraint(object):
         measured_angle = angle(coords)
         # Make sure we don't get the wrong number because of
         # non-principle angles:
-        angles = [measured_angle - self.ideal_angle, measured_angle + (2 * np.pi) -
-                self.ideal_angle, measured_angle - (2 * np.pi) -
-                self.ideal_angle]
+        angles = [abs(measured_angle - self.ideal_angle), abs(measured_angle + (2 * np.pi) -
+                self.ideal_angle), abs(measured_angle - (2 * np.pi) -
+                self.ideal_angle)]
         return min(angles)
 
 class Design (object):
