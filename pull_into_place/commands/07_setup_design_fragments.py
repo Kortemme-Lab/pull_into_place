@@ -33,8 +33,6 @@ def main():
     workspace = pipeline.ValidatedDesigns(args['<workspace>'], args['<round>'])
     workspace.check_paths()
     workspace.check_rosetta()
-    workspace.make_dirs()
-    workspace.clear_fragments()
 
     # Run the fragment generation script.
 
@@ -49,5 +47,7 @@ def main():
     if args['--dry-run']:
         print ' '.join(generate_fragments)
     else:
+        workspace.make_dirs()
+        workspace.clear_fragments()
         subprocess.call(generate_fragments)
 
