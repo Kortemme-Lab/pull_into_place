@@ -600,7 +600,7 @@ def load_resfile(directory, resfile_path=None):
     from klab.rosetta.input_files import Resfile
     return Resfile(resfile_path)
 
-def fetch_data(directory, remote_url=None, include_logs=False, dry_run=False):
+def fetch_data(directory, remote_url=None, recursive=True, include_logs=False, dry_run=False):
     import os, subprocess
 
     workspace = workspace_from_dir(directory)
@@ -622,7 +622,8 @@ def fetch_data(directory, remote_url=None, include_logs=False, dry_run=False):
     # or print that command, depending on what the user asked for.
 
     rsync_command = [
-            'rsync', '-avr',
+            'rsync', '-av',
+    ] +   (['--no-recursive'] if not recursive else []) + [
             '--exclude', 'rosetta',
             '--exclude', 'rsync_url',
             '--exclude', 'core.*',
@@ -653,15 +654,15 @@ def fetch_data(directory, remote_url=None, include_logs=False, dry_run=False):
     else:
         subprocess.call(rsync_command)
 
-def fetch_and_cache_data(directory, remote_url=None, include_logs=False):
+def fetch_and_cache_data(directory, remote_url=None, recursive=True, include_logs=False):
     from . import structures
-    fetch_data(directory, remote_url, include_logs)
+    fetch_data(directory, remote_url, recursive, include_logs)
 
     # Don't try to cache anything if nothing has been downloaded yet.
     if glob.glob(os.path.join(directory, '*.pdb*')):
         structures.load(directory)
 
-def push_data(directory, remote_url=None, dry_run=False):
+def push_data(directory, remote_url=None, recursive=True, dry_run=False):
     import os, subprocess
 
     workspace = workspace_from_dir(directory)
@@ -673,7 +674,8 @@ def push_data(directory, remote_url=None, dry_run=False):
             remote_url, os.path.relpath(directory, workspace.parent_dir)))
 
     rsync_command = [
-            'rsync', '-avr',
+            'rsync', '-av',
+    ] +   (['--no-recursive'] if not recursive else []) + [
             '--exclude', 'rosetta', '--exclude', 'rsync_url',
             '--exclude', 'stdout', '--exclude', 'stderr',
             directory + '/', remote_dir,

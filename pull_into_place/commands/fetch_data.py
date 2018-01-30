@@ -19,9 +19,11 @@ Options:
         else.  Note that these files are often quite large, so this may take 
         significantly longer.
 
+    --no-recurse, -R
+        Don't recursively copy subdirectories.
+
     --dry-run, -d
         Output the rsync command that would be used to fetch data.
-        
 """
 
 from klab import docopt, scripting
@@ -31,10 +33,11 @@ from .. import pipeline
 def main():
     args = docopt.docopt(__doc__)
     pipeline.fetch_data(
-            args['<directory>'],
-            args['--remote'],
-            args['--include-logs'],
-            args['--dry-run'],
+            directory=args['<directory>'],
+            remote_url=args['--remote'],
+            recursive=not args['--no-recurse'],
+            include_logs=args['--include-logs'],
+            dry_run=args['--dry-run'],
     )
 
 

@@ -15,6 +15,9 @@ Options:
         called "rsync_url" in the local workspace if you don't want to specify 
         it on the command-line every time.
 
+    --no-recurse, -R
+        Don't recursively copy subdirectories.
+    
     --include-logs, -i
         Fetch log files (i.e. stdout and stderr) in addition to everything 
         else.  Note that these files are often quite large, so this may take 
@@ -39,22 +42,24 @@ from .. import pipeline
 @scripting.catch_and_print_errors()
 def main():
     args = docopt.docopt(__doc__)
-    wait_time = 60 * eval(args['--wait-time'])
+    wait_secs = 60 * eval(args['--wait-time'])
 
     if args['--keep-going']:
         while True:
             pipeline.fetch_and_cache_data(
-                    args['<directory>'],
-                    args['--remote'],
-                    args['--include-logs'],
+                    directory=args['<directory>'],
+                    remote_url=args['--remote'],
+                    recursive=not args['--no-recurse'],
+                    include_logs=args['--include-logs'],
             )
 
-            print "Waiting {} min...".format(wait_time // 60)
-            time.sleep(wait_time)
+            print "Waiting {} min...".format(wait_secs // 60)
+            time.sleep(wait_secs)
 
     else:
         pipeline.fetch_and_cache_data(
-                args['<directory>'],
-                args['--remote'],
-                args['--include-logs'],
+                directory=args['<directory>'],
+                remote_url=args['--remote'],
+                recursive=not args['--no-recurse'],
+                include_logs=args['--include-logs'],
         )
