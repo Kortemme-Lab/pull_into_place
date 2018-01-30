@@ -42,7 +42,7 @@ Metrics:
     low values are favorable for each individual metric.  This is taken care of 
     for all the built-in metrics, but if you've added any filters to the 
     pipeline, you need to specify this by adding a short code to your filters' 
-    names: "[+]" is bigger is better, or "[-]" if smaller is better.
+    names: "[+]" if bigger is better, or "[-]" if smaller is better.
 
     You can also specify thresholds for each metric being considered.  This is 
     done using the same syntax of the query() method of pandas DataFrame 
@@ -66,23 +66,23 @@ Tuning:
     
 Examples:
     A basic selection:
-    $ pull_into_place 06_pick /path/to/project 1 \
+    $ pull_into_place 06_pick /path/to/project 1 \\
             total_score restraint_dist
 
     Assuming we've added a filter called "Hydrophobic SASA [-]":
-    $ pull_into_place 06_pick /path/to/project 1 \
+    $ pull_into_place 06_pick /path/to/project 1 \\
             total_score restraint_dist hydrophobic_sasa
 
     Threshold the restraint distance:
-    $ pull_into_place 06_pick /path/to/project 1 \
+    $ pull_into_place 06_pick /path/to/project 1 \\
             total_score 'restraint_dist < 1.0'
 
     Increase the number of models to select:
-    $ pull_into_place 06_pick /path/to/project 1 \
+    $ pull_into_place 06_pick /path/to/project 1 \\
             total_score restraint_dist -d5
 
     Decrease the number of models to select:
-    $ pull_into_place 06_pick /path/to/project 1 \
+    $ pull_into_place 06_pick /path/to/project 1 \\
             total_score restraint_dist -e5
 """
 
