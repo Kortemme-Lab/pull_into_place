@@ -389,6 +389,25 @@ class WithFragmentLibs (object):
     def fragments_tag(self, input_path):
         return os.path.basename(input_path)[:4]
 
+    def fragments_missing(self, input_path):
+        tag = self.fragments_tag(input_path)
+        frag_dir_glob = os.path.join(self.fragments_dir, tag+'?')
+        frag_dirs = glob.glob(frag_dir_glob)
+
+        # If there aren't any fragment directories, then there are definitely 
+        # no fragments.
+        if not frag_dirs:
+            return True
+
+        # If there are any fragment directories without fragment maps, then a 
+        # job died and we're missing some fragments.
+        for dir in frag_dirs:
+            frag_map_path = os.path.join(dir, 'fragment_file_map.json')
+            if not os.path.exists(frag_map_path):
+                return True
+
+        return False
+
     def fragments_info(self, input_path):
         # Typically, there is one output directory for each chain that
         # fragments are being generated for.
