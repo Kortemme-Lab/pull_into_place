@@ -53,7 +53,9 @@ def main():
 
     # Setup an output directory for each input.
 
-    inputs = workspace.unclaimed_inputs
+    inputs = [
+            x for x in workspace.unclaimed_inputs
+            if not workspace.fragments_missing(x)]
     nstruct = len(inputs) * int(args['--nstruct'])
 
     if nstruct == 0:
