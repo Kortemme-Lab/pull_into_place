@@ -28,7 +28,6 @@ big_jobs.run_command([
         '-in:file:vall', workspace.rosetta_database_path + '/sampling/vall.jul19.2011',
         '-frags:scoring:config', workspace.root_dir + '/standard_fragment.wts',
         '-in:file:checkpoint', fragments_dir + '{0:04d}A.checkpoint'.format(task_id),
-        '-frags:describe_fragments', fragments_dir + design_number + 'A_frags.9.score',
         '-spine_x', fragments_dir + design_number + 'A.fasta.phipsi',
         '-frags:ss_pred', fragments_dir + design_number + 'A.psipred_ss2', 'predA',
         '-out:prefix', output_prefix,
