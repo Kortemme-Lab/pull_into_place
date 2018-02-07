@@ -62,9 +62,7 @@ def submit(script, workspace, **params):
 def initiate():
     """Return some relevant information about the currently running job."""
     workspace = pipeline.workspace_from_dir(sys.argv[1])
-    print sys.argv[1]
     workspace.cd_to_root()
-    print sys.argv[1]
 
     job_id = int(os.environ['JOB_ID'])
     task_id = int(os.environ['SGE_TASK_ID']) - 1
