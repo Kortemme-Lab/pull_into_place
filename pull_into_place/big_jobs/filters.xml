@@ -4,5 +4,5 @@
   <ExposedHydrophobics name="Exposed Hydrophobic Residue SASA [[-]]" sasa_cutoff="20" threshold="-1" />
   <Foldability name="Foldability Score [[+]]" start_res="%%loop_start%%" end_res="%%loop_end%%" />
   <FragmentScoreFilter name="[[-]]Worst 3-residue FragmentCrmsd"
-      start_res="%%loop_start%%" end_res="%%loop_end%%" />
+      start_res="%%loop_start%%" end_res="%%loop_end%%" threshold="9999"/>
 </FILTERS>
