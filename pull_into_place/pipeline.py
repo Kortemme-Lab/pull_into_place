@@ -159,6 +159,14 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
         return self.find_path('scorefxn.wts')
 
     @property
+    def simple_fragment_weights_path(self):
+        return self.find_path('simple_fragment.wts')
+
+    @property
+    def standard_fragment_weights_path(self):
+        return self.find_path('standard_fragment.wts')
+
+    @property
     def build_script_path(self):
         return self.find_path('build_models.xml')
 

@@ -11,7 +11,7 @@
 import os, sys, subprocess
 from pull_into_place import big_jobs
 
-workspace, job_id, task_id, parameters = big_jobs.initiate()
+workspace, job_id, task_id, parameters, validate_directory = big_jobs.initiate()
 
 bb_models = parameters['inputs']
 bb_model = bb_models[task_id % len(bb_models)]
@@ -23,6 +23,8 @@ big_jobs.run_command([
         '-database', workspace.rosetta_database_path,
         '-in:file:s', workspace.input_path(bb_model),
         '-in:file:native', workspace.input_pdb_path,
+        '-in:file:vall', workspace.rosetta_database_path + '/sampling/vall.jul19.2011',
+        '-frags:scoring:config', workspace.root_dir + '/simple_fragment.wts',
         '-out:prefix', workspace.output_dir + '/',
         '-out:suffix', '_{0:03}'.format(design_id),
         '-out:no_nstruct_label',

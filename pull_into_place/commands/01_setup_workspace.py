@@ -252,6 +252,21 @@ ligand, put flags related to the ligand parameter files in this file."""
         else:
             scripting.touch(workspace.flags_path)
 
+class FragmentWeights:
+    prompt = None
+    description = """\
+Fragment weights files, describing how any fragment-based filter should
+behave. A simple and standard set of weights are provided."""
+
+    @staticmethod
+    def install(workspace):
+        simple_weights = pipeline.big_job_path('simple_fragment.wts')
+        standard_weights = pipeline.big_job_path('standard_fragment.wts')
+        shutil.copyfile(simple_weights,
+                workspace.simple_fragment_weights_path)
+        shutil.copyfile(standard_weights,
+                workspace.standard_fragment_weights_path)
+
 
 class RsyncUrl:
     prompt = "Path to project on remote host: "
@@ -319,6 +334,7 @@ Design '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
                 FilterScript,
                 SharedDefs,
                 FlagsFile,
+                FragmentWeights,
         )
 
     # Get the necessary settings from the user and use them to fill in the

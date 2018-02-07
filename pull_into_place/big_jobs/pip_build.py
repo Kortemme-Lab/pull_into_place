@@ -9,9 +9,15 @@
 import os, sys, subprocess
 from pull_into_place import big_jobs
 
-workspace, job_id, task_id, parameters = big_jobs.initiate()
+workspace, job_id, task_id, parameters, validate_directory = big_jobs.initiate()
 output_prefix = '{0}/{1}_{2:06d}_'.format(workspace.output_dir, job_id, task_id)
 test_run = parameters.get('test_run', False)
+
+design_number = '{0:03d}'.format(task_id)
+if len(workspace.loops_path) > 1:
+    fragments_dir = '../' + workspace_validate_path + '/fragments/' + design_number + 'A/'
+else:
+    fragments_dir = '../' + workspace_validate_path + '/fragments/' + design_number
 
 big_jobs.print_debug_info()
 big_jobs.run_command([
@@ -19,6 +25,12 @@ big_jobs.run_command([
         '-database', workspace.rosetta_database_path,
         '-in:file:s', workspace.input_pdb_path,
         '-in:file:native', workspace.input_pdb_path,
+        '-in:file:vall', workspace.rosetta_database_path + '/sampling/vall.jul19.2011',
+        '-frags:scoring:config', workspace.root_dir + '/standard_fragment.wts',
+        '-in:file:checkpoint', fragments_dir + '{0:04d}A.checkpoint'.format(task_id),
+        '-frags:describe_fragments', fragments_dir + design_number + 'A_frags.9.score',
+        '-spine_x', fragments_dir + design_number + 'A.fasta.phipsi',
+        '-frags:ss_pred', fragments_dir + design_number + 'A.psipred_ss2', 'predA',
         '-out:prefix', output_prefix,
         '-out:no_nstruct_label',
         '-out:overwrite',
