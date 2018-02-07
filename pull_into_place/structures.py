@@ -415,7 +415,11 @@ def name_from_title(title):
 
     # Try to replace unicode characters with alphanumeric ASCII ones.
     name = normalize('NFKD', unicode(name)).encode('ascii', 'ignore')
+
+    # Remove any remaining characters that aren't alphanumeric or underscore.
     name = ''.join(x for x in name if x.isalnum() or x in '_')
+
+    # Remove trailing underscores.
     name = name.strip('_')
 
     # Make everything lower case.
