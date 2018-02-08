@@ -23,7 +23,7 @@ big_jobs.run_command([
         '-database', workspace.rosetta_database_path,
         '-in:file:s', workspace.input_path(bb_model),
         '-in:file:native', workspace.input_pdb_path,
-        '-in:file:vall', 'sampling/vall.jul19.2011.gz',
+        '-in:file:vall', workspace.rosetta_database_path + 'sampling/vall.jul19.2011.gz',
         '-frags:scoring:config', workspace.root_dir + '/simple_fragment.wts',
         '-out:prefix', workspace.output_dir + '/',
         '-out:suffix', '_{0:03}'.format(design_id),
