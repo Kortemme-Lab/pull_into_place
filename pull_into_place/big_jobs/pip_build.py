@@ -13,7 +13,6 @@ workspace, job_id, task_id, parameters, validate_directory = big_jobs.initiate()
 output_prefix = '{0}/{1}_{2:06d}_'.format(workspace.output_dir, job_id, task_id)
 test_run = parameters.get('test_run', False)
 
-design_number = '{0:04d}'.format(task_id % len(designs))
 
 big_jobs.print_debug_info()
 big_jobs.run_command([
