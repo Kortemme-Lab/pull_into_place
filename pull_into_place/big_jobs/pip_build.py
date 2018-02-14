@@ -13,11 +13,7 @@ workspace, job_id, task_id, parameters, validate_directory = big_jobs.initiate()
 output_prefix = '{0}/{1}_{2:06d}_'.format(workspace.output_dir, job_id, task_id)
 test_run = parameters.get('test_run', False)
 
-design_number = '{0:03d}'.format(task_id)
-if len(workspace.loops_path) > 1:
-    fragments_dir = '../' + workspace_validate_path + '/fragments/' + design_number + 'A/'
-else:
-    fragments_dir = '../' + workspace_validate_path + '/fragments/' + design_number
+design_number = '{0:04d}'.format(task_id % len(designs))
 
 big_jobs.print_debug_info()
 big_jobs.run_command([
@@ -25,6 +21,8 @@ big_jobs.run_command([
         '-database', workspace.rosetta_database_path,
         '-in:file:s', workspace.input_pdb_path,
         '-in:file:native', workspace.input_pdb_path,
+        '-in:file:vall', workspace.rosetta_database_path + '/sampling/vall.jul19.2011.gz', 
+        '-frags:scoring:config', workspace.root_dir + '/standard_fragment.wts', 
         '-out:prefix', output_prefix,
         '-out:no_nstruct_label',
         '-out:overwrite',

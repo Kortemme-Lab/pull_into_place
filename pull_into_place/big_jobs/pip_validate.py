@@ -17,9 +17,9 @@ test_run = parameters.get('test_run', False)
 
 design_number = '{0:04d}'.format(task_id % len(designs))
 if len(workspace.loops_path) > 1:
-    fragments_dir = '../' + workspace_validate_path + '/fragments/' + design_number + 'A/'
+    fragments_dir = '../' + validate_path + '/fragments/' + design_number + 'A/'
 else:
-    fragments_dir = '../' + workspace_validate_path + '/fragments/' + design_number
+    fragments_dir = '../' + validate_path + '/fragments/' + design_number
 
 
 big_jobs.print_debug_info()
