@@ -34,6 +34,8 @@ big_jobs.run_command([
             'cst_file=' + workspace.restraints_path,
             'loop_start=' + str(workspace.loop_boundaries[0]),
             'loop_end=' + str(workspace.loop_boundaries[1]),
+            '-outputs_folder=' + workspace.output_dir + "/sequence_profiles",
+            '-design_number=' + bb_model '_{0:03}'.format(design_id),
         '-packing:resfile', workspace.resfile_path,
         '@', workspace.flags_path,
 ])

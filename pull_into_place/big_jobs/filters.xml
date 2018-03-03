@@ -3,4 +3,10 @@
   <PreProline name="Pre-Proline Potential [[-]]" use_statistical_potential="true" />
   <ExposedHydrophobics name="Exposed Hydrophobic Residue SASA [[-]]" sasa_cutoff="20" threshold="-1" />
   <Foldability name="Foldability Score [[+]]" start_res="%%loop_start%%" end_res="%%loop_end%%" />
+  <FragmentScoreFilter name="FragmentScoreFilter_complex"
+      scoretype="FragmentCrmsd" sort_by="FragmentCrmsd" threshold="9999"
+      direction="-" start_res="%%loop_start%%" end_res="%%loop_end%%"
+      compute="maximum" outputs_folder="%%outputs_folder%%"
+      outputs_name="%%design_number%%" csblast="/netapp/home/krivacic/software/csblast-2.2.3_linux64"  blast_pgp="/netapp/home/klabqb3backrub/tools/blast-2.2.26/bin/blastpgp" placeholder_seqs="/netapp/home/xingjiepan/Databases/BLAST/placeholder/placeholder_seqs" psipred="/netapp/home/xingjiepan/Softwares/parametric_scaffold_design/dependencies/dependencies/psipred/runpsipred_single" sparks-x="/netapp/home/klabqb3backrub/tools/sparks-x" sparks-x_query="/netapp/home/klabqb3backrub/tools/sparks-x/bin/buildinp_query.sh" convert_checkpoint="/netapp/home/krivacic/newfragmentpickingprotocol/converter.py" frags_scoring_config="standard.wghts" n_frags="200" n_candidates="1000" fragment_size="9"  vall_path="/netapp/home/krivacic/rosetta/database/sampling/vall.jul19.2011.gz" />
+
 </FILTERS>
