@@ -120,6 +120,14 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
     def rosetta_database_path(self):
         return self.rosetta_subpath('database')
 
+    @property
+    def rosetta_vall_path_small(self):
+        return self.rosetta_database_path + '/sampling/small.vall.gz'
+
+    @property
+    def rosetta_vall_path(self):
+        return self.rosetta_database_path + '/sampling/vall.jul19.2011.gz'
+
     def rosetta_subpath(self, *subpaths):
         return os.path.join(self.rosetta_dir, *subpaths)
 
