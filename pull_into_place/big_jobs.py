@@ -68,7 +68,7 @@ def initiate():
     task_id = int(os.environ['SGE_TASK_ID']) - 1
     job_params = read_params(workspace.job_params_path(job_id))
 
-    return workspace, job_id, task_id, job_params
+    return workspace, job_id, task_id, job_params, sys.argv[1]
 
 def read_params(params_path):
     with open(params_path) as file:
