@@ -128,7 +128,7 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
         if test_run==True:
             return os.path.join(self.rosetta_database_path, 'sampling', 'small.vall.gz')
         else:
-            return self.rosetta_database_path + '/sampling/vall.jul19.2011.gz'
+            return os.path.join(self.rosetta_database_path,'sampling', 'vall.jul19.2011.gz')
 
     def rosetta_subpath(self, *subpaths):
         return os.path.join(self.rosetta_dir, *subpaths)
