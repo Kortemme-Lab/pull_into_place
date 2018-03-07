@@ -701,16 +701,15 @@ class AngleRestraint(object):
         self.type = "angle"
         self.residue_ids = [int(args[i]) for i in (1,3,5)]
         self.atoms = zip(self.atom_names, self.residue_ids)
-        self.ideal_angle = float(args[7])
+        self.ideal_angle = float(args[7]) * (360 / (2 * np.pi))
 
     def distance_from_ideal(self, atom_xyzs):
         coords = [atom_xyzs[x] for x in self.atoms]
-        measured_angle = angle(coords)
+        measured_angle = angle(coords) * (360 / (2 * np.pi))
         # Make sure we don't get the wrong number because of
         # non-principle angles:
-        angles = [abs(measured_angle - self.ideal_angle), abs(measured_angle + (2 * np.pi) -
-                self.ideal_angle), abs(measured_angle - (2 * np.pi) -
-                self.ideal_angle)]
+        angles = [abs(measured_angle - self.ideal_angle), abs(measured_angle + (360) -
+                self.ideal_angle), abs(measured_angle - (360) - self.ideal_angle)]
         return min(angles)
 
 class Design (object):
