@@ -285,7 +285,7 @@ def read_and_calculate(workspace, pdb_paths):
             meta = ScoreMetadata(
                     name='restraint_angle',
                     title='Restraint Angle Satisfaction (Degrees)',
-                    guide=0.5, lower=0.0, upper='95%', order=2,
+                    guide=20, lower=0.0, upper='95%', order=2,
             )
             record['restraint_angle'] = np.max(restraint_angles)
             metadata[meta.name] = meta
