@@ -47,6 +47,10 @@ the symlink called 'rosetta' in the workspace directory."""
                 os.path.join(rosetta_dir, 'tests'),
                 os.path.join(rosetta_dir, 'source'),
                 os.path.join(rosetta_dir, 'source', 'bin'),
+                os.path.join(rosetta_dir, 'database', 'sampling',
+                'vall.jul19.2011.gz'),
+                os.path.join(rosetta_dir, 'database', 'sampling',
+                'small.vall.gz',
         ]
         rosetta_subdirs_exist = map(os.path.exists, rosetta_subdirs)
 
