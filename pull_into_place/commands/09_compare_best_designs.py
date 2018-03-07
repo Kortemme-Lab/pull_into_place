@@ -516,7 +516,9 @@ class ExtraFilterHandler (Metric):
         align = 'center'
         num_format = '0.000'
         self.filtername = filtername
-        self.title, self.direction = structures.parse_filter_name(filtername)
+        meta = structures.parse_filter(filtername)
+        self.title = meta.name
+        self.direction = meta.direction
         if self.direction:
             self.color = True
 

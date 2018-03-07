@@ -226,11 +226,14 @@ def read_and_calculate(workspace, pdb_paths):
 
                 # Keep track of this model's sequence.
 
-                if line.startswith('ATOM'): 
-                    if residue_id != last_residue_id:
+                if residue_id != last_residue_id:
+                    if line.startswith('ATOM'): 
                         one_letter_code = residue_type_3to1_map.get(residue_name, 'X')
                         sequence += one_letter_code
                         sequence_map[residue_id] = one_letter_code
+                        last_residue_id = residue_id
+                    elif line.startswith('HETATM'):
+                        sequence_map[residue_id] = 'Lig'
                         last_residue_id = residue_id
 
                 # Save the coordinate for this atom.  This will be used later 
@@ -254,13 +257,20 @@ def read_and_calculate(workspace, pdb_paths):
         # Calculate how well each restraint was satisfied.
 
         restraint_distances = []
+        restraint_angles = []
         residue_specific_restraint_distances = {}
+        residue_specific_restraint_angles = {}
 
         for restraint in restraints:
             d = restraint.distance_from_ideal(atom_xyzs)
-            restraint_distances.append(d)
-            for i in restraint.residue_ids:
-                residue_specific_restraint_distances.setdefault(i,[]).append(d)
+            if restraint.type == "distance":
+                restraint_distances.append(d)
+                for i in restraint.residue_ids:
+                    residue_specific_restraint_distances.setdefault(i,[]).append(d)
+            elif restraint.type == "angle":
+                restraint_angles.append(d)
+                for i in restraint.residue_ids:
+                    residue_specific_restraint_angles.setdefault(i,[]).append(d)
 
         if restraint_distances:
             meta = ScoreMetadata(
@@ -269,6 +279,15 @@ def read_and_calculate(workspace, pdb_paths):
                     guide=1.0, lower=0.0, upper='95%', order=2,
             )
             record['restraint_dist'] = np.max(restraint_distances)
+            metadata[meta.name] = meta
+
+        if restraint_angles:
+            meta = ScoreMetadata(
+                    name='restraint_angle',
+                    title='Restraint Angle Satisfaction (Rad)',
+                    guide=0.5, lower=0.0, upper='95%', order=2,
+            )
+            record['restraint_angle'] = np.max(restraint_angles)
             metadata[meta.name] = meta
 
         if len(residue_specific_restraint_distances) > 1:
@@ -283,6 +302,19 @@ def read_and_calculate(workspace, pdb_paths):
                 record[key] = np.max(residue_specific_restraint_distances[i])
                 metadata[meta.name] = meta
 
+        if len(residue_specific_restraint_angles) > 1:
+            for i in residue_specific_restraint_angles:
+                res = '{0}{1}'.format(sequence_map[i], i)
+                key = 'restraint_angle_{0}'.format(res.lower())
+                meta = ScoreMetadata(
+                        name=key,
+                        title='Restraint Satisfaction for {0} (Rad)'.format(res),
+                        guide=0.5, lower=-1, upper='95%', order=3,
+                )
+                record[key] = np.max(residue_specific_restraint_angles[i])
+                metadata[meta.name] = meta
+
+
         records.append(record)
 
     if pdb_paths:
@@ -295,6 +327,9 @@ def parse_restraints(path):
     parsers = {
             'CoordinateConstraint': CoordinateRestraint,
             'AtomPairConstraint': AtomPairRestraint,
+            'AtomPair': AtomPairRestraint,
+            'Dihedral': DihedralRestraint,
+            'NamedAngle': AngleRestraint,
     }
 
     with open(path) as file:
@@ -380,7 +415,11 @@ def name_from_title(title):
 
     # Try to replace unicode characters with alphanumeric ASCII ones.
     name = normalize('NFKD', unicode(name)).encode('ascii', 'ignore')
+
+    # Remove any remaining characters that aren't alphanumeric or underscore.
     name = ''.join(x for x in name if x.isalnum() or x in '_')
+
+    # Remove trailing underscores.
     name = name.strip('_')
 
     # Make everything lower case.
@@ -395,6 +434,53 @@ def xyz_to_array(xyz):
     """
     return np.array([float(x) for x in xyz])
 
+def angle(array_of_xyzs):
+    """
+    Calculates angle between three coordinate points (I could not find a package
+    that does this but if one exists that would probably be better). Used for Angle constraints. 
+    """
+    ab = array_of_xyzs[0] - array_of_xyzs[1]
+    cb = array_of_xyzs[2] - array_of_xyzs[1]
+    return np.arccos((np.dot(ab,cb)) / (np.sqrt(ab[0]**2 + ab[1]**2  \
+        + ab[2]**2) * np.sqrt(cb[0]**2 + cb[1]**2 + cb[2]**2)))
+
+def dihedral(array_of_xyzs):
+    """
+    Calculates dihedral angle between four coordinate points. Used for
+    dihedral constraints. 
+    """
+    p1 = array_of_xyzs[0]
+    p2 = array_of_xyzs[1]
+    p3 = array_of_xyzs[2]
+    p4 = array_of_xyzs[3]
+
+    vector1 = -1.0 * (p2 - p1)
+    vector2 = p3 - p2
+    vector3 = p4 - p3
+
+    # Normalize vector so as not to influence magnitude of vector
+    # rejections
+    vector2 /= np.linalg.norm(vector2)
+
+    # Vector rejections:
+    # v = projection of vector1 onto plane perpendicular to vector2
+    #   = vector1 - component that aligns with vector2
+    # w = projection of vector3 onto plane perpendicular to vector2
+    #   = vector3 = component that aligns with vector2
+    v = vector1 - np.dot(vector1, vector2) * vector2
+    w = vector3 - np.dot(vector3, vector2) * vector2
+
+    # Angle between v and w in a plane that is the torsion angle
+    # v and w not normalized explicitly, but we use tan so that doesn't
+    # matter
+    x = np.dot(v, w)
+    y = np.dot(np.cross(vector2, v), w)
+    principle_dihedral = np.arctan2(y,x)
+    # I'm leaving this variable explicit because it should be clear that
+    # we need to make sure there are no non-principle angles that better
+    # satisfy the constraint for some reason, but that needs to be done
+    # outside this function. 
+    return principle_dihedral
 
 def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=1e-7, progress=None):
     """
@@ -567,6 +653,7 @@ class CoordinateRestraint(object):
 
     def __init__(self, args):
         self.atom_name = args[0]
+        self.type = "distance"
         self.residue_id = int(args[1])
         self.residue_ids = [self.residue_id]
         self.atom = self.atom_name, self.residue_id
@@ -580,13 +667,52 @@ class AtomPairRestraint(object):
 
     def __init__(self, args):
         self.atom_names = [args[0], args[2]]
+        self.type = "distance"
         self.residue_ids = [int(args[i]) for i in (1,3)]
         self.atom_pair = zip(self.atom_names, self.residue_ids)
+        self.ideal_distance = float(args[5])
 
     def distance_from_ideal(self, atom_xyzs):
         coords = [atom_xyzs[x] for x in self.atom_pair]
-        return euclidean(*coords)
+        return euclidean(*coords) - self.ideal_distance
 
+class DihedralRestraint(object):
+
+    def __init__(self, args):
+        self.atom_names = [args[0],args[2],args[4],args[6]]
+        self.type = "angle"
+        self.residue_ids = [int(args[i]) for i in (1,3,5,7)]
+        self.atoms = zip(self.atom_names, self.residue_ids)
+        self.ideal_dihedral = float(args[9])
+
+    def distance_from_ideal(self, atom_xyzs):
+        coords = [atom_xyzs[x] for x in self.atoms]
+        measured_dihedral = dihedral(coords)
+        # Make sure we don't get the wrong number because of
+        # non-principle angles:
+        dihedrals = [abs(measured_dihedral - self.ideal_dihedral), abs(measured_dihedral + (2 * \
+                np.pi) - self.ideal_dihedral), abs(measured_dihedral - (2 * np.pi) - \
+                    self.ideal_dihedral)]
+        return min(dihedrals) 
+
+class AngleRestraint(object):
+
+    def __init__(self, args):
+        self.atom_names = [args[0],args[2],args[4],args[6]]
+        self.type = "angle"
+        self.residue_ids = [int(args[i]) for i in (1,3,5)]
+        self.atoms = zip(self.atom_names, self.residue_ids)
+        self.ideal_angle = float(args[7])
+
+    def distance_from_ideal(self, atom_xyzs):
+        coords = [atom_xyzs[x] for x in self.atoms]
+        measured_angle = angle(coords)
+        # Make sure we don't get the wrong number because of
+        # non-principle angles:
+        angles = [abs(measured_angle - self.ideal_angle), abs(measured_angle + (2 * np.pi) -
+                self.ideal_angle), abs(measured_angle - (2 * np.pi) -
+                self.ideal_angle)]
+        return min(angles)
 
 class Design (object):
     """

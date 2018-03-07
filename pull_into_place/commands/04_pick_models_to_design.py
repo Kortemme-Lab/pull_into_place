@@ -91,7 +91,8 @@ def main():
         # replaced with "_" and the [[ ]] tag removed.
         cols = [c for c in all_score_dists.columns]
         for index, title in enumerate(cols):
-            title = structures.parse_filter_name(title)[0]
+            meta = structures.parse_filter(title)
+            title = meta.name
             cols[index] = slug_from_title(title)
         all_score_dists.columns = cols
 
