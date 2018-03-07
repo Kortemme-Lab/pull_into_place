@@ -250,6 +250,8 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
         required_paths = [
                 self.rosetta_database_path,
                 self.rosetta_scripts_path,
+                self.rosetta_vall_path(False),
+                self.rosetta_vall_path(True),
         ]
         for path in required_paths:
             if not os.path.exists(path):
