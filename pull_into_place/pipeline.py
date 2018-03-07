@@ -72,6 +72,10 @@ class Workspace (object):
         return self.root_dir
 
     @property
+    def seqprof_dir(self):
+        return os.path.join(self.focus_dir, 'sequence_profiles')
+
+    @property
     def io_dirs(self):
         return []
 
@@ -121,12 +125,12 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
         return self.rosetta_subpath('database')
 
     @property
-    def rosetta_vall_path_small(self):
-        return self.rosetta_database_path + '/sampling/small.vall.gz'
-
-    @property
-    def rosetta_vall_path(self):
-        return self.rosetta_database_path + '/sampling/vall.jul19.2011.gz'
+    def rosetta_vall_path(self, small=False):
+        if small=True:
+            return os.path.join(self.rosetta_database_path, 'sampling',
+                    'small.vall.gz'
+        else:
+            return self.rosetta_database_path + '/sampling/vall.jul19.2011.gz'
 
     def rosetta_subpath(self, *subpaths):
         return os.path.join(self.rosetta_dir, *subpaths)
