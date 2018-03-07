@@ -677,7 +677,6 @@ class AtomPairRestraint(object):
         return euclidean(*coords) - self.ideal_distance
 
 class DihedralRestraint(object):
-
     def __init__(self, args):
         self.atom_names = [args[0],args[2],args[4],args[6]]
         self.type = "angle"

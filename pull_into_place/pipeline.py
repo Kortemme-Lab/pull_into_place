@@ -401,6 +401,25 @@ class WithFragmentLibs (object):
     def fragments_tag(self, input_path):
         return os.path.basename(input_path)[:4]
 
+    def fragments_missing(self, input_path):
+        tag = self.fragments_tag(input_path)
+        frag_dir_glob = os.path.join(self.fragments_dir, tag+'?')
+        frag_dirs = glob.glob(frag_dir_glob)
+
+        # If there aren't any fragment directories, then there are definitely 
+        # no fragments.
+        if not frag_dirs:
+            return True
+
+        # If there are any fragment directories without fragment maps, then a 
+        # job died and we're missing some fragments.
+        for dir in frag_dirs:
+            frag_map_path = os.path.join(dir, 'fragment_file_map.json')
+            if not os.path.exists(frag_map_path):
+                return True
+
+        return False
+
     def fragments_info(self, input_path):
         # Typically, there is one output directory for each chain that
         # fragments are being generated for.
@@ -612,7 +631,7 @@ def load_resfile(directory, resfile_path=None):
     from klab.rosetta.input_files import Resfile
     return Resfile(resfile_path)
 
-def fetch_data(directory, remote_url=None, include_logs=False, dry_run=False):
+def fetch_data(directory, remote_url=None, recursive=True, include_logs=False, dry_run=False):
     import os, subprocess
 
     workspace = workspace_from_dir(directory)
@@ -634,7 +653,8 @@ def fetch_data(directory, remote_url=None, include_logs=False, dry_run=False):
     # or print that command, depending on what the user asked for.
 
     rsync_command = [
-            'rsync', '-avr',
+            'rsync', '-av',
+    ] +   (['--no-recursive'] if not recursive else []) + [
             '--exclude', 'rosetta',
             '--exclude', 'rsync_url',
             '--exclude', 'core.*',
@@ -665,15 +685,15 @@ def fetch_data(directory, remote_url=None, include_logs=False, dry_run=False):
     else:
         subprocess.call(rsync_command)
 
-def fetch_and_cache_data(directory, remote_url=None, include_logs=False):
+def fetch_and_cache_data(directory, remote_url=None, recursive=True, include_logs=False):
     from . import structures
-    fetch_data(directory, remote_url, include_logs)
+    fetch_data(directory, remote_url, recursive, include_logs)
 
     # Don't try to cache anything if nothing has been downloaded yet.
     if glob.glob(os.path.join(directory, '*.pdb*')):
         structures.load(directory)
 
-def push_data(directory, remote_url=None, dry_run=False):
+def push_data(directory, remote_url=None, recursive=True, dry_run=False):
     import os, subprocess
 
     workspace = workspace_from_dir(directory)
@@ -685,7 +705,8 @@ def push_data(directory, remote_url=None, dry_run=False):
             remote_url, os.path.relpath(directory, workspace.parent_dir)))
 
     rsync_command = [
-            'rsync', '-avr',
+            'rsync', '-av',
+    ] +   (['--no-recursive'] if not recursive else []) + [
             '--exclude', 'rosetta', '--exclude', 'rsync_url',
             '--exclude', 'stdout', '--exclude', 'stderr',
             directory + '/', remote_dir,

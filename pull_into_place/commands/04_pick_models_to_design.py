@@ -87,14 +87,7 @@ def main():
                 input_subdir,
                 use_cache=not args['--recalc'],
         )
-        # Any column with spaces in the name or a [[ ]] tag has the spaces
-        # replaced with "_" and the [[ ]] tag removed.
-        cols = [c for c in all_score_dists.columns]
-        for index, title in enumerate(cols):
-            meta = structures.parse_filter(title)
-            title = meta.name
-            cols[index] = slug_from_title(title)
-        all_score_dists.columns = cols
+
 
         try:
             best_score_dists = all_score_dists.query(query)
@@ -147,9 +140,3 @@ def main():
     if args['--dry-run']:
         print "(Dry run: no symlinks created.)"
 
-def slug_from_title(title):
-    slug = ""
-    for char in title:
-        if char.isalnum(): slug += char.lower()
-        if char in ' _-': slug += '_'
-    return slug.strip('_')

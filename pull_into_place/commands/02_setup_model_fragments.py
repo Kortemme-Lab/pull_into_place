@@ -39,8 +39,6 @@ def main():
 
     workspace = pipeline.RestrainedModels(args['<workspace>'])
     workspace.check_paths()
-    workspace.make_dirs()
-    workspace.clear_fragments()
 
     # Run the fragment generation script.
 
@@ -58,4 +56,6 @@ def main():
     if args['--dry-run']:
         print ' '.join(generate_fragments)
     else:
+        workspace.make_dirs()
+        workspace.clear_fragments()
         subprocess.call(generate_fragments)
