@@ -12,6 +12,7 @@ import os, sys, subprocess
 from pull_into_place import big_jobs
 
 workspace, job_id, task_id, parameters = big_jobs.initiate()
+test_run = parameters.get('test_run', False)
 
 bb_models = parameters['inputs']
 bb_model = bb_models[task_id % len(bb_models)]
