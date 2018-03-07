@@ -284,7 +284,7 @@ def read_and_calculate(workspace, pdb_paths):
         if restraint_angles:
             meta = ScoreMetadata(
                     name='restraint_angle',
-                    title='Restraint Angle Satisfaction (Rad)',
+                    title='Restraint Angle Satisfaction (Degrees)',
                     guide=0.5, lower=0.0, upper='95%', order=2,
             )
             record['restraint_angle'] = np.max(restraint_angles)
@@ -308,7 +308,7 @@ def read_and_calculate(workspace, pdb_paths):
                 key = 'restraint_angle_{0}'.format(res.lower())
                 meta = ScoreMetadata(
                         name=key,
-                        title='Restraint Satisfaction for {0} (Rad)'.format(res),
+                        title='Restraint Satisfaction for {0} (Degrees)'.format(res),
                         guide=0.5, lower=-1, upper='95%', order=3,
                 )
                 record[key] = np.max(residue_specific_restraint_angles[i])
@@ -682,15 +682,15 @@ class DihedralRestraint(object):
         self.type = "angle"
         self.residue_ids = [int(args[i]) for i in (1,3,5,7)]
         self.atoms = zip(self.atom_names, self.residue_ids)
-        self.ideal_dihedral = float(args[9])
+        self.ideal_dihedral = float(args[9]) * (360 / (2 * np.pi))
 
     def distance_from_ideal(self, atom_xyzs):
         coords = [atom_xyzs[x] for x in self.atoms]
-        measured_dihedral = dihedral(coords)
+        measured_dihedral = dihedral(coords) * (360 / (2 * np.pi))
         # Make sure we don't get the wrong number because of
         # non-principle angles:
-        dihedrals = [abs(measured_dihedral - self.ideal_dihedral), abs(measured_dihedral + (2 * \
-                np.pi) - self.ideal_dihedral), abs(measured_dihedral - (2 * np.pi) - \
+        dihedrals = [abs(measured_dihedral - self.ideal_dihedral), abs(measured_dihedral + \
+                    (360) - self.ideal_dihedral), abs(measured_dihedral - (360) - \
                     self.ideal_dihedral)]
         return min(dihedrals) 
 
