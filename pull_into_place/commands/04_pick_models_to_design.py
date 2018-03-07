@@ -88,7 +88,6 @@ def main():
                 use_cache=not args['--recalc'],
         )
 
-
         try:
             best_score_dists = all_score_dists.query(query)
         except UndefinedVariableError as e:
