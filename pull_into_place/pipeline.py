@@ -394,8 +394,8 @@ class WithFragmentLibs (object):
         frag_dir_glob = os.path.join(self.fragments_dir, tag+'?')
         frag_dirs = glob.glob(frag_dir_glob)
 
-        # If there aren't any fragment directories, then there are definitely 
-        # no fragments.
+        # If there aren't any fragment directories, then there definitely 
+        # aren't any fragments.
         if not frag_dirs:
             return True
 

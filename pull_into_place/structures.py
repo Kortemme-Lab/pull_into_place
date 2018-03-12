@@ -520,6 +520,7 @@ def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=1e-7, progres
     In short, tune depth to get more models and epsilon to get fewer.  You 
     can also tune both at once to get a large but diverse set of models.
     """
+    # https://github.com/matthewjwoodruff/pareto.py
     import pareto
 
     indices_from_cols = lambda xs: [metrics.columns.get_loc(x) for x in xs]
