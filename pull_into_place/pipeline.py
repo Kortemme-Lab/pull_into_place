@@ -77,7 +77,7 @@ class Workspace (object):
 
     @property
     def fragment_weights_path(self):
-        return self.find_path('standard_fragment.wts')
+        return self.find_path('fragment.wts')
 
     @property
     def io_dirs(self):

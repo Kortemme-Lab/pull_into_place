@@ -260,9 +260,9 @@ behave. A simple and standard set of weights are provided."""
 
     @staticmethod
     def install(workspace):
-        standard_weights = pipeline.big_job_path('standard.wghts')
+        standard_weights = pipeline.big_job_path('fragment.wts')
         shutil.copyfile(standard_weights,
-                workspace.standard_fragment_weights_path)
+                workspace.fragment_weights_path)
 
 
 class RsyncUrl:

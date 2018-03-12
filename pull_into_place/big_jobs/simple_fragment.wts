@@ -1,4 +1,0 @@
-# score name         priority  wght   min_allowed  extras
-SecondarySimilarity      600     1.0     -    predA
-RamaScore                400     0.8     -    predA
-FragmentCrmsd             0      0.0     -
