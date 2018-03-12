@@ -260,10 +260,7 @@ behave. A simple and standard set of weights are provided."""
 
     @staticmethod
     def install(workspace):
-        simple_weights = pipeline.big_job_path('simple_fragment.wts')
-        standard_weights = pipeline.big_job_path('standard_fragment.wts')
-        shutil.copyfile(simple_weights,
-                workspace.simple_fragment_weights_path)
+        standard_weights = pipeline.big_job_path('standard.wghts')
         shutil.copyfile(standard_weights,
                 workspace.standard_fragment_weights_path)
 

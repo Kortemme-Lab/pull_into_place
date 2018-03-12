@@ -38,6 +38,7 @@ big_jobs.run_command([
             'outputs_folder=' + workspace.seqprof_dir,
             'design_number=' + bb_model + '_{0:03}'.format(design_id),
             'vall_path=' + (workspace.rosetta_vall_path(test_run)),
+            'fragment_weights=' + workspace.fragment_weights_path,
         '-packing:resfile', workspace.resfile_path,
         '@', workspace.flags_path,
 ])

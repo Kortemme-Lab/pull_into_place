@@ -37,6 +37,7 @@ big_jobs.run_command([
             'outputs_folder=' + workspace.seqprof_dir, 
             'design_number=' + design + '_{0:03d}'.format(task_id / len(designs)),
             'vall_path=' + workspace.rosetta_vall_path(test_run),
+            'fragment_weights=' + workspace.fragment_weights_path,
 ] +     workspace.fragments_flags(design) + [
         '@', workspace.flags_path,
 ])

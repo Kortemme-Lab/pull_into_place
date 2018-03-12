@@ -76,6 +76,10 @@ class Workspace (object):
         return os.path.join(self.focus_dir, 'sequence_profiles')
 
     @property
+    def fragment_weights_path(self):
+        return self.find_path('standard_fragment.wts')
+
+    @property
     def io_dirs(self):
         return []
 
