@@ -45,6 +45,7 @@ setup(
         'pull_into_place': [
             'big_jobs/*.py',
             'big_jobs/*.xml',
+            'big_jobs/*.wts',
         ],
     },
     install_requires=[

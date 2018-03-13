@@ -72,6 +72,14 @@ class Workspace (object):
         return self.root_dir
 
     @property
+    def seqprof_dir(self):
+        return os.path.join(self.focus_dir, 'sequence_profiles')
+
+    @property
+    def fragment_weights_path(self):
+        return self.find_path('fragment.wts')
+
+    @property
     def io_dirs(self):
         return []
 
@@ -119,6 +127,10 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
     @property
     def rosetta_database_path(self):
         return self.rosetta_subpath('database')
+
+    def rosetta_vall_path(self, test_run=False):
+        return os.path.join(self.rosetta_database_path, 'sampling',
+                'small.vall.gz' if test_run else 'vall.jul19.2011.gz')
 
     def rosetta_subpath(self, *subpaths):
         return os.path.join(self.rosetta_dir, *subpaths)
@@ -240,6 +252,8 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
         required_paths = [
                 self.rosetta_database_path,
                 self.rosetta_scripts_path,
+                self.rosetta_vall_path(False),
+                self.rosetta_vall_path(True),
         ]
         for path in required_paths:
             if not os.path.exists(path):
@@ -646,6 +660,7 @@ def fetch_data(directory, remote_url=None, recursive=True, include_logs=False, d
             '--exclude', 'rosetta',
             '--exclude', 'rsync_url',
             '--exclude', 'core.*',
+            '--exclude', '*/sequence_profile*',
     ]
     if not include_logs:
         rsync_command += [

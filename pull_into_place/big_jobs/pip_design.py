@@ -12,6 +12,7 @@ import os, sys, subprocess
 from pull_into_place import big_jobs
 
 workspace, job_id, task_id, parameters = big_jobs.initiate()
+test_run = parameters.get('test_run', False)
 
 bb_models = parameters['inputs']
 bb_model = bb_models[task_id % len(bb_models)]
@@ -34,6 +35,10 @@ big_jobs.run_command([
             'cst_file=' + workspace.restraints_path,
             'loop_start=' + str(workspace.loop_boundaries[0]),
             'loop_end=' + str(workspace.loop_boundaries[1]),
+            'outputs_folder=' + workspace.seqprof_dir,
+            'design_number=' + bb_model + '_{0:03}'.format(design_id),
+            'vall_path=' + (workspace.rosetta_vall_path(test_run)),
+            'fragment_weights=' + workspace.fragment_weights_path,
         '-packing:resfile', workspace.resfile_path,
         '@', workspace.flags_path,
 ])
