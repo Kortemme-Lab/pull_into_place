@@ -74,16 +74,22 @@ class CopyWorkspaceInputs:
 
     @staticmethod
     def install(workspace, old_workspace):
+        from distutils.dir_util import copy_tree
+
         old_workspace = ensure_path_exists(old_workspace)
         old_workspace = pipeline.Workspace(old_workspace)
         old_workspace.check_paths()
-        from distutils.dir_util import copy_tree
-        copy_tree(old_workspace.rosetta_inputs_dir(True),
-                workspace.rosetta_inputs_dir(True), preserve_symlinks =
-                True)
-        copy_tree(old_workspace.rosetta_inputs_dir(False),
-                workspace.rosetta_inputs_dir(False), preserve_symlinks =
-                True)
+
+        copy_tree(
+                old_workspace.standard_params_dir,
+                workspace.standard_params_dir,
+                preserve_symlinks=True,
+        )
+        copy_tree(
+                old_workspace.custom_params_dir,
+                workspace.custom_params_dir,
+                preserve_symlinks=True,
+        )
 
 class InputPdb:
     prompt = "Path to the input PDB file: "

@@ -80,6 +80,14 @@ class Workspace (object):
         return self.root_dir
 
     @property
+    def standard_params_dir(self):
+        return os.path.join(self.root_dir, 'standard_params')
+
+    @property
+    def custom_params_dir(self):
+        return os.path.join(self.root_dir, 'custom_params')
+
+    @property
     def seqprof_dir(self):
         return os.path.join(self.focus_dir, 'sequence_profiles')
 
@@ -240,10 +248,10 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
 
         paths = [
                 os.path.join(self.focus_dir, basename),
-                os.path.join(self.root_dir, 'custom_inputs', self.focus_name, basename),
-                os.path.join(self.root_dir, 'custom_inputs', basename),
-                os.path.join(self.root_dir, 'default_inputs', self.focus_name, basename),
-                os.path.join(self.root_dir, 'default_inputs', basename),
+                os.path.join(self.custom_params_dir, self.focus_name, basename),
+                os.path.join(self.custom_params_dir, basename),
+                os.path.join(self.standard_params_dir, self.focus_name, basename),
+                os.path.join(self.standard_params_dir, basename),
                 os.path.join(self.root_dir, basename),
         ]
 
@@ -255,11 +263,12 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
                 key=lambda x: max(i for i, path in enumerate(paths) if x == path)
         )
 
+        # Look for the file we were asked for.
         for path in paths:
             if os.path.exists(path):
                 return path
 
-        # Return the last path we checked, even though we didn't find the file.
+        # If we didn't find the file, just return the last path we checked.  
         return paths[-1]
 
     def check_paths(self):
