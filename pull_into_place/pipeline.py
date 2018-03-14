@@ -246,9 +246,11 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
         in a directory associated with that stage.
         """
 
+        preferred_install_path = \
+                os.path.join(self.project_params_dir, self.focus_name, basename)
         paths = [
                 os.path.join(self.focus_dir, basename),
-                os.path.join(self.project_params_dir, self.focus_name, basename),
+                preferred_install_path,
                 os.path.join(self.project_params_dir, basename),
                 os.path.join(self.standard_params_dir, self.focus_name, basename),
                 os.path.join(self.standard_params_dir, basename),
@@ -268,8 +270,9 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
             if os.path.exists(path):
                 return path
 
-        # If we didn't find the file, just return the last path we checked.  
-        return paths[-1]
+        # If we didn't find the file, return the path to where we'd like it to 
+        # be installed.
+        return preferred_install_path
 
     def check_paths(self):
         required_paths = [
