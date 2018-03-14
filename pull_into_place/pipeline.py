@@ -84,8 +84,8 @@ class Workspace (object):
         return os.path.join(self.root_dir, 'standard_params')
 
     @property
-    def custom_params_dir(self):
-        return os.path.join(self.root_dir, 'custom_params')
+    def project_params_dir(self):
+        return os.path.join(self.root_dir, 'project_params')
 
     @property
     def seqprof_dir(self):
@@ -248,8 +248,8 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
 
         paths = [
                 os.path.join(self.focus_dir, basename),
-                os.path.join(self.custom_params_dir, self.focus_name, basename),
-                os.path.join(self.custom_params_dir, basename),
+                os.path.join(self.project_params_dir, self.focus_name, basename),
+                os.path.join(self.project_params_dir, basename),
                 os.path.join(self.standard_params_dir, self.focus_name, basename),
                 os.path.join(self.standard_params_dir, basename),
                 os.path.join(self.root_dir, basename),

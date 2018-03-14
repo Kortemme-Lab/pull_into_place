@@ -86,8 +86,8 @@ class CopyWorkspaceInputs:
                 preserve_symlinks=True,
         )
         copy_tree(
-                old_workspace.custom_params_dir,
-                workspace.custom_params_dir,
+                old_workspace.project_params_dir,
+                workspace.project_params_dir,
                 preserve_symlinks=True,
         )
 
