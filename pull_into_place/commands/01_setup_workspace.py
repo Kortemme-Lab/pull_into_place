@@ -8,7 +8,8 @@ given below.  This information is used to build a workspace for this design
 that will be used by the rest of the scripts in this pipeline.
 
 Usage:
-    pull_into_place 01_setup_workspace <workspace> [--remote] [--overwrite]
+    pull_into_place 01_setup_workspace <workspace> [--remote]
+    [--overwrite] [--copy]
 
 Options:
     --remote, -r
@@ -19,6 +20,10 @@ Options:
     --overwrite, -o
         If a design with the given name already exists, remove it and replace
         it with the new design created by this script.
+
+    --copy, -c
+        Setup a workspace with the same inputs as a previously set-up
+        workspace.
 """
 
 import os, re, shutil, subprocess
@@ -62,6 +67,23 @@ the symlink called 'rosetta' in the workspace directory."""
 
         os.symlink(rosetta_dir, workspace.rosetta_dir)
 
+class CopyWorkspaceInputs:
+    prompt="Path to previous workspace: "
+    description = """\
+            Copying inputs from previous workspace."""
+
+    @staticmethod
+    def install(workspace, old_workspace):
+        old_workspace = ensure_path_exists(old_workspace)
+        old_workspace = pipeline.Workspace(old_workspace)
+        old_workspace.check_paths()
+        from distutils.dir_util import copy_tree
+        copy_tree(old_workspace.rosetta_inputs_dir(True),
+                workspace.rosetta_inputs_dir(True), preserve_symlinks =
+                True)
+        copy_tree(old_workspace.rosetta_inputs_dir(False),
+                workspace.rosetta_inputs_dir(False), preserve_symlinks =
+                True)
 
 class InputPdb:
     prompt = "Path to the input PDB file: "
@@ -317,6 +339,10 @@ Design '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
                 RosettaDir,
                 RsyncUrl,
         )
+    elif arguments['--copy']:
+        installers = (
+                CopyWorkspaceInputs,
+                )
     else:
         installers = (
                 RosettaDir,

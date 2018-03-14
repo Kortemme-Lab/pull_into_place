@@ -64,6 +64,14 @@ class Workspace (object):
         return os.path.abspath(self.root_dir)
 
     @property
+    def focus_name(self):
+        """
+        The "name" of the directory managed by this class, e.g. for finding 
+        input files.  This is meant to be overridden in subclasses.
+        """
+        return ''
+
+    @property
     def focus_dir(self):
         """
         The particular directory managed by this class.  This is meant to be
@@ -221,17 +229,38 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
         """
         Look in a few places for a file with the given name.  If a custom
         version of the file is found in the directory being managed by
-        this workspace, return it.  Otherwise return the path to the default
-        version of the file in the root directory.
+        this workspace, return it.  Otherwise look in the custom and default 
+        input directories in the root directory, and then finally in the root 
+        directory itself.
 
         This function makes it easy to provide custom parameters to any stage
         to the design pipeline.  Just place the file with the custom parameters
-        in the directory associated with that stage.
+        in a directory associated with that stage.
         """
 
-        custom_path = os.path.join(self.focus_dir, basename)
-        default_path = os.path.join(self.root_dir, basename)
-        return custom_path if os.path.exists(custom_path) else default_path
+        paths = [
+                os.path.join(self.focus_dir, basename),
+                os.path.join(self.root_dir, 'custom_inputs', self.focus_name, basename),
+                os.path.join(self.root_dir, 'custom_inputs', basename),
+                os.path.join(self.root_dir, 'default_inputs', self.focus_name, basename),
+                os.path.join(self.root_dir, 'default_inputs', basename),
+                os.path.join(self.root_dir, basename),
+        ]
+
+        # Remove duplicate paths.  If there's any ambiguity, the lowest 
+        # priority duplicate is kept.  This is necessary to get the search 
+        # order for the root directory correct.
+        paths = sorted(
+                set(paths),
+                key=lambda x: max(i for i, path in enumerate(paths) if x == path)
+        )
+
+        for path in paths:
+            if os.path.exists(path):
+                return path
+
+        # Return the last path we checked, even though we didn't find the file.
+        return paths[-1]
 
     def check_paths(self):
         required_paths = [
@@ -482,8 +511,12 @@ class RestrainedModels (BigJobWorkspace, WithFragmentLibs):
         return RestrainedModels(os.path.join(directory, '..'))
 
     @property
+    def focus_name(self):
+        return os.path.join(self.root_dir, 'restrained_models')
+
+    @property
     def focus_dir(self):
-        return os.path.join(self.root_dir, '01_restrained_models')
+        return os.path.join(self.root_dir, '01_{0}'.format(self.focus_name))
 
     @property
     def input_dir(self):
@@ -514,10 +547,14 @@ class FixbbDesigns (BigJobWorkspace):
             return ValidatedDesigns(self.root_dir, self.round - 1)
 
     @property
+    def focus_name(self):
+        return 'fixbb_designs'
+
+    @property
     def focus_dir(self):
         assert self.round > 0
         prefix = 2 * self.round
-        subdir = '{0:02}_fixbb_designs_round_{1}'.format(prefix, self.round)
+        subdir = '{0:02}_{1}_round_{2}'.format(prefix, self.focus_name, self.round)
         return os.path.join(self.root_dir, subdir)
 
 
@@ -538,10 +575,14 @@ class ValidatedDesigns (BigJobWorkspace, WithFragmentLibs):
         return FixbbDesigns(self.root_dir, self.round)
 
     @property
+    def focus_name(self):
+        return 'validated_designs'
+
+    @property
     def focus_dir(self):
         assert self.round > 0
         prefix = 2 * self.round + 1
-        subdir = '{0:02}_validated_designs_round_{1}'.format(prefix, self.round)
+        subdir = '{0:02}_{1}_round_{2}'.format(prefix, self.focus_name, self.round)
         return os.path.join(self.root_dir, subdir)
 
     @property
