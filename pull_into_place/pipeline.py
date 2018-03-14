@@ -59,9 +59,10 @@ class Workspace (object):
         return os.path.normpath(
                 os.path.join(self._root_dirname, self._root_basename))
 
-    def inputs_dir(self, default=True):
-        return os.path.join(self.root_dir, 'default_inputs' if default
-                else 'custom_inputs')
+    def rosetta_inputs_dir(self, default=True):
+        return os.path.normpath(os.path.join(self.root_dir, 
+                'default_inputs' if default
+                else 'custom_inputs'))
 
     @property
     def abs_root_dir(self):
@@ -234,9 +235,9 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
         """
 
         custom_focus_path = os.path.join(self.focus_dir, basename)
-        custom_root_path = os.path.join(self.inputs_dir(False),
+        custom_root_path = os.path.join(self.rosetta_inputs_dir(False),
                 basename)
-        default_path = os.path.join(self.inputs_dir(), basename)
+        default_path = os.path.join(self.rosetta_inputs_dir(), basename)
 
         if os.path.exists(custom_focus_path):
             return custom_focus_path
@@ -277,8 +278,8 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
 
     def make_dirs(self):
         scripting.mkdir(self.focus_dir)
-        scripting.mkdir(self.inputs_dir())
-        scripting.mkdir(self.inputs_dir(False))
+        scripting.mkdir(self.rosetta_inputs_dir())
+        scripting.mkdir(self.rosetta_inputs_dir(False))
 
         pickle_path = os.path.join(self.focus_dir, 'workspace.pkl')
         with open(pickle_path, 'w') as file:
