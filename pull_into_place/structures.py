@@ -257,13 +257,20 @@ def read_and_calculate(workspace, pdb_paths):
         # Calculate how well each restraint was satisfied.
 
         restraint_distances = []
+        restraint_angles = []
         residue_specific_restraint_distances = {}
+        residue_specific_restraint_angles = {}
 
         for restraint in restraints:
             d = restraint.distance_from_ideal(atom_xyzs)
-            restraint_distances.append(d)
-            for i in restraint.residue_ids:
-                residue_specific_restraint_distances.setdefault(i,[]).append(d)
+            if restraint.type == "distance":
+                restraint_distances.append(d)
+                for i in restraint.residue_ids:
+                    residue_specific_restraint_distances.setdefault(i,[]).append(d)
+            elif restraint.type == "angle":
+                restraint_angles.append(d)
+                for i in restraint.residue_ids:
+                    residue_specific_restraint_angles.setdefault(i,[]).append(d)
 
         if restraint_distances:
             meta = ScoreMetadata(
@@ -272,6 +279,15 @@ def read_and_calculate(workspace, pdb_paths):
                     guide=1.0, lower=0.0, upper='95%', order=2,
             )
             record['restraint_dist'] = np.max(restraint_distances)
+            metadata[meta.name] = meta
+
+        if restraint_angles:
+            meta = ScoreMetadata(
+                    name='restraint_angle',
+                    title='Restraint Angle Satisfaction (Degrees)',
+                    guide=20, lower=0.0, upper='95%', order=2,
+            )
+            record['restraint_angle'] = np.max(restraint_angles)
             metadata[meta.name] = meta
 
         if len(residue_specific_restraint_distances) > 1:
@@ -285,6 +301,19 @@ def read_and_calculate(workspace, pdb_paths):
                 )
                 record[key] = np.max(residue_specific_restraint_distances[i])
                 metadata[meta.name] = meta
+
+        if len(residue_specific_restraint_angles) > 1:
+            for i in residue_specific_restraint_angles:
+                res = '{0}{1}'.format(sequence_map[i], i)
+                key = 'restraint_angle_{0}'.format(res.lower())
+                meta = ScoreMetadata(
+                        name=key,
+                        title='Restraint Satisfaction for {0} (Degrees)'.format(res),
+                        guide=20, lower=-1, upper='95%', order=3,
+                )
+                record[key] = np.max(residue_specific_restraint_angles[i])
+                metadata[meta.name] = meta
+
 
         records.append(record)
 
@@ -625,6 +654,7 @@ class CoordinateRestraint(object):
 
     def __init__(self, args):
         self.atom_name = args[0]
+        self.type = "distance"
         self.residue_id = int(args[1])
         self.residue_ids = [self.residue_id]
         self.atom = self.atom_name, self.residue_id
@@ -638,6 +668,7 @@ class AtomPairRestraint(object):
 
     def __init__(self, args):
         self.atom_names = [args[0], args[2]]
+        self.type = "distance"
         self.residue_ids = [int(args[i]) for i in (1,3)]
         self.atom_pair = zip(self.atom_names, self.residue_ids)
         self.ideal_distance = float(args[5])
@@ -647,20 +678,20 @@ class AtomPairRestraint(object):
         return euclidean(*coords) - self.ideal_distance
 
 class DihedralRestraint(object):
-
     def __init__(self, args):
         self.atom_names = [args[0],args[2],args[4],args[6]]
+        self.type = "angle"
         self.residue_ids = [int(args[i]) for i in (1,3,5,7)]
         self.atoms = zip(self.atom_names, self.residue_ids)
-        self.ideal_dihedral = float(args[9])
+        self.ideal_dihedral = float(args[9]) * (360 / (2 * np.pi))
 
     def distance_from_ideal(self, atom_xyzs):
         coords = [atom_xyzs[x] for x in self.atoms]
-        measured_dihedral = dihedral(coords)
+        measured_dihedral = dihedral(coords) * (360 / (2 * np.pi))
         # Make sure we don't get the wrong number because of
         # non-principle angles:
-        dihedrals = [abs(measured_dihedral - self.ideal_dihedral), abs(measured_dihedral + (2 * \
-                np.pi) - self.ideal_dihedral), abs(measured_dihedral - (2 * np.pi) - \
+        dihedrals = [abs(measured_dihedral - self.ideal_dihedral), abs(measured_dihedral + \
+                    (360) - self.ideal_dihedral), abs(measured_dihedral - (360) - \
                     self.ideal_dihedral)]
         return min(dihedrals) 
 
@@ -668,18 +699,18 @@ class AngleRestraint(object):
 
     def __init__(self, args):
         self.atom_names = [args[0],args[2],args[4],args[6]]
+        self.type = "angle"
         self.residue_ids = [int(args[i]) for i in (1,3,5)]
         self.atoms = zip(self.atom_names, self.residue_ids)
-        self.ideal_angle = float(args[7])
+        self.ideal_angle = float(args[7]) * (360 / (2 * np.pi))
 
     def distance_from_ideal(self, atom_xyzs):
         coords = [atom_xyzs[x] for x in self.atoms]
-        measured_angle = angle(coords)
+        measured_angle = angle(coords) * (360 / (2 * np.pi))
         # Make sure we don't get the wrong number because of
         # non-principle angles:
-        angles = [abs(measured_angle - self.ideal_angle), abs(measured_angle + (2 * np.pi) -
-                self.ideal_angle), abs(measured_angle - (2 * np.pi) -
-                self.ideal_angle)]
+        angles = [abs(measured_angle - self.ideal_angle), abs(measured_angle + (360) -
+                self.ideal_angle), abs(measured_angle - (360) - self.ideal_angle)]
         return min(angles)
 
 class Design (object):

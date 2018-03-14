@@ -32,6 +32,10 @@ big_jobs.run_command([
             'fast=' + ('yes' if test_run else 'no'),
             'loop_start=' + str(workspace.loop_boundaries[0]),
             'loop_end=' + str(workspace.loop_boundaries[1]),
+            'outputs_folder=' + workspace.seqprof_dir,
+            'design_number=' + '{0}_{1:06d}'.format(job_id,task_id),
+            'vall_path=' + (workspace.rosetta_vall_path(test_run)),
+            'fragment_weights=' + workspace.fragment_weights_path,
         '-packing:resfile', workspace.resfile_path,
         '-constraints:cst_fa_file', workspace.restraints_path,
 ] +     workspace.fragments_flags(workspace.input_pdb_path) + [
