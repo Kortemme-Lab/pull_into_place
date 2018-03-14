@@ -74,6 +74,7 @@ class CopyWorkspaceInputs:
 
     @staticmethod
     def install(workspace, old_workspace):
+        old_workspace = ensure_path_exists(old_workspace)
         old_workspace = pipeline.Workspace(old_workspace)
         old_workspace.check_paths()
         from distutils.dir_util import copy_tree
@@ -349,6 +350,14 @@ Design '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
                 LoopsFile,
                 Resfile,
                 RestraintsFile,
+                ScoreFunction,
+                BuildScript,
+                DesignScript,
+                ValidateScript,
+                FilterScript,
+                SharedDefs,
+                FlagsFile,
+                FragmentWeights,
         )
 
     # Get the necessary settings from the user and use them to fill in the
