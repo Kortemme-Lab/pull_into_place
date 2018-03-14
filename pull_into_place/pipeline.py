@@ -229,9 +229,17 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
         in the directory associated with that stage.
         """
 
-        custom_path = os.path.join(self.focus_dir, basename)
-        default_path = os.path.join(self.root_dir, basename)
-        return custom_path if os.path.exists(custom_path) else default_path
+        custom_focus_path = os.path.join(self.focus_dir, basename)
+        custom_root_path = os.path.join(self.root_dir, 'custom_inputs',
+                basename)
+        default_path = os.path.join(self.root_dir, 'default_inputs', basename)
+
+        if os.path.exists(custom_focus_path):
+            return custom_fucos_path
+        elif os.path.exists(custom_root_path):
+            return custom_root_path
+        else:
+            return default_path
 
     def check_paths(self):
         required_paths = [
