@@ -4,7 +4,8 @@
 
   <MOVERS>
     <FastDesign name="fastdes"
-        task_operations="cli,resfile,ex" scorefxn="scorefxn_cst"/>
+      task_operations="resfile,layer,shell,ex,aro,curr"
+      scorefxn="scorefxn_cst"/>
   </MOVERS>
 
   <PROTOCOLS>
