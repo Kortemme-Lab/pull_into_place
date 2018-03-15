@@ -6,7 +6,7 @@
     <LoopModeler name="modeler"
       config="kic_with_frags"
       scorefxn_fa="scorefxn_cst"
-      task_operations="cli,resfile,ex"
+      task_operations="resfile,layer,shell,ex,aro,curr"
       loops_file="%%loop_file%%"
       fast="%%fast%%">
         <Build skip="yes"/>

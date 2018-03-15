@@ -12,9 +12,12 @@
   </SCOREFXNS>
 
   <TASKOPERATIONS>
-    <InitializeFromCommandline name="cli"/>
     <ReadResfile name="resfile"/>
+    <LayerDesign name="layer"/>
+    <ClashBasedRepackShell name="shell" task_operations="resfile"/>
     <ExtraRotamersGeneric name="ex" ex1="yes" ex2="yes" extrachi_cutoff="0"/>
+    <LimitAromaChi2 name="aro" include_trp="yes"/>
+    <IncludeCurrent name="curr"/>
   </TASKOPERATIONS>
 
   <MOVERS>
