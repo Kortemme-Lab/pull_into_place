@@ -20,13 +20,8 @@ Options:
         Print out the command-line that would be used to generate fragments, 
         but don't actually run it.
 
-    -x, --clear
-        Remove any previously generated fragment files.
-
-Simply rerun this command if some of your fragment generation jobs fail.  By 
-default it will only submit jobs for inputs that are missing valid fragment 
-files.  You can force the fragments to be regenerated from scratch by passing 
-the '--clear' flag.
+Simply rerun this command if some of your fragment generation jobs fail.  It 
+will only submit jobs for inputs that are missing valid fragment files.
 """
 
 import subprocess
@@ -43,16 +38,12 @@ def main():
     workspace.check_rosetta()
     workspace.make_dirs()
 
-    # Do this before working out the 'klab_generate_fragments' command, because 
-    # it may affect which inputs are picked.
-    if args['--clear'] and not args['--dry-run']:
-        workspace.clear_fragments()
-
     generate_fragments = [
             'klab_generate_fragments',
             '--loops_file', workspace.loops_path,
             '--outdir', workspace.fragments_dir,
             '--memfree', args['--mem-free'],
+            '--overwrite',
     ] +     pick_inputs(workspace)
 
     if args['--dry-run']:
