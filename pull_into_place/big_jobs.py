@@ -137,7 +137,8 @@ def run_external_metrics(workspace, job_info):
         file = gzip.open(pdb_path, 'a')
 
         for line in stdout.strip().split('\n'):
-            file.write('EXTRA_METRIC {0}\n'.format(line))
+            if line.strip():
+                file.write('EXTRA_METRIC {0}\n'.format(line))
 
         file.close()
             
