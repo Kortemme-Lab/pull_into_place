@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-import sys, os, re, json, subprocess
+import sys, os, re, json, subprocess, gzip
 from klab.process import tee
 from . import pipeline
 
@@ -129,8 +129,9 @@ def run_external_metrics(workspace, job_info):
     for metric in workspace.metric_scripts:
         stdout, stderr = run_command([metric, pdb_path])
 
-        with open(pdb_path, 'a') as file:
-            file.write('EXTRA_METRIC ' + stdout)
+        with gzip.open(pdb_path, 'a') as file:
+            for line in stdout.strip().split('\n'):
+                file.write('EXTRA_METRIC {}\n'.format(line))
             
 def run_command(command):
     print "Working directory:", os.getcwd()
