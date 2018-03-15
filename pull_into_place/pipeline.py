@@ -662,6 +662,10 @@ class ValidatedDesigns(BigJobWorkspace, WithFragmentLibs):
     def output_subdirs(self):
         return sorted(glob.glob(os.path.join(self.output_dir, '*/')))
 
+    def output_subdir(self, input_name):
+        basename = os.path.basename(input_name[:-len('.pdb.gz')])
+        return os.path.join(self.output_dir, basename)
+
     def output_prefix(self, job_info):
         input_model = self.input_basename(job_info)[:-len('.pdb.gz')]
         return os.path.join(self.output_dir, input_model) + '/'
