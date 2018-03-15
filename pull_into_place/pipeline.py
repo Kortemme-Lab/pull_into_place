@@ -551,7 +551,7 @@ class RestrainedModels(BigJobWorkspace, WithFragmentLibs):
 
     @property
     def focus_name(self):
-        return os.path.join(self.root_dir, 'restrained_models')
+        return 'restrained_models'
 
     @property
     def focus_dir(self):
