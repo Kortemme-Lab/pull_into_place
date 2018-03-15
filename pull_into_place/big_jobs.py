@@ -128,10 +128,12 @@ def run_external_metrics(workspace, job_info):
 
     for metric in workspace.metric_scripts:
         stdout, stderr = run_command([metric, pdb_path])
+        file = gzip.open(pdb_path, 'a')
 
-        with gzip.open(pdb_path, 'a') as file:
-            for line in stdout.strip().split('\n'):
-                file.write('EXTRA_METRIC {}\n'.format(line))
+        for line in stdout.strip().split('\n'):
+            file.write('EXTRA_METRIC {}\n'.format(line))
+
+        file.close()
             
 def run_command(command):
     print "Working directory:", os.getcwd()
