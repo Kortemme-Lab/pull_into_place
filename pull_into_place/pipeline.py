@@ -380,8 +380,8 @@ class BigJobWorkspace(Workspace):
 
     def output_path(self, job_info):
         basename, extension = self.input_path(job_info).split('.', 1)
-        prefix = self.output_prefix(job_id, task_id, job_info)
-        suffix = self.output_suffix(job_id, task_id, job_info)
+        prefix = self.output_prefix(job_info)
+        suffix = self.output_suffix(job_info)
         return prefix + basename + suffix + '.' + extension
 
     def output_basename(self, job_info):
@@ -420,11 +420,6 @@ class BigJobWorkspace(Workspace):
     @property
     def all_job_info_paths(self):
         return glob.glob(os.path.join(self.focus_dir, '*.json'))
-
-    @property
-    def all_job_info(self):
-        from . import big_jobs
-        return [big_jobs.read_params(x) for x in self.all_job_info_paths]
 
     @property
     def unclaimed_inputs(self):
