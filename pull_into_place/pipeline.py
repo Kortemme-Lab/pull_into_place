@@ -422,6 +422,11 @@ class BigJobWorkspace(Workspace):
         return glob.glob(os.path.join(self.focus_dir, '*.json'))
 
     @property
+    def all_job_info(self):
+        from . import big_jobs
+        return [big_jobs.read_job_info(x) for x in self.all_job_info_paths]
+
+    @property
     def unclaimed_inputs(self):
         inputs = set(self.input_names)
         for params in self.all_job_info:

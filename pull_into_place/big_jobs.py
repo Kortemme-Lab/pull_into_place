@@ -66,14 +66,9 @@ def initiate():
     workspace = pipeline.workspace_from_dir(sys.argv[1])
     workspace.cd_to_root()
 
-    job_id = int(os.environ['JOB_ID'])
-    task_id = int(os.environ['SGE_TASK_ID']) - 1
-
-    with open(workspace.job_info_path(job_id)) as file:
-        job_info = json.load(file)
-
-    job_info['job_id'] = job_id
-    job_info['task_id'] = task_id
+    job_info = read_job_info(workspace.job_info_path(os.environ['JOB_ID']))
+    job_info['job_id'] = int(os.environ['JOB_ID'])
+    job_info['task_id'] = int(os.environ['SGE_TASK_ID']) - 1
 
     return workspace, job_info
 
@@ -83,18 +78,6 @@ def debrief():
     """
     job_number = os.environ['JOB_ID'] + '.' + os.environ['SGE_TASK_ID']
     run_command(['/usr/local/sge/bin/linux-x64/qstat', '-j', job_number])
-
-def print_debug_header():
-    from datetime import datetime
-    from socket import gethostname
-
-    print "Date:", datetime.now()
-    print "Host:", gethostname()
-    print "Python:", sys.executable or 'unknown!'
-    print "Command: JOB_ID={0[JOB_ID]} SGE_TASK_ID={0[SGE_TASK_ID]} {1}".format(
-            os.environ, ' '.join(sys.argv))
-    print
-    sys.stdout.flush()
 
 def run_rosetta(workspace, job_info, 
         use_resfile=False, use_restraints=False, use_fragments=False):
@@ -156,6 +139,21 @@ def run_command(command):
 
     return tee(command)
 
+def read_job_info(json_path):
+    with open(json_path) as file:
+        return json.load(file)
+
+def print_debug_header():
+    from datetime import datetime
+    from socket import gethostname
+
+    print "Date:", datetime.now()
+    print "Host:", gethostname()
+    print "Python:", sys.executable or 'unknown!'
+    print "Command: JOB_ID={0[JOB_ID]} SGE_TASK_ID={0[SGE_TASK_ID]} {1}".format(
+            os.environ, ' '.join(sys.argv))
+    print
+    sys.stdout.flush()
 
 
     
