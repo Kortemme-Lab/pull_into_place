@@ -127,11 +127,17 @@ def run_external_metrics(workspace, job_info):
     pdb_path = workspace.output_path(job_info)
 
     for metric in workspace.metric_scripts:
-        stdout, stderr = run_command([metric, pdb_path])
+        command = metric, pdb_path
+
+        print "Working directory:", os.getcwd()
+        print "Command:", ' '.join(command)
+        sys.stdout.flush()
+
+        stdout, stderr = tee([metric, pdb_path])
         file = gzip.open(pdb_path, 'a')
 
         for line in stdout.strip().split('\n'):
-            file.write('EXTRA_METRIC {}\n'.format(line))
+            file.write('EXTRA_METRIC {0}\n'.format(line))
 
         file.close()
             
@@ -140,7 +146,13 @@ def run_command(command):
     print "Command:", ' '.join(command)
     sys.stdout.flush()
 
-    return tee(command)
+    process = subprocess.Popen(command)
+
+    print "Process ID:", process.pid
+    print
+    sys.stdout.flush()
+
+    process.wait()
 
 def read_job_info(json_path):
     with open(json_path) as file:
