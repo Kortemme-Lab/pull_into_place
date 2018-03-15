@@ -656,7 +656,7 @@ class ValidatedDesigns(BigJobWorkspace, WithFragmentLibs):
     def input_path(self, job_info):
         designs = job_info['inputs']
         design = designs[job_info['task_id'] % len(designs)]
-        return design
+        return os.path.join(self.input_dir, design)
 
     @property
     def output_subdirs(self):
