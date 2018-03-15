@@ -196,7 +196,7 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
 
     @property
     def metric_scripts(self):
-        return glob.glob(self.metrics_dir, '*')
+        return glob.glob(os.path.join(self.metrics_dir, '*'))
 
     @property
     def build_script_path(self):
