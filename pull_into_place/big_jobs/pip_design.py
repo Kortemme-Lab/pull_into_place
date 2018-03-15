@@ -7,38 +7,14 @@
 #$ -l h_core=0
 #$ -cwd
 
-
-import os, sys, subprocess
 from pull_into_place import big_jobs
 
-workspace, job_id, task_id, parameters = big_jobs.initiate()
-test_run = parameters.get('test_run', False)
+workspace, job_info = big_jobs.initiate()
 
-bb_models = parameters['inputs']
-bb_model = bb_models[task_id % len(bb_models)]
-design_id = task_id // len(bb_models)
-
-big_jobs.print_debug_info()
-big_jobs.run_command([
-        workspace.rosetta_scripts_path,
-        '-database', workspace.rosetta_database_path,
-        '-in:file:s', workspace.input_path(bb_model),
-        '-in:file:native', workspace.input_pdb_path,
-        '-out:prefix', workspace.output_dir + '/',
-        '-out:suffix', '_{0:03}'.format(design_id),
-        '-out:no_nstruct_label',
-        '-out:overwrite',
-        '-out:pdb_gz',
-        '-parser:protocol', workspace.design_script_path,
-        '-parser:script_vars',
-            'wts_file=' + workspace.scorefxn_path,
-            'cst_file=' + workspace.restraints_path,
-            'loop_start=' + str(workspace.loop_boundaries[0]),
-            'loop_end=' + str(workspace.loop_boundaries[1]),
-            'outputs_folder=' + workspace.seqprof_dir,
-            'design_number=' + bb_model + '_{0:03}'.format(design_id),
-            'vall_path=' + (workspace.rosetta_vall_path(test_run)),
-            'fragment_weights=' + workspace.fragment_weights_path,
-        '-packing:resfile', workspace.resfile_path,
-        '@', workspace.flags_path,
-])
+# I wasn't able to get PackRotamers to respect any restraints set on the 
+# command line, so instead the restraints are set in the protocol itself.
+big_jobs.run_rosetta(
+        workspace, job_info,
+        use_resfile=True,
+)
+big_jobs.debrief()

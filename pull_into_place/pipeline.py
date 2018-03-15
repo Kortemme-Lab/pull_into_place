@@ -13,7 +13,7 @@ import os, re, glob, json, pickle
 from klab import scripting
 from pprint import pprint
 
-class Workspace (object):
+class Workspace(object):
     """
     Provide paths to every file used in the design pipeline.
 
@@ -187,12 +187,20 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
         return self.find_path('scorefxn.wts')
 
     @property
-    def build_script_path(self):
-        return self.find_path('build_models.xml')
-
-    @property
     def filters_path(self):
         return self.find_path('filters.xml')
+
+    @property
+    def metrics_dir(self):
+        return self.find_path('metrics')
+
+    @property
+    def metric_scripts(self):
+        return glob.glob(self.metrics_dir, '*')
+
+    @property
+    def build_script_path(self):
+        return self.find_path('build_models.xml')
 
     @property
     def design_script_path(self):
@@ -326,7 +334,7 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
         return os.path.exists(self.focus_dir)
 
 
-class BigJobWorkspace (Workspace):
+class BigJobWorkspace(Workspace):
     """
     Provide paths needed to run big jobs on the cluster.
 
@@ -337,6 +345,10 @@ class BigJobWorkspace (Workspace):
     """
 
     @property
+    def protocol_path(self):
+        raise NotImplementedError
+
+    @property
     def input_dir(self):
         return os.path.join(self.focus_dir, 'inputs')
 
@@ -344,8 +356,11 @@ class BigJobWorkspace (Workspace):
     def input_paths(self):
         return glob.glob(os.path.join(self.input_dir, '*.pdb.gz'))
 
-    def input_path(self, name):
-        return os.path.join(self.input_dir, name)
+    def input_path(self, job_info):
+        raise NotImplementedError
+
+    def input_basename(self, job_info):
+        return os.path.basename(self.input_path(job_info))
 
     @property
     def input_names(self):
@@ -362,6 +377,21 @@ class BigJobWorkspace (Workspace):
     @property
     def output_paths(self):
         return glob.glob(os.path.join(self.input_dir, '*.pdb.gz'))
+
+    def output_path(self, job_info):
+        basename, extension = self.input_path(job_info).split('.', 1)
+        prefix = self.output_prefix(job_id, task_id, job_info)
+        suffix = self.output_suffix(job_id, task_id, job_info)
+        return prefix + basename + suffix + '.' + extension
+
+    def output_basename(self, job_info):
+        return os.path.basename(self.output_path(job_info))
+
+    def output_prefix(self, job_info):
+        return self.output_dir + '/'
+
+    def output_suffix(self, job_info):
+        return ''
 
     @property
     def io_dirs(self):
@@ -384,22 +414,22 @@ class BigJobWorkspace (Workspace):
         parent_patterns = super(BigJobWorkspace, self).rsync_exclude_patterns
         return parent_patterns + ['stderr/', 'stdout/', '*.sc']
 
-    def job_params_path(self, job_id):
+    def job_info_path(self, job_id):
         return os.path.join(self.focus_dir, '{0}.json'.format(job_id))
 
     @property
-    def all_job_params_paths(self):
+    def all_job_info_paths(self):
         return glob.glob(os.path.join(self.focus_dir, '*.json'))
 
     @property
-    def all_job_params(self):
+    def all_job_info(self):
         from . import big_jobs
-        return [big_jobs.read_params(x) for x in self.all_job_params_paths]
+        return [big_jobs.read_params(x) for x in self.all_job_info_paths]
 
     @property
     def unclaimed_inputs(self):
         inputs = set(self.input_names)
-        for params in self.all_job_params:
+        for params in self.all_job_info:
             inputs -= set(params['inputs'])
         return sorted(inputs)
 
@@ -418,11 +448,11 @@ class BigJobWorkspace (Workspace):
         scripting.clear_directory(self.stdout_dir)
         scripting.clear_directory(self.stderr_dir)
 
-        for path in self.all_job_params_paths:
+        for path in self.all_job_info_paths:
             os.remove(path)
 
 
-class WithFragmentLibs (object):
+class WithFragmentLibs(object):
     """
     Provide paths needed to interact with fragment libraries.
 
@@ -510,7 +540,7 @@ class WithFragmentLibs (object):
         scripting.clear_directory(self.fragments_dir)
 
 
-class RestrainedModels (BigJobWorkspace, WithFragmentLibs):
+class RestrainedModels(BigJobWorkspace, WithFragmentLibs):
 
     def __init__(self, root):
         BigJobWorkspace.__init__(self, root)
@@ -528,15 +558,28 @@ class RestrainedModels (BigJobWorkspace, WithFragmentLibs):
         return os.path.join(self.root_dir, '01_{0}'.format(self.focus_name))
 
     @property
+    def protocol_path(self):
+        return self.build_script_path
+
+    @property
     def input_dir(self):
         return self.root_dir
+
+    def input_path(self, parameters):
+        return self.input_pdb_path
 
     @property
     def input_paths(self):
         return [self.input_pdb_path]
 
+    def output_prefix(self, job_info):
+        return os.path.join(
+                self.output_dir,
+                '{0}_{1:06d}_'.format(job_info['job_id'], job_info['task_id']),
+        )
 
-class FixbbDesigns (BigJobWorkspace):
+
+class FixbbDesigns(BigJobWorkspace):
 
     def __init__(self, root, round):
         BigJobWorkspace.__init__(self, root)
@@ -566,8 +609,20 @@ class FixbbDesigns (BigJobWorkspace):
         subdir = '{0:02}_{1}_round_{2}'.format(prefix, self.focus_name, self.round)
         return os.path.join(self.root_dir, subdir)
 
+    @property
+    def protocol_path(self):
+        return self.design_script_path
+    def input_path(self, job_info):
+        bb_models = job_info['inputs']
+        bb_model = bb_models[job_info['task_id'] % len(bb_models)]
+        return os.path.join(self.input_dir, bb_model)
 
-class ValidatedDesigns (BigJobWorkspace, WithFragmentLibs):
+    def output_suffix(self, job_info):
+        design_id = job_info['task_id'] // len(job_info['inputs'])
+        return '_{0:03}'.format(design_id)
+
+
+class ValidatedDesigns(BigJobWorkspace, WithFragmentLibs):
 
     def __init__(self, root, round):
         BigJobWorkspace.__init__(self, root)
@@ -595,12 +650,24 @@ class ValidatedDesigns (BigJobWorkspace, WithFragmentLibs):
         return os.path.join(self.root_dir, subdir)
 
     @property
+    def protocol_path(self):
+        return self.validate_script_path
+
+    def input_path(self, job_info):
+        designs = job_info['inputs']
+        design = designs[job_info['task_id'] % len(designs)]
+        return design
+
+    @property
     def output_subdirs(self):
         return sorted(glob.glob(os.path.join(self.output_dir, '*/')))
 
-    def output_subdir(self, input_name):
-        basename = os.path.basename(input_name[:-len('.pdb.gz')])
-        return os.path.join(self.output_dir, basename)
+    def output_prefix(self, job_info):
+        input_model = self.input_basename(job_info)[:-len('.pdb.gz')]
+        return os.path.join(self.output_dir, input_model) + '/'
+
+    def output_suffix(self, job_info):
+        return '_{0:03d}'.format(job_info['task_id'] / len(job_info['inputs']))
 
 
 
