@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-import sys, os, re, json, subprocess
+import sys, os, re, json, subprocess, gzip
 from klab.process import tee
 from . import pipeline
 
@@ -66,14 +66,9 @@ def initiate():
     workspace = pipeline.workspace_from_dir(sys.argv[1])
     workspace.cd_to_root()
 
-    job_id = int(os.environ['JOB_ID'])
-    task_id = int(os.environ['SGE_TASK_ID']) - 1
-
-    with open(workspace.job_info_path(job_id)) as file:
-        job_info = json.load(file)
-
-    job_info['job_id'] = job_id
-    job_info['task_id'] = task_id
+    job_info = read_job_info(workspace.job_info_path(os.environ['JOB_ID']))
+    job_info['job_id'] = int(os.environ['JOB_ID'])
+    job_info['task_id'] = int(os.environ['SGE_TASK_ID']) - 1
 
     return workspace, job_info
 
@@ -83,18 +78,6 @@ def debrief():
     """
     job_number = os.environ['JOB_ID'] + '.' + os.environ['SGE_TASK_ID']
     run_command(['/usr/local/sge/bin/linux-x64/qstat', '-j', job_number])
-
-def print_debug_header():
-    from datetime import datetime
-    from socket import gethostname
-
-    print "Date:", datetime.now()
-    print "Host:", gethostname()
-    print "Python:", sys.executable or 'unknown!'
-    print "Command: JOB_ID={0[JOB_ID]} SGE_TASK_ID={0[SGE_TASK_ID]} {1}".format(
-            os.environ, ' '.join(sys.argv))
-    print
-    sys.stdout.flush()
 
 def run_rosetta(workspace, job_info, 
         use_resfile=False, use_restraints=False, use_fragments=False):
@@ -144,18 +127,49 @@ def run_external_metrics(workspace, job_info):
     pdb_path = workspace.output_path(job_info)
 
     for metric in workspace.metric_scripts:
-        stdout, stderr = run_command([metric, pdb_path])
+        command = metric, pdb_path
 
-        with open(pdb_path, 'a') as file:
-            file.write('EXTRA_METRIC ' + stdout)
+        print "Working directory:", os.getcwd()
+        print "Command:", ' '.join(command)
+        sys.stdout.flush()
+
+        stdout, stderr = tee([metric, pdb_path])
+        file = gzip.open(pdb_path, 'a')
+
+        for line in stdout.strip().split('\n'):
+            if line.strip():
+                file.write('EXTRA_METRIC {0}\n'.format(line))
+
+        file.close()
             
 def run_command(command):
     print "Working directory:", os.getcwd()
     print "Command:", ' '.join(command)
     sys.stdout.flush()
 
-    return tee(command)
+    process = subprocess.Popen(command)
 
+    print "Process ID:", process.pid
+    print
+    sys.stdout.flush()
+
+    process.wait()
+
+def read_job_info(json_path):
+    with open(json_path) as file:
+        return json.load(file)
+
+def print_debug_header():
+    from datetime import datetime
+    from socket import gethostname
+
+    print "Date:", datetime.now()
+    print "Host:", gethostname()
+    print "Python:", sys.executable or 'unknown!'
+    print "Command: JOB_ID={0[JOB_ID]} SGE_TASK_ID={0[SGE_TASK_ID]} {1}".format(
+            os.environ, ' '.join(sys.argv))
+    print
+    sys.stdout.flush()
 
 
     

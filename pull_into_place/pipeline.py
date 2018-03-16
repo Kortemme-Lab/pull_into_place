@@ -196,7 +196,7 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
 
     @property
     def metric_scripts(self):
-        return glob.glob(self.metrics_dir, '*')
+        return glob.glob(os.path.join(self.metrics_dir, '*'))
 
     @property
     def build_script_path(self):
@@ -382,10 +382,10 @@ class BigJobWorkspace(Workspace):
         return glob.glob(os.path.join(self.input_dir, '*.pdb.gz'))
 
     def output_path(self, job_info):
-        basename, extension = self.input_path(job_info).split('.', 1)
-        prefix = self.output_prefix(job_id, task_id, job_info)
-        suffix = self.output_suffix(job_id, task_id, job_info)
-        return prefix + basename + suffix + '.' + extension
+        prefix = self.output_prefix(job_info)
+        basename = os.path.basename(self.input_path(job_info)[:-len('.pdb.gz')])
+        suffix = self.output_suffix(job_info)
+        return prefix + basename + suffix + '.pdb.gz'
 
     def output_basename(self, job_info):
         return os.path.basename(self.output_path(job_info))
@@ -427,7 +427,7 @@ class BigJobWorkspace(Workspace):
     @property
     def all_job_info(self):
         from . import big_jobs
-        return [big_jobs.read_params(x) for x in self.all_job_info_paths]
+        return [big_jobs.read_job_info(x) for x in self.all_job_info_paths]
 
     @property
     def unclaimed_inputs(self):
@@ -659,11 +659,15 @@ class ValidatedDesigns(BigJobWorkspace, WithFragmentLibs):
     def input_path(self, job_info):
         designs = job_info['inputs']
         design = designs[job_info['task_id'] % len(designs)]
-        return design
+        return os.path.join(self.input_dir, design)
 
     @property
     def output_subdirs(self):
         return sorted(glob.glob(os.path.join(self.output_dir, '*/')))
+
+    def output_subdir(self, input_name):
+        basename = os.path.basename(input_name[:-len('.pdb.gz')])
+        return os.path.join(self.output_dir, basename)
 
     def output_prefix(self, job_info):
         input_model = self.input_basename(job_info)[:-len('.pdb.gz')]
