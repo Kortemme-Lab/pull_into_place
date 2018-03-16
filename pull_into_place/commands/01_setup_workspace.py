@@ -8,8 +8,16 @@ given below.  This information is used to build a workspace for this design
 that will be used by the rest of the scripts in this pipeline.
 
 Usage:
-    pull_into_place 01_setup_workspace <workspace> [--remote]
-    [--overwrite] [--copy]
+    pull_into_place 01_setup_workspace <workspace> [<params>] [--remote]
+            [--overwrite]
+
+Arguments:
+    <workspace>
+        The name of the workspace directory to create.
+
+    <params>
+        The path to a directory containing the input files specific to your
+        project.  If provided, these will be installed into the workspace.
 
 Options:
     --remote, -r
@@ -20,10 +28,6 @@ Options:
     --overwrite, -o
         If a design with the given name already exists, remove it and replace
         it with the new design created by this script.
-
-    --copy, -c
-        Setup a workspace with the same inputs as a previously set-up
-        workspace.
 """
 
 import os, re, shutil, subprocess
@@ -35,7 +39,16 @@ def ensure_path_exists(path):
     return path
 
 
-class RosettaDir:
+class Installer:
+    prompt = None
+    description = None
+
+    @staticmethod
+    def already_installed(workspace):
+        return False
+
+
+class RosettaDir(Installer):
     prompt = "Path to rosetta: "
     description = """\
 Rosetta checkout: Path to the main directory of a Rosetta source code checkout.
@@ -67,36 +80,41 @@ the symlink called 'rosetta' in the workspace directory."""
 
         os.symlink(rosetta_dir, workspace.rosetta_dir)
 
-class CopyWorkspaceInputs:
-    prompt="Path to previous workspace: "
-    description = """\
-            Copying inputs from previous workspace."""
 
-    @staticmethod
-    def install(workspace, old_workspace):
+class ParamDirs(Installer):
+
+    def __init__(self, src):
+        self.src = src
+
+    def install(self, workspace):
         from distutils.dir_util import copy_tree
 
-        old_workspace = ensure_path_exists(old_workspace)
-        old_workspace = pipeline.Workspace(old_workspace)
-        old_workspace.check_paths()
-
+        # Always copy in the standard input files.
         copy_tree(
-                old_workspace.standard_params_dir,
+                pipeline.big_job_path('standard_params'),
                 workspace.standard_params_dir,
                 preserve_symlinks=True,
         )
-        copy_tree(
-                old_workspace.custom_params_dir,
-                workspace.custom_params_dir,
-                preserve_symlinks=True,
-        )
 
-class InputPdb:
+        # Copy in project-specific input files if we were given any.  If we 
+        # weren't, just make an empty directory so we don't get errors if/when 
+        # we try to install other files there.
+        if self.src is not None:
+            copy_tree(
+                    ensure_path_exists(self.src),
+                    workspace.project_params_dir,
+                    preserve_symlinks=True,
+            )
+        else:
+            scripting.mkdir(workspace.project_params_dir)
+
+
+class InputPdb(Installer):
     prompt = "Path to the input PDB file: "
     description = """\
 Input PDB file: A structure containing the functional groups to be positioned.
-This file should already be parse-able by rosetta, which often means it must be
-stripped of waters and extraneous ligands."""
+This file should already be prepared for input (i.e. renumbered and cleaned of 
+problematic ligands) and relaxed in the rosetta score function."""
 
     @staticmethod
     def install(workspace, pdb_path):
@@ -109,8 +127,12 @@ stripped of waters and extraneous ligands."""
         else:
             raise ValueError("'{0}' is not a PDB file.".format(pdb_path))
 
+    @staticmethod
+    def already_installed(workspace):
+        return os.path.exists(workspace.input_pdb_path)
 
-class LoopsFile:
+
+class LoopsFile(Installer):
     prompt = "Path to the loops file: "
     description = """\
 Loops file: A file specifying which backbone regions will be allowed to move.
@@ -122,8 +144,12 @@ at least 4 residues."""
         loops_path = ensure_path_exists(loops_path)
         shutil.copyfile(loops_path, workspace.loops_path)
 
+    @staticmethod
+    def already_installed(workspace):
+        return os.path.exists(workspace.loops_path)
 
-class Resfile:
+
+class Resfile(Installer):
     prompt = "Path to resfile: "
     description = """\
 Resfile: A file specifying which positions to design and which positions to
@@ -134,8 +160,12 @@ repack.  I recommend designing as few residues as possible outside the loops."""
         resfile_path = ensure_path_exists(resfile_path)
         shutil.copyfile(resfile_path, workspace.resfile_path)
 
+    @staticmethod
+    def already_installed(workspace):
+        return os.path.exists(workspace.resfile_path)
 
-class RestraintsFile:
+
+class RestraintsFile(Installer):
     prompt = "Path to restraints file: "
     description = """\
 Restraints file: A file describing the geometry you're trying to design.  In
@@ -147,19 +177,23 @@ Note that restraints are not used during the validation step."""
         restraints_path = ensure_path_exists(restraints_path)
         shutil.copyfile(restraints_path, workspace.restraints_path)
 
+    @staticmethod
+    def already_installed(workspace):
+        return os.path.exists(workspace.restraints_path)
 
-class ScoreFunction:
+
+class ScoreFunction(Installer):
     prompt = "Path to weights file [optional]: "
     description = """\
 Score function: A file that specifies weights for all the terms in the score
 function, or the name of a standard rosetta score function.  The default is
-talaris2014.  That should be ok unless you have some particular interaction
+ref2015.  That should be ok unless you have some particular interaction
 (e.g. ligand, DNA, etc.) that you want to score in a particular way."""
 
     @staticmethod
     def install(workspace, scorefxn_path):
 
-        # If the user didn't specify a score function, use talaris2014 by
+        # If the user didn't specify a score function, use ref2015 by
         # default.
 
         if not scorefxn_path:
@@ -181,7 +215,7 @@ talaris2014.  That should be ok unless you have some particular interaction
             shutil.copyfile(scorefxn_path, workspace.scorefxn_path)
 
 
-class BuildScript:
+class BuildScript(Installer):
     prompt = "Path to build script [optional]: "
     description = """\
 Build script: An XML rosetta script that generates backbones capable of
@@ -193,12 +227,9 @@ with fragments in "ensemble-generation mode" (i.e. no initial build step)."""
         if script_path:
             script_path = ensure_path_exists(script_path)
             shutil.copyfile(script_path, workspace.build_script_path)
-        else:
-            default_path = pipeline.big_job_path('build_models.xml')
-            shutil.copyfile(default_path, workspace.build_script_path)
 
 
-class DesignScript:
+class DesignScript(Installer):
     prompt = "Path to design script [optional]: "
     description = """\
 Design script: An XML rosetta script that performs design to stabilize the
@@ -209,12 +240,9 @@ desired geometry.  The default version of this script uses fixbb."""
         if script_path:
             script_path = ensure_path_exists(script_path)
             shutil.copyfile(script_path, workspace.design_script_path)
-        else:
-            default_path = pipeline.big_job_path('design_models.xml')
-            shutil.copyfile(default_path, workspace.design_script_path)
 
 
-class ValidateScript:
+class ValidateScript(Installer):
     prompt = "Path to validate script [optional]: "
     description = """\
 Validate script: An XML rosetta script that samples the designed loop to
@@ -227,22 +255,9 @@ mode" (i.e. no initial build step)."""
         if script_path:
             script_path = ensure_path_exists(script_path)
             shutil.copyfile(script_path, workspace.validate_script_path)
-        else:
-            default_path = pipeline.big_job_path('validate_designs.xml')
-            shutil.copyfile(default_path, workspace.validate_script_path)
 
 
-class SharedDefs:
-    prompt = None
-    description = None
-
-    @staticmethod
-    def install(workspace):
-        print "Installing shared defs."
-        shared_defs_path = pipeline.big_job_path('shared_defs.xml')
-        shutil.copyfile(shared_defs_path, workspace.shared_defs_path)
-
-class FilterScript:
+class FilterScript(Installer):
     prompt = "Path to filters script [optional]: "
     description = """\
 Filters script: An XML rosetta script that defines filters to be applied to
@@ -251,21 +266,19 @@ desired. By default, the PackStat filter is applied (for scoring only).
 Note that the name that you give the filter in RosettaScripts
 will appear in the plots that PIP produces, so choose something that will
 be descriptive for graphing purposes. Also, it is recommended that you
-indicate whether higher filter scores or lower filter scores indicate better structures,
-as this allows PIP to color the final xls table accordingly. You can indicate
-this with a "[[+]]" or a "[[-]]" anywhere in the filter name in RosettaScripts
-(for example, name="PackStat Score [[+]]")."""
+indicate whether higher filter scores or lower filter scores indicate better
+structures, as this allows PIP to color the final xls table accordingly. You
+can indicate this with a "[[+]]" or a "[[-]]" anywhere in the filter name in
+RosettaScripts (for example, name="PackStat Score [[+]]")."""
 
     @staticmethod
     def install(workspace, script_path):
         if script_path:
             script_path = ensure_path_exists(script_path)
             shutil.copyfile(script_path, workspace.filters_path)
-        else:
-            default_path = pipeline.big_job_path('filters.xml')
-            shutil.copyfile(default_path, workspace.filters_path)
 
-class FlagsFile:
+
+class FlagsFile(Installer):
     prompt = "Path to flags file [optional]: "
     description = """\
 Flags file: A file containing command line flags that should be passed to every
@@ -277,23 +290,9 @@ ligand, put flags related to the ligand parameter files in this file."""
         if flags_path:
             flags_path = ensure_path_exists(flags_path)
             shutil.copyfile(flags_path, workspace.flags_path)
-        else:
-            scripting.touch(workspace.flags_path)
-
-class FragmentWeights:
-    prompt = None
-    description = """\
-Fragment weights files, describing how any fragment-based filter should
-behave. A simple and standard set of weights are provided."""
-
-    @staticmethod
-    def install(workspace):
-        standard_weights = pipeline.big_job_path('fragment.wts')
-        shutil.copyfile(standard_weights,
-                workspace.fragment_weights_path)
 
 
-class RsyncUrl:
+class RsyncUrl(Installer):
     prompt = "Path to project on remote host: "
     description = """\
 Rsync URL: An ssh-style path to the directory that contains (i.e. is one level
@@ -334,7 +333,7 @@ any characters but those.""", workspace.abs_root_dir)
             shutil.rmtree(workspace.root_dir)
         else:
             scripting.print_error_and_die("""\
-Design '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
+Workspace '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
 
     workspace.make_dirs()
 
@@ -345,12 +344,9 @@ Design '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
                 RosettaDir,
                 RsyncUrl,
         )
-    elif arguments['--copy']:
-        installers = (
-                CopyWorkspaceInputs,
-                )
     else:
         installers = (
+                ParamDirs(arguments['<params>']),
                 RosettaDir,
                 InputPdb,
                 LoopsFile,
@@ -361,9 +357,7 @@ Design '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
                 DesignScript,
                 ValidateScript,
                 FilterScript,
-                SharedDefs,
                 FlagsFile,
-                FragmentWeights,
         )
 
     # Get the necessary settings from the user and use them to fill in the
@@ -375,6 +369,12 @@ Design '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
     scripting.use_path_completion()
 
     for installer in installers:
+
+        # Skip installing any files that are already installed (e.g. the
+        # resfile if a resfile was copied in with the params dirs).
+
+        if installer.already_installed(workspace):
+            continue
 
         # If the installer doesn't have a prompt, just install it without
         # asking any questions.
