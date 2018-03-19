@@ -13,7 +13,7 @@
 
   <TASKOPERATIONS>
     <ReadResfile name="resfile"/>
-    <LayerDesign name="layer"/>
+    <LayerDesign name="layer" ignore_pikaa_natro="yes"/>
     <ClashBasedRepackShell name="shell" task_operations="resfile"/>
     <ExtraRotamersGeneric name="ex" ex1="yes" ex2="yes" extrachi_cutoff="0"/>
     <LimitAromaChi2 name="aro" include_trp="yes"/>
