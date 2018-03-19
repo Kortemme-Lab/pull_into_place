@@ -31,12 +31,20 @@ Options:
 """
 
 import os, re, shutil, subprocess
+from distutils.dir_util import copy_tree
 
 def ensure_path_exists(path):
     path = os.path.abspath(os.path.expanduser(path))
     if not os.path.exists(path):
         raise ValueError("'{0}' does not exist.".format(path))
     return path
+
+def gzip(src, dest):
+    import gzip
+    with open(src) as file:
+        content = file.read()
+    with gzip.open(dest, 'w') as file:
+        file.write(content)
 
 
 class Installer:
@@ -81,21 +89,12 @@ the symlink called 'rosetta' in the workspace directory."""
         os.symlink(rosetta_dir, workspace.rosetta_dir)
 
 
-class ParamDirs(Installer):
+class ProjectParams(Installer):
 
     def __init__(self, src):
         self.src = src
 
     def install(self, workspace):
-        from distutils.dir_util import copy_tree
-
-        # Always copy in the standard input files.
-        copy_tree(
-                pipeline.big_job_path('standard_params'),
-                workspace.standard_params_dir,
-                preserve_symlinks=True,
-        )
-
         # Copy in project-specific input files if we were given any.  If we 
         # weren't, just make an empty directory so we don't get errors if/when 
         # we try to install other files there.
@@ -107,6 +106,17 @@ class ParamDirs(Installer):
             )
         else:
             scripting.mkdir(workspace.project_params_dir)
+
+
+class StandardParams(Installer):
+
+    @staticmethod
+    def install(workspace):
+        copy_tree(
+                pipeline.big_job_path('standard_params'),
+                workspace.standard_params_dir,
+                preserve_symlinks=True,
+        )
 
 
 class InputPdb(Installer):
@@ -122,14 +132,22 @@ problematic ligands) and relaxed in the rosetta score function."""
         if pdb_path.endswith('.pdb.gz'):
             shutil.copyfile(pdb_path, workspace.input_pdb_path)
         elif pdb_path.endswith('.pdb'):
-            subprocess.call('gzip -c {0} > {1}'.format(
-                    pdb_path, workspace.input_pdb_path), shell=True)
+            gzip(pdb_path, workspace,input_pdb_path)
         else:
             raise ValueError("'{0}' is not a PDB file.".format(pdb_path))
 
     @staticmethod
     def already_installed(workspace):
-        return os.path.exists(workspace.input_pdb_path)
+        print workspace.input_pdb_path
+        if os.path.exists(workspace.input_pdb_path):
+            return True
+
+        pdb_path = workspace.input_pdb_path[:-len('.gz')]
+        if os.path.exists(pdb_path):
+            gzip(pdb_path, workspace.input_pdb_path)
+            return True
+
+        return False
 
 
 class LoopsFile(Installer):
@@ -214,6 +232,10 @@ ref2015.  That should be ok unless you have some particular interaction
             scorefxn_path = ensure_path_exists(scorefxn_path)
             shutil.copyfile(scorefxn_path, workspace.scorefxn_path)
 
+    @staticmethod
+    def already_installed(workspace):
+        return os.path.exists(workspace.scorefxn_path)
+
 
 class BuildScript(Installer):
     prompt = "Path to build script [optional]: "
@@ -228,6 +250,10 @@ with fragments in "ensemble-generation mode" (i.e. no initial build step)."""
             script_path = ensure_path_exists(script_path)
             shutil.copyfile(script_path, workspace.build_script_path)
 
+    @staticmethod
+    def already_installed(workspace):
+        return os.path.exists(workspace.build_script_path)
+
 
 class DesignScript(Installer):
     prompt = "Path to design script [optional]: "
@@ -240,6 +266,10 @@ desired geometry.  The default version of this script uses fixbb."""
         if script_path:
             script_path = ensure_path_exists(script_path)
             shutil.copyfile(script_path, workspace.design_script_path)
+
+    @staticmethod
+    def already_installed(workspace):
+        return os.path.exists(workspace.design_script_path)
 
 
 class ValidateScript(Installer):
@@ -255,6 +285,10 @@ mode" (i.e. no initial build step)."""
         if script_path:
             script_path = ensure_path_exists(script_path)
             shutil.copyfile(script_path, workspace.validate_script_path)
+
+    @staticmethod
+    def already_installed(workspace):
+        return os.path.exists(workspace.validate_script_path)
 
 
 class FilterScript(Installer):
@@ -277,6 +311,10 @@ RosettaScripts (for example, name="PackStat Score [[+]]")."""
             script_path = ensure_path_exists(script_path)
             shutil.copyfile(script_path, workspace.filters_path)
 
+    @staticmethod
+    def already_installed(workspace):
+        return os.path.exists(workspace.filters_path)
+
 
 class FlagsFile(Installer):
     prompt = "Path to flags file [optional]: "
@@ -291,6 +329,10 @@ ligand, put flags related to the ligand parameter files in this file."""
             flags_path = ensure_path_exists(flags_path)
             shutil.copyfile(flags_path, workspace.flags_path)
 
+    @staticmethod
+    def already_installed(workspace):
+        return os.path.exists(workspace.flags_path)
+
 
 class RsyncUrl(Installer):
     prompt = "Path to project on remote host: "
@@ -304,6 +346,10 @@ workspace "my_design" and set its rsync URL to "chef:path/to"."""
     def install(workspace, rsync_url):
         with open(workspace.rsync_url_path, 'w') as file:
             file.write(rsync_url.strip() + '\n')
+
+    @staticmethod
+    def already_installed(workspace):
+        return os.path.exists(workspace.rsync_url_path)
 
 
 
@@ -346,7 +392,12 @@ Workspace '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
         )
     else:
         installers = (
-                ParamDirs(arguments['<params>']),
+                # Install the project parameters directory first, if one was 
+                # given.  All the other installers depend on this directory 
+                # existing (it's created by this installer), and will check it 
+                # to see if they actually need to prompt the user for a path.
+                ProjectParams(arguments['<params>']),
+
                 RosettaDir,
                 InputPdb,
                 LoopsFile,
@@ -358,6 +409,15 @@ Workspace '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
                 ValidateScript,
                 FilterScript,
                 FlagsFile,
+
+                # Install the standard parameters directory last.  All the 
+                # other installers depend on the workspace returning paths to 
+                # where particular files should be installed, but it only does 
+                # that if the files in question can't be found elsewhere.  If 
+                # the standard parameters were installed before any other 
+                # installer, things could be overwritten and installed in the 
+                # wrong place.
+                StandardParams,
         )
 
     # Get the necessary settings from the user and use them to fill in the
@@ -399,12 +459,15 @@ Workspace '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
             except (KeyboardInterrupt, EOFError):
                 shutil.rmtree(workspace.root_dir)
                 scripting.print_error_and_die("\nReceived exit command, no workspace created.")
+            except:
+                shutil.rmtree(workspace.root_dir)
+                raise
             else:
                 break
 
         print
 
-    # If we made a link to a remote workspace, immediately try to synchronize
+    # If we have a URL to a remote workspace, immediately try to synchronize
     # with it.  Rsync will say whether or not it succeeded.  Otherwise just
     # print a success message.
 
