@@ -33,9 +33,9 @@ def submit(script, workspace, **params):
 
     # Submit the job and put it immediately into the hold state.
 
-    qsub_command = 'qsub', '-h', '-cwd'
-    qsub_command += '-o', workspace.stdout_dir
-    qsub_command += '-e', workspace.stderr_dir
+    qsub_command = 'qsub', '-h', '-cwd',
+    qsub_command += '-o', workspace.log_dir,
+    qsub_command += '-j', 'y',
     qsub_command += '-t', '1-{0}'.format(nstruct),
     qsub_command += '-l', 'h_rt={0}'.format(max_runtime),
     qsub_command += '-l', 'mem_free={0}'.format(max_memory),

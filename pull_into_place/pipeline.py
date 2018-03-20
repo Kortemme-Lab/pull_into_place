@@ -421,12 +421,8 @@ class BigJobWorkspace(Workspace):
         return [self.input_dir] + self.output_subdirs
 
     @property
-    def stdout_dir(self):
-        return os.path.join(self.focus_dir, 'stdout')
-
-    @property
-    def stderr_dir(self):
-        return os.path.join(self.focus_dir, 'stderr')
+    def log_dir(self):
+        return os.path.join(self.focus_dir, 'logs')
 
     @property
     def rsync_recursive_flag(self):
@@ -435,7 +431,7 @@ class BigJobWorkspace(Workspace):
     @property
     def rsync_exclude_patterns(self):
         parent_patterns = super(BigJobWorkspace, self).rsync_exclude_patterns
-        return parent_patterns + ['stderr/', 'stdout/', '*.sc']
+        return parent_patterns + ['logs/', '*.sc']
 
     def job_info_path(self, job_id):
         return os.path.join(self.focus_dir, '{0}.json'.format(job_id))
@@ -460,16 +456,14 @@ class BigJobWorkspace(Workspace):
         Workspace.make_dirs(self)
         scripting.mkdir(self.input_dir)
         scripting.mkdir(self.output_dir)
-        scripting.mkdir(self.stdout_dir)
-        scripting.mkdir(self.stderr_dir)
+        scripting.mkdir(self.log_dir)
 
     def clear_inputs(self):
         scripting.clear_directory(self.input_dir)
 
     def clear_outputs(self):
         scripting.clear_directory(self.output_dir)
-        scripting.clear_directory(self.stdout_dir)
-        scripting.clear_directory(self.stderr_dir)
+        scripting.clear_directory(self.log_dir)
 
         for path in self.all_job_info_paths:
             os.remove(path)
@@ -808,8 +802,7 @@ def fetch_data(directory, remote_url=None, recursive=True, include_logs=False, d
     ]
     if not include_logs:
         rsync_command += [
-                '--exclude', 'stdout',
-                '--exclude', 'stderr',
+                '--exclude', 'logs',
                 '--exclude', '*.sc',
         ]
 
@@ -854,8 +847,9 @@ def push_data(directory, remote_url=None, recursive=True, dry_run=False):
     rsync_command = [
             'rsync', '-av',
     ] +   (['--no-recursive'] if not recursive else []) + [
-            '--exclude', 'rosetta', '--exclude', 'rsync_url',
-            '--exclude', 'stdout', '--exclude', 'stderr',
+            '--exclude', 'rosetta',
+            '--exclude', 'rsync_url',
+            '--exclude', 'logs',
             directory + '/', remote_dir,
     ]
 
