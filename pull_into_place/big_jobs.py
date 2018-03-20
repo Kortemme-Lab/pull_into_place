@@ -22,7 +22,7 @@ def submit(script, workspace, **params):
     max_memory = params.get('max_memory', '1G')
 
     if test_run:
-        nstruct = 50
+        nstruct = 1
 
     if nstruct is None:
         raise TypeError("submit() requires the keyword argument 'nstruct' for production runs.")

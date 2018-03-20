@@ -474,5 +474,5 @@ Workspace '{0}' already exists.  Use '-o' to overwrite.""", workspace.root_dir)
     if arguments['--remote']:
         pipeline.fetch_data(workspace.root_dir)
     else:
-        print "Setup successful for design '{0}'.".format(workspace.root_dir)
+        print "Setup successful for design '{0}'.".format(arguments['<workspace>'])
 

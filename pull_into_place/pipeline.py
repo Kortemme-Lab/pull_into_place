@@ -38,9 +38,7 @@ class Workspace(object):
     """
 
     def __init__(self, root):
-        root = os.path.normpath(root)
-        self._root_basename = os.path.basename(root)
-        self._root_dirname = os.path.dirname(root)
+        self._root_dir = os.path.abspath(root)
 
     @classmethod
     def from_directory(cls, directory):
@@ -52,12 +50,11 @@ class Workspace(object):
 
     @property
     def parent_dir(self):
-        return self._root_dirname
+        return os.path.dirname(self.root_dir)
 
     @property
     def root_dir(self):
-        return os.path.normpath(
-                os.path.join(self._root_dirname, self._root_basename))
+        return self._root_dir
 
     @property
     def abs_root_dir(self):
@@ -342,9 +339,7 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
         workspace.  This is useful for commands that have to be run from a
         certain directory.
         """
-        source = os.path.abspath(self._root_dirname)
-        target = os.path.abspath(os.path.join(*subpaths))
-        self._root_dirname = os.path.relpath(source, target)
+        target = os.path.join(*subpaths)
         os.chdir(target)
 
     def cd_to_root(self):
@@ -374,7 +369,7 @@ class BigJobWorkspace(Workspace):
 
     @property
     def final_protocol_path(self):
-        return self.protocol_path + '.final'
+        return os.path.join(self.focus_dir, self.protocol_basename + '.final')
 
     @property
     def input_dir(self):
