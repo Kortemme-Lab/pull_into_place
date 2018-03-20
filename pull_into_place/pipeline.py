@@ -102,7 +102,7 @@ class Workspace(object):
 
     @property
     def rosetta_dir(self):
-        return self.find_path('rosetta')
+        return self.find_path('rosetta', self.root_dir)
 
     @property
     def rosetta_scripts_path(self):
@@ -273,7 +273,7 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
                     self.standard_params_dir,
             ]
 
-    def find_path(self, basename):
+    def find_path(self, basename, install_dir=None):
         """
         Look in a few places for a file with the given name.  If a custom
         version of the file is found in the directory being managed by
@@ -294,7 +294,7 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
 
         # If we didn't find the file, return the path to where we'd like it to 
         # be installed.
-        return os.path.join(self.preferred_install_dir, basename)
+        return os.path.join(install_dir or self.preferred_install_dir, basename)
 
     def check_paths(self):
         required_paths = [
