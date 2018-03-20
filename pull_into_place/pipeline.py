@@ -164,15 +164,22 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
         return load_loops(self.root_dir,self.loops_path)
 
     @property
-    def loop_boundaries(self):
-        #Note, this just gets the boundaries for the largest loop segment so that the Foldability filter has something to
-        #work off of by default if more than one loop is being modeled. If the user requires a different loop (or
-        # multiple loops) to be scored by Foldability, they should input the boundaries in filters.xml themselves.
-        for index, tup in enumerate(self.loop_segments):
-            if tup[1] - tup[0] == max(x[1] - x[0] for x in self.loop_segments):
-                loop_start = tup[0]
-                loop_end = tup[1]
-        return loop_start,loop_end
+    def largest_loop(self):
+        """
+        Return the boundaries for the largest loop segment.
+        
+        This is just meant to be a reasonable default for various selectors and 
+        filters to work with, in the case that more than one loop is being 
+        modeled.  If you want to be more precise, you'll have to override the 
+        selectors and filters in question.
+        """
+        from collections import namedtuple
+        Loop = namedtuple('Loop', 'start end')
+        largest_segment = sorted(
+                self.loop_segments,
+                key=lambda x: abs(x[1] - x[0]),
+        )[-1]
+        return Loop(*largest_segment)
 
     @property
     def resfile_path(self):
@@ -241,6 +248,34 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
     def rsync_exclude_patterns(self):
         return ['rosetta', 'rsync_url']
 
+    @property
+    def preferred_install_dir(self):
+        return os.path.join(self.project_params_dir, self.focus_name)
+
+    @property
+    def find_path_dirs(self):
+        # The search path has to be a little different for the root directory, 
+        # otherwise you end up with some weird behavior dues to the focus 
+        # directory (which is the first place to look for files) being the same 
+        # as the root directory (which is the last place to look for files).
+
+        if self.focus_dir == self.root_dir:
+            return [
+                    self.root_dir,
+                    self.project_params_dir,
+                    self.standard_params_dir,
+            ]
+        else:
+            return [
+                    self.focus_dir,
+                    os.path.join(self.root_dir, self.focus_name),
+                    os.path.join(self.project_params_dir, self.focus_name),
+                    self.root_dir,
+                    self.project_params_dir,
+                    os.path.join(self.standard_params_dir, self.focus_name),
+                    self.standard_params_dir,
+            ]
+
     def find_path(self, basename):
         """
         Look in a few places for a file with the given name.  If a custom
@@ -254,33 +289,15 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
         in a directory associated with that stage.
         """
 
-        preferred_install_path = \
-                os.path.join(self.project_params_dir, self.focus_name, basename)
-        paths = [
-                os.path.join(self.focus_dir, basename),
-                preferred_install_path,
-                os.path.join(self.project_params_dir, basename),
-                os.path.join(self.standard_params_dir, self.focus_name, basename),
-                os.path.join(self.standard_params_dir, basename),
-                os.path.join(self.root_dir, basename),
-        ]
-
-        # Remove duplicate paths.  If there's any ambiguity, the lowest 
-        # priority duplicate is kept.  This is necessary to get the search 
-        # order for the root directory correct.
-        paths = sorted(
-                set(paths),
-                key=lambda x: max(i for i, path in enumerate(paths) if x == path)
-        )
-
         # Look for the file we were asked for.
-        for path in paths:
+        for dir in self.find_path_dirs:
+            path = os.path.join(dir, basename)
             if os.path.exists(path):
                 return path
 
         # If we didn't find the file, return the path to where we'd like it to 
         # be installed.
-        return preferred_install_path
+        return os.path.join(self.preferred_install_dir, basename)
 
     def check_paths(self):
         required_paths = [
@@ -348,8 +365,16 @@ class BigJobWorkspace(Workspace):
     """
 
     @property
+    def protocol_basename(self):
+        return os.path.basename(self.protocol_path)
+
+    @property
     def protocol_path(self):
         raise NotImplementedError
+
+    @property
+    def final_protocol_path(self):
+        return self.protocol_path + '.final'
 
     @property
     def input_dir(self):
@@ -554,7 +579,7 @@ class RestrainedModels(BigJobWorkspace, WithFragmentLibs):
 
     @property
     def focus_name(self):
-        return 'restrained_models'
+        return 'build_models'
 
     @property
     def focus_dir(self):
@@ -603,7 +628,7 @@ class FixbbDesigns(BigJobWorkspace):
 
     @property
     def focus_name(self):
-        return 'fixbb_designs'
+        return 'design_models'
 
     @property
     def focus_dir(self):
@@ -643,7 +668,7 @@ class ValidatedDesigns(BigJobWorkspace, WithFragmentLibs):
 
     @property
     def focus_name(self):
-        return 'validated_designs'
+        return 'validate_designs'
 
     @property
     def focus_dir(self):

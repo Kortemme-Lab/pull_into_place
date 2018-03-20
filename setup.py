@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 
-with open('pull_into_place/__init__.py') as file:
+with open('pull_into_place/__meta__.py') as file:
     exec file.read()
 
 with open('README.rst') as file:
@@ -50,6 +50,7 @@ setup(
     },
     install_requires=[
         'klab',
+        'Jinja2',
     ],
     extras_require={
         'analysis': [

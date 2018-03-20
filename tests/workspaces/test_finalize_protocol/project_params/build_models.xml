@@ -1,0 +1,10 @@
+{% include "a.xml" %}
+{% include "b.xml" %}
+{% include "c.xml" %}
+{% include "d.xml" %}
+{% include "e.xml" %}
+{% include "f.xml" %}
+<!-- project_params/build_models.xml -->
+
+<!-- Focus name: {{ w.focus_name }} -->
+<!-- Parameter: {{ test_param }} -->

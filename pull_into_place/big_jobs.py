@@ -27,6 +27,10 @@ def submit(script, workspace, **params):
     if nstruct is None:
         raise TypeError("submit() requires the keyword argument 'nstruct' for production runs.")
 
+    # Use Jinja to render the XML script that will be passed to rosetta.
+
+    finalize_protocol(workspace, params)
+
     # Submit the job and put it immediately into the hold state.
 
     qsub_command = 'qsub', '-h', '-cwd'
@@ -82,7 +86,6 @@ def debrief():
 def run_rosetta(workspace, job_info, 
         use_resfile=False, use_restraints=False, use_fragments=False):
 
-    test_run = job_info.get('test_run', False)
     rosetta_cmd = [
         workspace.rosetta_scripts_path,
         '-database', workspace.rosetta_database_path,
@@ -94,18 +97,9 @@ def run_rosetta(workspace, job_info,
         '-out:overwrite',
         '-out:pdb_gz',
         '-out:mute', 'protocols.loops.loops_main',
-        '-parser:protocol', workspace.protocol_path,
+        '-parser:protocol', workspace.final_protocol_path,
         '-parser:script_vars',
-            'wts_file=' + workspace.scorefxn_path,
-            'cst_file=' + workspace.restraints_path,
-            'loop_file=' + workspace.loops_path,
-            'loop_start=' + str(workspace.loop_boundaries[0]),
-            'loop_end=' + str(workspace.loop_boundaries[1]),
-            'outputs_folder=' + workspace.seqprof_dir,
-            'design_number=' + workspace.output_basename(job_info),
-            'vall_path=' + workspace.rosetta_vall_path(test_run),
-            'fragment_weights=' + workspace.fragment_weights_path,
-            'fast=' + ('yes' if test_run else 'no'),
+            'job_id={0[job_id]}_{0[task_id]}'.format(job_info),
     ]
     if use_resfile: rosetta_cmd += [
         '-packing:resfile', workspace.resfile_path,
@@ -158,6 +152,21 @@ def run_command(command):
 def read_job_info(json_path):
     with open(json_path) as file:
         return json.load(file)
+
+def finalize_protocol(workspace, params):
+    # Don't import jinja until we need it, because it could be a little painful 
+    # to install.
+    import jinja2
+
+    env = jinja2.Environment(
+            loader=jinja2.FileSystemLoader(workspace.find_path_dirs),
+            autoescape=True,
+    )
+    template = env.get_template(workspace.protocol_basename)
+    context = dict(w=workspace, **params)
+
+    with open(workspace.final_protocol_path, 'w') as file:
+        file.write(template.render(context))
 
 def print_debug_header():
     from datetime import datetime

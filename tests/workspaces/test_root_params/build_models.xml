@@ -1,0 +1,3 @@
+{% include "shared_defs.xml" %}
+<!-- build_model.xml -->
+

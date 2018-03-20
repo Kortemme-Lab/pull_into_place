@@ -1,10 +1,11 @@
 <ROSETTASCRIPTS>
 
-  <xi:include href="shared_defs.xml"/>
+  {% include "shared_defs.xml" %}
 
   <MOVERS>
     <FastDesign name="fastdes"
       task_operations="resfile,layer,shell,ex,aro,curr"
+      {{ 'cycles="1"' if test_run }}
       scorefxn="scorefxn_cst"/>
   </MOVERS>
 

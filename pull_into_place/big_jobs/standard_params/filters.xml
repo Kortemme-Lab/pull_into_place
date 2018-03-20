@@ -14,8 +14,8 @@
   />
   <Foldability
     name="Foldability Score [[+]]"
-    start_res="%%loop_start%%"
-    end_res="%%loop_end%%"
+    start_res="{{ w.largest_loop.start }}"
+    end_res="{{ w.largest_loop.end }}"
   />
   <FragmentScoreFilter
     name="Max 9-Residue Fragment Crmsd[[-]]"
@@ -23,22 +23,22 @@
     sort_by="FragmentCrmsd"
     threshold="9999" 
     direction="-"
-    start_res="%%loop_start%%"
-    end_res="%%loop_end%%" 
+    start_res="{{ w.largest_loop.start }}"
+    end_res="{{ w.larget_loop.end }}"
     compute="maximum"
-    outputs_folder="%%outputs_folder%%" 
-    outputs_name="%%design_number%%" 
+    outputs_folder="{{ w.seqprof_dir }}"
+    outputs_name="%%job_id%%" 
     csblast="/netapp/home/krivacic/software/csblast-2.2.3_linux64"  
     blast_pgp="/netapp/home/klabqb3backrub/tools/blast-2.2.26/bin/blastpgp" 
     placeholder_seqs="/netapp/home/xingjiepan/Databases/BLAST/placeholder/placeholder_seqs" 
     psipred="/netapp/home/xingjiepan/Softwares/parametric_scaffold_design/dependencies/dependencies/psipred/runpsipred_single" 
     sparks-x="/netapp/home/klabqb3backrub/tools/sparks-x" 
     sparks-x_query="/netapp/home/klabqb3backrub/tools/sparks-x/bin/buildinp_query.sh" 
-    frags_scoring_config="%%fragment_weights%%"
+    frags_scoring_config="{{ w.fragment_weights_path }}"
     n_frags="200"
     n_candidates="1000" 
     fragment_size="9"
-    vall_path="%%vall_path%%"
+    vall_path="{{ w.vall_path(test_run) }}"
   />
 
 </FILTERS>

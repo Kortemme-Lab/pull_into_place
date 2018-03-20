@@ -1,8 +1,8 @@
   <xi:include href="filters.xml"/>
 
   <SCOREFXNS>
-    <ScoreFunction name="scorefxn" weights="%%wts_file%%"/>
-    <ScoreFunction name="scorefxn_cst" weights="%%wts_file%%">
+    <ScoreFunction name="scorefxn" weights="{{ w.scorefxn_path }}"/>
+    <ScoreFunction name="scorefxn_cst" weights="{{ w.scorefxn_path }}">
       <Reweight scoretype="coordinate_constraint" weight="1.0"/>
       <Reweight scoretype="atom_pair_constraint" weight="1.0"/>
       <Reweight scoretype="angle_constraint" weight="1.0"/>
@@ -22,6 +22,6 @@
 
   <MOVERS>
     <FavorNativeResidue name="nativebonus" />
-    <ConstraintSetMover name="cst" cst_fa_file="%%cst_file%%"/>
+    <ConstraintSetMover name="cst" cst_fa_file="{{ w.restraints_path }}"/>
     <WriteFiltersToPose name="writer" prefix="EXTRA_SCORE_"/>
   </MOVERS>

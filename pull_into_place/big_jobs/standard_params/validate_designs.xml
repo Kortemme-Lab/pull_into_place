@@ -1,13 +1,13 @@
 <ROSETTASCRIPTS>
 
-  <xi:include href="shared_defs.xml"/>
+  {% include "shared_defs.xml" %}
 
   <MOVERS>
     <LoopModeler name="modeler"
       config="kic_with_frags"
       scorefxn_fa="scorefxn"
-      loops_file="%%loop_file%%"
-      fast="%%fast%%">
+      loops_file="{{ w.loops_path }}"
+      fast="{{ 'yes' if test_run else 'no' }}">
         <Build skip="yes"/>
     </LoopModeler>
   </MOVERS>
