@@ -140,7 +140,7 @@ def read_and_calculate(workspace, pdb_paths):
     atom_xyzs = {}
     score_table_pattern = re.compile(r'^[A-Z]{3}(?:_[A-Z])?_([1-9]+) ')
 
-    for i, path in enumerate(pdb_paths):
+    for i, path in enumerate(sorted(pdb_paths)):
         record = {'path': os.path.basename(path)}
         sequence = ""
         sequence_map = {}
@@ -195,28 +195,61 @@ def read_and_calculate(workspace, pdb_paths):
                         dunbrack_scores.append(dunbrack_score)
                         break
 
-            elif line.startswith('EXTRA_SCORE_'):
-                tokens = line[len('EXTRA_SCORE_'):].rsplit(None, 1)
-                meta = parse_filter(tokens[0], 5)
-                record[meta.name] = float(tokens[1])
+            elif line.startswith('rmsd'):
+                meta = ScoreMetadata(
+                        name='loop_rmsd',
+                        title='Loop RMSD (Å) (Backbone Heavy-Atom)',
+                        guide=1.0, lower=0.0, upper='95%', order=4,
+                )
+                record[meta.name] = float(line.split()[1])
                 metadata[meta.name] = meta
 
-            elif line.startswith('delta_buried_unsats'):
+            elif line.startswith('delta_unsats'):
                 meta = ScoreMetadata(
-                        name='buried_unsats',
+                        name='delta_unsats',
                         title='Δ Buried Unsats',
                         order=5,
                 )
-                record['buried_unsats'] = float(line.split()[1])
+                record[meta.name] = float(line.split()[1])
                 metadata[meta.name] = meta
 
-            elif line.startswith('loop_backbone_rmsd'):
+            elif line.startswith('delta_sc_unsats'):
                 meta = ScoreMetadata(
-                        name='loop_rmsd',
-                        title='Loop RMSD (Å)',
-                        guide=1.0, lower=0.0, upper='95%', order=4,
+                        name='delta_sc_unsats',
+                        title='Δ Buried Unsats (Sidechain)',
+                        order=5,
                 )
-                record['loop_rmsd'] = float(line.split()[1])
+                record[meta.name] = float(line.split()[1])
+                metadata[meta.name] = meta
+
+            elif line.startswith('delta_bb_unsats'):
+                meta = ScoreMetadata(
+                        name='delta_bb_unsats',
+                        title='Δ Buried Unsats (Backbone)',
+                        order=5,
+                )
+                record[meta.name] = float(line.split()[1])
+                metadata[meta.name] = meta
+
+            elif line.startswith('time'):
+                meta = ScoreMetadata(
+                        name='simulation_time',
+                        title='Simulation Time (sec)',
+                        order=5,
+                )
+                record[meta.name] = float(line.split()[1])
+                metadata[meta.name] = meta
+
+            elif line.startswith('EXTRA_SCORE'):
+                tokens = line[len('EXTRA_SCORE_'):].rsplit(None, 1)
+                meta = parse_extra_metric(tokens[0], 5)
+                record[meta.name] = float(tokens[1])
+                metadata[meta.name] = meta
+
+            elif line.startswith('EXTRA_METRIC'):
+                tokens = line[len('EXTRA_METRIC '):].rsplit(None, 1)
+                meta = parse_extra_metric(tokens[0], 5)
+                record[meta.name] = float(tokens[1])
                 metadata[meta.name] = meta
 
             elif (line.startswith('ATOM') or line.startswith('HETATM')):
@@ -233,7 +266,7 @@ def read_and_calculate(workspace, pdb_paths):
                         sequence_map[residue_id] = one_letter_code
                         last_residue_id = residue_id
                     elif line.startswith('HETATM'):
-                        sequence_map[residue_id] = 'Lig'
+                        sequence_map[residue_id] = 'X'
                         last_residue_id = residue_id
 
                 # Save the coordinate for this atom.  This will be used later 
@@ -256,64 +289,54 @@ def read_and_calculate(workspace, pdb_paths):
 
         # Calculate how well each restraint was satisfied.
 
-        restraint_distances = []
-        restraint_angles = []
-        residue_specific_restraint_distances = {}
-        residue_specific_restraint_angles = {}
+        restraint_values = {}
+        restraint_values_by_residue = {}
+        is_sidechain_restraint = {}
+        restraint_units = {
+                'dist': 'Å',
+                'angle': '°',
+        }
 
         for restraint in restraints:
             d = restraint.distance_from_ideal(atom_xyzs)
-            if restraint.type == "distance":
-                restraint_distances.append(d)
-                for i in restraint.residue_ids:
-                    residue_specific_restraint_distances.setdefault(i,[]).append(d)
-            elif restraint.type == "angle":
-                restraint_angles.append(d)
-                for i in restraint.residue_ids:
-                    residue_specific_restraint_angles.setdefault(i,[]).append(d)
+            type = restraint.type
+            backbone_atoms = set(['N', 'C', 'CA', 'O'])
+            backbone_restraint = backbone_atoms.issuperset(restraint.atom_names)
 
-        if restraint_distances:
+            restraint_values.setdefault(type, []).append(d)
+            restraint_values_by_residue.setdefault(type, {})
+            for i in restraint.residue_ids:
+                restraint_values_by_residue[type].setdefault(i, []).append(d)
+                is_sidechain_restraint[i] = (not backbone_restraint) \
+                        or is_sidechain_restraint.get(i, False)
+
+        for type, values in restraint_values.items():
             meta = ScoreMetadata(
-                    name='restraint_dist',
-                    title='Restraint Satisfaction (Å)',
+                    name='restraint_{0}'.format(type),
+                    title='Restraint Satisfaction ({0})'.format(restraint_units[type]),
                     guide=1.0, lower=0.0, upper='95%', order=2,
             )
-            record['restraint_dist'] = np.max(restraint_distances)
+            record[meta.name] = np.max(values)
             metadata[meta.name] = meta
 
-        if restraint_angles:
-            meta = ScoreMetadata(
-                    name='restraint_angle',
-                    title='Restraint Angle Satisfaction (Degrees)',
-                    guide=20, lower=0.0, upper='95%', order=2,
-            )
-            record['restraint_angle'] = np.max(restraint_angles)
-            metadata[meta.name] = meta
+        for type, values_by_residue in restraint_values_by_residue.items():
+            if len(values_by_residue) <= 1:
+                continue
 
-        if len(residue_specific_restraint_distances) > 1:
-            for i in residue_specific_restraint_distances:
-                res = '{0}{1}'.format(sequence_map[i], i)
-                key = 'restraint_dist_{0}'.format(res.lower())
+            for i in values_by_residue:
+                # I want to put the amino acid in these names, because I think 
+                # it looks nice, but it causes problems for positions that can 
+                # mutate.  So I assume that if a position has a sidechain 
+                # restraint, it must not be allowed to mutate.
+                aa = sequence_map[i] if is_sidechain_restraint[i] else 'X'
+                res = '{0}{1}'.format(aa, i)
                 meta = ScoreMetadata(
-                        name=key,
-                        title='Restraint Satisfaction for {0} (Å)'.format(res),
+                        name='restraint_{0}_{1}'.format(type, res.lower()),
+                        title='Restraint Satisfaction for {0} ({1})'.format(res, restraint_units[type]),
                         guide=1.0, lower=0.0, upper='95%', order=3,
                 )
-                record[key] = np.max(residue_specific_restraint_distances[i])
+                record[meta.name] = np.max(values_by_residue[i])
                 metadata[meta.name] = meta
-
-        if len(residue_specific_restraint_angles) > 1:
-            for i in residue_specific_restraint_angles:
-                res = '{0}{1}'.format(sequence_map[i], i)
-                key = 'restraint_angle_{0}'.format(res.lower())
-                meta = ScoreMetadata(
-                        name=key,
-                        title='Restraint Satisfaction for {0} (Degrees)'.format(res),
-                        guide=20, lower=-1, upper='95%', order=3,
-                )
-                record[key] = np.max(residue_specific_restraint_angles[i])
-                metadata[meta.name] = meta
-
 
         records.append(record)
 
@@ -348,7 +371,7 @@ def parse_restraints(path):
 
     return restraints
 
-def parse_filter(desc, default_order=None):
+def parse_extra_metric(desc, default_order=None):
     """
     Parse a filter name to get information about how to interpret and display 
     that filter.  For example, consider the following filter name:
@@ -358,7 +381,7 @@ def parse_filter(desc, default_order=None):
     Everything outside the brackets is the name of the filter.  This is 
     converted into a simpler name which can be referred to later on by making 
     everything lower case, dropping anything inside of parentheses, replacing 
-    non-ASCII characters with ASCII one (on a best-effort basis, some letters 
+    non-ASCII characters with ASCII ones (on a best-effort basis, some letters 
     may be dropped), and replacing spaces and dashes with underscores (expect 
     trailing spaces, which are removed).
 
@@ -653,8 +676,9 @@ class ScoreMetadata(object):
 class CoordinateRestraint(object):
 
     def __init__(self, args):
+        self.type = 'dist'
         self.atom_name = args[0]
-        self.type = "distance"
+        self.atom_names = [args[0]]
         self.residue_id = int(args[1])
         self.residue_ids = [self.residue_id]
         self.atom = self.atom_name, self.residue_id
@@ -667,8 +691,8 @@ class CoordinateRestraint(object):
 class AtomPairRestraint(object):
 
     def __init__(self, args):
+        self.type = 'dist'
         self.atom_names = [args[0], args[2]]
-        self.type = "distance"
         self.residue_ids = [int(args[i]) for i in (1,3)]
         self.atom_pair = zip(self.atom_names, self.residue_ids)
         self.ideal_distance = float(args[5])
@@ -677,10 +701,12 @@ class AtomPairRestraint(object):
         coords = [atom_xyzs[x] for x in self.atom_pair]
         return euclidean(*coords) - self.ideal_distance
 
+
 class DihedralRestraint(object):
+
     def __init__(self, args):
-        self.atom_names = [args[0],args[2],args[4],args[6]]
-        self.type = "angle"
+        self.type = 'angle'
+        self.atom_names = [args[0], args[2], args[4], args[6]]
         self.residue_ids = [int(args[i]) for i in (1,3,5,7)]
         self.atoms = zip(self.atom_names, self.residue_ids)
         self.ideal_dihedral = float(args[9]) * (360 / (2 * np.pi))
@@ -695,11 +721,12 @@ class DihedralRestraint(object):
                     self.ideal_dihedral)]
         return min(dihedrals) 
 
+
 class AngleRestraint(object):
 
     def __init__(self, args):
-        self.atom_names = [args[0],args[2],args[4],args[6]]
-        self.type = "angle"
+        self.type = 'angle'
+        self.atom_names = [args[0], args[2], args[4], args[6]]
         self.residue_ids = [int(args[i]) for i in (1,3,5)]
         self.atoms = zip(self.atom_names, self.residue_ids)
         self.ideal_angle = float(args[7]) * (360 / (2 * np.pi))
@@ -712,6 +739,7 @@ class AngleRestraint(object):
         angles = [abs(measured_angle - self.ideal_angle), abs(measured_angle + (360) -
                 self.ideal_angle), abs(measured_angle - (360) - self.ideal_angle)]
         return min(angles)
+
 
 class Design (object):
     """
