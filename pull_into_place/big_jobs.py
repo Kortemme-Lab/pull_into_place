@@ -130,9 +130,9 @@ def run_external_metrics(workspace, job_info):
         stdout, stderr = tee([metric, pdb_path])
         file = gzip.open(pdb_path, 'a')
 
-        for line in stdout.strip().split('\n'):
-            if line.strip():
-                file.write('EXTRA_METRIC {0}\n'.format(line))
+        for line in stdout.split('\n'):
+            if line.startswith('EXTRA_METRIC '):
+                file.write(line + '\n')
 
         file.close()
             
