@@ -120,6 +120,10 @@ def run_rosetta(workspace, job_info,
 def run_external_metrics(workspace, job_info):
     pdb_path = workspace.output_path(job_info)
 
+    # Bail out if the PDB file doesn't exist for some reason.
+    if not os.path.exists(pdb_path):
+        return
+
     for metric in workspace.metric_scripts:
         command = metric, pdb_path
 
