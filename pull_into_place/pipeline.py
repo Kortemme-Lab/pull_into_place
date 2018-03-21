@@ -798,7 +798,7 @@ def fetch_data(directory, remote_url=None, recursive=True, include_logs=False, d
             '--exclude', 'rosetta',
             '--exclude', 'rsync_url',
             '--exclude', 'core.*',
-            '--exclude', '*/sequence_profile*',
+            '--exclude', 'sequence_profile*',
     ]
     if not include_logs:
         rsync_command += [
