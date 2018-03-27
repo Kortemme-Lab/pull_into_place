@@ -17,7 +17,7 @@ Options:
         region that will be remodeled as specified in the loop file.  This is 
         currently necessary only if multiple loops are being remodeled.
 
-    -m, --mem-free=MEM  [default: 2]
+    -m, --mem-free=MEM  [default: 100]
         The amount of memory (GB) to request from the cluster.  Bigger systems 
         may need more memory, but making large memory requests can make jobs 
         take much longer to come off the queue (since there may only be a few 
