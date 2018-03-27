@@ -16,7 +16,7 @@ Options:
         Pareto front of the remaining designs will be calculated, then the 
         union of both fronts will be selected.
         
-    --epsilon PERCENT, -e PERCENT   [default: 0.1]
+    --epsilon PERCENT, -e PERCENT
         How similar two designs can be in all the metrics considered before 
         they are considered the same and one is excluded from the Pareto front 
         (even if it is non-dominated).  This is roughly in units of percent of 
@@ -143,7 +143,7 @@ def main():
     seqs_scores = structures.find_pareto_front(
             seqs_scores, score_metadata, metrics,
             depth=int(args['--depth']),
-            epsilon=float(args['--epsilon']),
+            epsilon=args['--epsilon'] and float(args['--epsilon']),
             progress=progress,
     )
     print '    minus Pareto dominated:   ', len(seqs_scores)

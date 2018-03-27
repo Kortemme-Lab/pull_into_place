@@ -505,7 +505,7 @@ def dihedral(array_of_xyzs):
     # outside this function. 
     return principle_dihedral
 
-def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=1e-7, progress=None):
+def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=None, progress=None):
     """
     Return the subset of the given metrics that are Pareto optimal with respect 
     to the given columns.
@@ -535,7 +535,8 @@ def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=1e-7, progres
         How close two points can be (in all the dimensions considered) before 
         they are considered the same and one is excluded from the Pareto front 
         (even if it is non-dominated).  This is roughly in units of percent of 
-        the range of the points.
+        the range of the points.  By default this is small enough that you can 
+        basically assume that no two points will be considered the same.
 
     progress: func
         A function that will be called in the innermost loop as follows:
@@ -577,11 +578,10 @@ def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=1e-7, progres
 
     indices_from_cols = lambda xs: [metrics.columns.get_loc(x) for x in xs]
     percentile = lambda x, q: metrics[x].quantile(q/100)
-    epsilons_from_cols = lambda xs: [
-            epsilon * abs(percentile(x, 90) - percentile(x, 10)) / (90 - 10)
-            for x in xs]
-
-    epsilons = epsilons_from_cols(columns)
+    epsilons = [
+            (epsilon or 1e-7) * abs(percentile(x, 90) - percentile(x, 10)) / (90 - 10)
+            for x in columns
+    ]
     maximize = [x for x in columns if metadata[x].direction == '+']
     maximize_indices = indices_from_cols(maximize)
     column_indices = indices_from_cols(columns)
@@ -604,13 +604,22 @@ def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=1e-7, progres
         # in the front, so they can be excluded from the search.  Without this, 
         # points that are rejected for being too similar at one depth will be 
         # included in the next depth.
-        front_boxes = boxify(metrics[mask])
-        for j, (_, row) in enumerate(front_boxes.iterrows()):
-            if progress: progress(i+1, depth, j+1, len(front_boxes))
-            too_close |= all_boxes.apply(
-                    lambda x: (x == row).all(), axis='columns')
+        # 
+        # This check is unfortunately very expensive, so we skip it for the 
+        # default value of epsilon, which is so small (1e-7) that we assume no 
+        # points will be rejected for being too similar.
 
-        candidates = [labeled_metrics[too_close == False]]
+        if epsilon is None:
+            candidates = [labeled_metrics[~mask]]
+        else:
+            front_boxes = boxify(metrics[mask])
+            for j, (_, row) in enumerate(front_boxes.iterrows()):
+                if progress: progress(i+1, depth, j+1, len(front_boxes))
+                too_close |= all_boxes.apply(
+                        lambda x: (x == row).all(), axis='columns')
+
+            candidates = [labeled_metrics[too_close == False]]
+
         front = pareto.eps_sort(
                 candidates, column_indices, epsilons, maximize=maximize_indices)
 
@@ -751,7 +760,7 @@ class Design (object):
 
     def __init__(self, directory):
         self.directory = directory
-        self.structures = load(directory)
+        self.structures, _ = load(directory)
         self.loops = pipeline.load_loops(directory)
         self.resfile = pipeline.load_resfile(directory)
         self.representative = self.rep = self.scores.idxmin()
