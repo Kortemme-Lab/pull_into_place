@@ -170,7 +170,7 @@ def finalize_protocol(workspace, params):
     context = dict(w=workspace, **params)
 
     with open(workspace.final_protocol_path, 'w') as file:
-        file.write(template.render(context))
+        file.write(template.render(context).encode('utf8'))
 
 def print_debug_header():
     from datetime import datetime
