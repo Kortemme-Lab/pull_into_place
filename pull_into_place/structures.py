@@ -204,31 +204,31 @@ def read_and_calculate(workspace, pdb_paths):
                 record[meta.name] = float(line.split()[1])
                 metadata[meta.name] = meta
 
-            elif line.startswith('delta_unsats'):
+            elif line.startswith('  all_heavy_atom_unsats'):
                 meta = ScoreMetadata(
-                        name='delta_unsats',
-                        title='Δ Buried Unsats',
+                        name='buried_unsats',
+                        title='Buried Unsatsified H-Bonds',
                         order=5,
                 )
-                record[meta.name] = float(line.split()[1])
+                record[meta.name] = float(line.split()[2])
                 metadata[meta.name] = meta
 
-            elif line.startswith('delta_sc_unsats'):
+            elif line.startswith('  sc_heavy_atom_unsats'):
                 meta = ScoreMetadata(
-                        name='delta_sc_unsats',
-                        title='Δ Buried Unsats (Sidechain)',
+                        name='buried_unsats_sidechain',
+                        title='Buried Unsatisfied H-Bonds (Sidechain)',
                         order=5,
                 )
-                record[meta.name] = float(line.split()[1])
+                record[meta.name] = float(line.split()[2])
                 metadata[meta.name] = meta
 
-            elif line.startswith('delta_bb_unsats'):
+            elif line.startswith('  bb_heavy_atom_unsats'):
                 meta = ScoreMetadata(
-                        name='delta_bb_unsats',
-                        title='Δ Buried Unsats (Backbone)',
+                        name='buried_unsats_backbone',
+                        title='Buried Unsatisfied H-Bonds (Backbone)',
                         order=5,
                 )
-                record[meta.name] = float(line.split()[1])
+                record[meta.name] = float(line.split()[2])
                 metadata[meta.name] = meta
 
             elif line.startswith('time'):
@@ -248,6 +248,13 @@ def read_and_calculate(workspace, pdb_paths):
 
             elif line.startswith('EXTRA_METRIC'):
                 tokens = line[len('EXTRA_METRIC '):].rsplit(None, 1)
+
+                # Ignore the BuriedUnsat filter.  It just reports 911 every 
+                # time, and we extract the actual buried unsat information from 
+                # some other lines it adds to the PDB.
+                if tokens[0] == 'Buried Unsatisfied H-Bonds [-]':
+                    continue
+
                 meta = parse_extra_metric(tokens[0], 5)
                 record[meta.name] = float(tokens[1])
                 metadata[meta.name] = meta
@@ -404,7 +411,7 @@ def parse_extra_metric(desc, default_order=None):
     meta = re.search(r'\[\[?(.*?)\]\]?', desc)
 
     if not meta:
-        return ScoreMetadata(desc)
+        return ScoreMetadata(desc, order=default_order)
 
     args = {}
     if default_order is not None:
