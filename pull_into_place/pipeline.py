@@ -195,6 +195,10 @@ Expected to find a file matching '{0}'.  Did you forget to compile rosetta?
         return self.find_path('filters.xml')
 
     @property
+    def pick_file(self):
+        return self.find_path('picks.yml')
+
+    @property
     def metrics_dir(self):
         return self.find_path('metrics')
 

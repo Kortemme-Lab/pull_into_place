@@ -15,6 +15,7 @@ example, caches generated with pandas 0.15 can't be read by pandas 0.14.
 import sys, os, re, glob, collections, gzip, re, yaml
 import numpy as np, scipy as sp, pandas as pd
 from scipy.spatial.distance import euclidean
+from klab import scripting
 from pprint import pprint
 from . import pipeline
 
@@ -512,6 +513,240 @@ def dihedral(array_of_xyzs):
     # outside this function. 
     return principle_dihedral
 
+
+def make_picks(workspace, pick_file=None, clear=False, use_cache=True, dry_run=False):
+    """
+    Return a subset of the designs in the given data frame based on the 
+    conditions specified in the given "pick" file.
+
+    An example pick file is show below::
+
+        threshold:
+        - restraint_dist < 1
+        - buried_unsatisfied_h_bonds < 1
+
+        pareto:
+        - total_score
+        - restraint_dist
+        - foldability
+
+        depth: 1
+        epsilon: 0.5%
+        
+    Any designs not meeting the conditions set in the "threshold" section will 
+    be discarded.  Any designs that are non-dominated with respect to the 
+    metrics listed in the "Pareto" section will be kept.  The "depth" and 
+    "epsilon" parameters provide a measure of control over how many designs 
+    are included in the Pareto front.
+    """
+    # Read the rules for making picks from the given file.
+
+    if pick_file is None:
+        pick_file = workspace.pick_file
+
+    if not os.path.exists(pick_file):
+        raise IOError("""\
+Could not find '{}'.
+
+Either specify a pick file on the command line, or create a file called 
+`pick.yml` and put in a directory in your workspace that corresponds to the 
+step you want it to apply to.""")
+
+    import yaml
+    with open(pick_file) as file:
+        rules = yaml.load(file)
+
+    print "Picking designs according to '{0}'.".format(os.path.relpath(pick_file))
+    print
+
+    pareto = rules.get('pareto', [])
+    thresholds = rules.get('threshold', [])
+
+    known_keys = 'threshold', 'pareto', 'depth', 'epsilon'
+    unknown_keys = set(rules) - set(known_keys)
+
+    if unknown_keys:
+        not_understood = '\n'.join('    ' + x for x in sorted(unknown_keys))
+        did_you_mean = '\n'.join('    ' + x for x in known_keys)
+        raise IOError("""\
+The following parameters in '{2}' are not understood:
+{0}
+
+Did you mean:
+{1}\n""".format(not_understood, did_you_mean, os.path.relpath(pick_file)))
+
+    # Load all the metrics for the models we're picking from.
+
+    if clear:
+        workspace.clear_inputs()
+
+    predecessor = workspace.predecessor
+    metrics = []
+    metadata = {}
+
+    for input_dir in predecessor.output_subdirs:
+        submetrics, submetadata = load(
+                predecessor.output_dir,
+                use_cache=use_cache,
+        )
+        submetrics['abspath'] = submetrics.apply(
+                lambda row: os.path.abspath(os.path.join(input_dir, row['path'])),
+                axis='columns',
+        )
+        metrics.append(submetrics)
+        metadata.update(submetadata)
+
+    metrics = pd.concat(metrics, ignore_index=True)
+
+    # Check to make sure we know about all the metrics we were given, and 
+    # produce a helpful error if we find something unexpected (e.g. maybe a 
+    # typo?).  This is a little complicated for the threshold queries, because 
+    # running them is the only way to find out if they have any problems.
+
+    unknown_metrics = set(pareto) - set(metadata)
+
+    for query in thresholds:
+        try:
+            metrics.query(query)
+        except pd.core.computation.ops.UndefinedVariableError as err:
+            # Kinda gross, but we have to parse the error message to get the 
+            # name of the metric causing the problem.
+            unknown_metric = re.search("'(.+)'", str(err)).group(1)
+            unknown_metrics.add(unknown_metric)
+
+    if unknown_metrics:
+        not_understood = '\n'.join('    ' + x for x in sorted(unknown_metrics))
+        did_you_mean = '\n'.join('    ' + x for x in sorted(metadata))
+        raise IOError("""\
+The following metrics are not understood:
+{0}
+
+Did you mean:
+{1}\n""".format(not_understood, did_you_mean))
+
+    # Tell the user whether high or low values are favored for each metric 
+    # included in the Pareto front, so they can confirm that we're doing the 
+    # right thing.
+    
+    if pareto:
+        print """\
+Please confirm whether high (+) or low (-) values should be preferred for each 
+of the following metrics:"""
+
+        for metric in rules['pareto']:
+            print "  ({dir}) {metric}".format(
+                    metric=metric,
+                    dir=metadata[metric].direction)
+
+        print
+        print """\
+If there's an error, it's probably because you didn't specify a direction in 
+the name of the filter, e.g. "Foldability [+]".  To avoid this problem in the 
+future, add the appropriate direction (in square brackets) to the filter name 
+in 'filters.xml'.  To fix the immediate problem, go into the directory 
+containing your design PDBs, manually edit the file called 'metrics.yml', and 
+correct the 'dir' field for any metrics necessary."""
+        print
+
+    # Figure out how long the longest status message will be, so we can get our 
+    # output to line up nicely.
+
+    class StatusBar:
+        update_line = "  {0}:"
+
+        def __init__(self):
+            self.w1 = 30
+
+        def init(self, df):
+            self.n = len(df)
+            self.w2 = len(str(self.n))
+            return "{message:<{w1}} {n:>{w2}}".format(
+                    message="Total number of designs",
+                    n=self.n, w1=self.w1, w2=self.w2)
+
+        def update(self, df, status):
+            dn = len(df) - self.n
+            self.n = len(df)
+            return "{message:<{w1}} {n:>{w2}} {dn:>{w3}}".format(
+                    message=self.update_line.format(status),
+                    n=self.n, dn='(-{})'.format(abs(dn)),
+                    w1=self.w1, w2=self.w2, w3=self.w2+3)
+
+        def adjust_width(self, status):
+            self.w1 = max(self.w1, len(self.update_line.format(status)))
+
+
+
+    status = StatusBar()
+    for query in thresholds:
+        status.adjust_width(repr(query))
+
+    print status.init(metrics)
+
+    # Ignore any designs that are missing data.
+
+    metrics.dropna(inplace=True)
+    print status.update(metrics, "minus missing data")
+
+    # Keep only the lowest scoring model for each set of identical sequences.
+
+    groups = metrics.groupby('sequence', group_keys=False)
+    metrics = groups.\
+            apply(lambda df: df.ix[df.total_score.idxmin()]).\
+            reset_index(drop=True)
+    print status.update(metrics, 'minus duplicate sequences')
+
+    # Remove designs that don't pass the given thresholds.
+
+    for query in thresholds:
+        metrics = metrics.query(query)
+        print status.update(metrics, repr(query))
+
+    # Remove designs that aren't in the Pareto front.
+
+    if pareto:
+        def progress(i, depth, j, front): #
+            sys.stdout.write('\x1b[2K\r  minus Pareto dominated:    calculating... [{}/{}] [{}/{}]'.format(i, depth, j, front))
+            if i == depth and j == front:
+                sys.stdout.write('\x1b[2K\r')
+            sys.stdout.flush()
+
+        metrics = find_pareto_front(
+                metrics, metadata, pareto,
+                depth=rules.get('depth', 1),
+                epsilon=rules.get('epsilon'),
+                progress=progress,
+        )
+        print status.update(metrics, 'minus Pareto dominated')
+
+    # Remove designs that have already been picked.
+
+    existing_inputs = set(
+            os.path.abspath(os.path.realpath(x))
+            for x in workspace.input_paths)
+    metrics = metrics.query('abspath not in @existing_inputs')
+    print status.update(metrics, 'minus current inputs')
+
+    # Symlink the picked designs into the input directory of the next round.
+
+    if not dry_run:
+        existing_ids = set(
+                int(x[0:-len('.pdb.gz')])
+                for x in os.listdir(workspace.input_dir)
+                if x.endswith('.pdb.gz'))
+        next_id = max(existing_ids) + 1 if existing_ids else 0
+
+        for id, picked_index in enumerate(metrics.index, next_id):
+            target = metrics.loc[picked_index]['abspath']
+            link_name = os.path.join(workspace.input_dir, '{0:04}.pdb.gz')
+            scripting.relative_symlink(target, link_name.format(id))
+
+    print
+    print "Picked {} designs.".format(len(metrics))
+
+    if dry_run:
+        print "(Dry run: no symlinks created.)"
+
 def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=None, progress=None):
     """
     Return the subset of the given metrics that are Pareto optimal with respect 
@@ -603,7 +838,7 @@ def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=None, progres
     too_close = np.zeros(len(metrics), dtype='bool')
     all_boxes = boxify(metrics)
     labeled_metrics = metrics.copy()
-    labeled_metrics['_pip_index'] = metrics.index
+    labeled_metrics['_pip_index'] = range(len(metrics))
     id = labeled_metrics.columns.get_loc('_pip_index')
 
     for i in range(depth):
