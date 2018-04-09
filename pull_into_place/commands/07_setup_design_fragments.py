@@ -38,13 +38,18 @@ def main():
     workspace.check_rosetta()
     workspace.make_dirs()
 
+    inputs = pick_inputs(workspace)
+    if not inputs:
+        print 'Nothing to do.'
+        return
+
     generate_fragments = [
             'klab_generate_fragments',
             '--loops_file', workspace.loops_path,
             '--outdir', workspace.fragments_dir,
             '--memfree', args['--mem-free'],
             '--overwrite',
-    ] +     pick_inputs(workspace)
+    ] +     inputs
 
     if args['--dry-run']:
         print ' '.join(generate_fragments)
