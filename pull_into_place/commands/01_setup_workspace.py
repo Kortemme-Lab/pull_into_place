@@ -351,6 +351,8 @@ workspace "my_design" and set its rsync URL to "chef:path/to"."""
 
     @staticmethod
     def install(workspace, rsync_url):
+        if not os.path.exists(workspace.project_params_dir): 
+            scripting.mkdir(workspace.project_params_dir)
         with open(workspace.rsync_url_path, 'w') as file:
             file.write(rsync_url.strip() + '\n')
 
