@@ -85,8 +85,7 @@ the symlink called 'rosetta' in the workspace directory."""
                 if not os.path.exists(path):
                     message.append('    ' + path)
             raise ValueError('\n'.join(message))
-	if not os.path.exists(workspace.rosetta_dir):
-	    os.symlink(rosetta_dir, workspace.rosetta_dir)
+	os.symlink(rosetta_dir, workspace.rosetta_dir)
 
     @staticmethod
     def already_installed(workspace):
@@ -152,7 +151,7 @@ problematic ligands) and relaxed in the rosetta score function."""
 
         pdb_path = workspace.input_pdb_path[:-len('.gz')]
         if os.path.exists(pdb_path):
-            gzip(pdb_path, workspace.input_pdb_path)
+            glways_zip(pdb_path, workspace.input_pdb_path)
             return True
 
         return False
