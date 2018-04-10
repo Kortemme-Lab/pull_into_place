@@ -85,8 +85,8 @@ the symlink called 'rosetta' in the workspace directory."""
                 if not os.path.exists(path):
                     message.append('    ' + path)
             raise ValueError('\n'.join(message))
-
-        os.symlink(rosetta_dir, workspace.rosetta_dir)
+	if not os.path.exists(workspace.rosetta_dir):
+	    os.symlink(rosetta_dir, workspace.rosetta_dir)
 
 
 class ProjectParams(Installer):
