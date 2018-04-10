@@ -44,6 +44,7 @@ def main():
             clear=args['--clear'],
             use_cache=not args['--recalc'],
             dry_run=args['--dry-run'],
+            keep_dups=True,
     )
     
 

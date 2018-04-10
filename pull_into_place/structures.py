@@ -514,7 +514,7 @@ def dihedral(array_of_xyzs):
     return principle_dihedral
 
 
-def make_picks(workspace, pick_file=None, clear=False, use_cache=True, dry_run=False):
+def make_picks(workspace, pick_file=None, clear=False, use_cache=True, dry_run=False, keep_dups=False):
     """
     Return a subset of the designs in the given data frame based on the 
     conditions specified in the given "pick" file.
@@ -532,7 +532,7 @@ def make_picks(workspace, pick_file=None, clear=False, use_cache=True, dry_run=F
 
         depth: 1
         epsilon: 0.5%
-        
+
     Any designs not meeting the conditions set in the "threshold" section will 
     be discarded.  Any designs that are non-dominated with respect to the 
     metrics listed in the "Pareto" section will be kept.  The "depth" and 
@@ -586,7 +586,7 @@ Did you mean:
 
     for input_dir in predecessor.output_subdirs:
         submetrics, submetadata = load(
-                predecessor.output_dir,
+                input_dir,
                 use_cache=use_cache,
         )
         submetrics['abspath'] = submetrics.apply(
@@ -690,11 +690,12 @@ correct the 'dir' field for any metrics necessary."""
 
     # Keep only the lowest scoring model for each set of identical sequences.
 
-    groups = metrics.groupby('sequence', group_keys=False)
-    metrics = groups.\
-            apply(lambda df: df.ix[df.total_score.idxmin()]).\
-            reset_index(drop=True)
-    print status.update(metrics, 'minus duplicate sequences')
+    if not keep_dups:
+        groups = metrics.groupby('sequence', group_keys=False)
+        metrics = groups.\
+                apply(lambda df: df.ix[df.total_score.idxmin()]).\
+                reset_index(drop=True)
+        print status.update(metrics, 'minus duplicate sequences')
 
     # Remove designs that don't pass the given thresholds.
 
@@ -811,10 +812,16 @@ def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=None, progres
     - Epsilon: Increasing the epsilon decreases the number of models that are 
       selected by discarding the models in the Pareto front that are too 
       similar to each other.
-      
+
     In short, tune depth to get more models and epsilon to get fewer.  You 
     can also tune both at once to get a large but diverse set of models.
     """
+
+    # Bail out if the data frame is empty, because otherwise the Pareto front 
+    # calculation will choke on something.
+    if len(metrics) == 0:
+        return metrics
+
     # https://github.com/matthewjwoodruff/pareto.py
     import pareto
 
