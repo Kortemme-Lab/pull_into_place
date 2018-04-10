@@ -152,7 +152,7 @@ def read_and_calculate(workspace, pdb_paths):
         # Update the user on our progress, because this is often slow.
 
         sys.stdout.write("\rReading '{}' [{}/{}]".format(
-            os.path.dirname(path), i+1, len(pdb_paths)))
+            os.path.relpath(os.path.dirname(path)), i+1, len(pdb_paths)))
         sys.stdout.flush()
 
         # Read the PDB file, which we are assuming is gzipped.
@@ -172,6 +172,8 @@ def read_and_calculate(workspace, pdb_paths):
         # of these lines are specific to different simulations.
 
         for line in lines:
+            line = line.decode('utf8')
+
             score_table_match = \
                     dunbrack_index and score_table_pattern.match(line)
 
@@ -445,7 +447,7 @@ def name_from_title(title):
     name = re.sub(r'[ _-]+', '_', title)
 
     # Try to replace unicode characters with alphanumeric ASCII ones.
-    name = normalize('NFKD', unicode(name)).encode('ascii', 'ignore')
+    name = normalize('NFKD', name).encode('ascii', 'ignore')
 
     # Remove any remaining characters that aren't alphanumeric or underscore.
     name = ''.join(x for x in name if x.isalnum() or x in '_')
