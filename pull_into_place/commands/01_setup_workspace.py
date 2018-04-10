@@ -151,7 +151,7 @@ problematic ligands) and relaxed in the rosetta score function."""
 
         pdb_path = workspace.input_pdb_path[:-len('.gz')]
         if os.path.exists(pdb_path):
-            glways_zip(pdb_path, workspace.input_pdb_path)
+            gzip(pdb_path, workspace.input_pdb_path)
             return True
 
         return False
