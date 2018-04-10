@@ -887,6 +887,7 @@ class ScoreMetadata(object):
     def __init__(self, title, dir='-', unit=None, guide=None, lower=None, upper=None, order=None, name=None):
         self.raw_title = title
         self.title = '{0} ({1})'.format(title, unit) if unit else title
+        self.unit = unit
         self.name = name or name_from_title(title)
         self.order = order
         self.direction = dir
