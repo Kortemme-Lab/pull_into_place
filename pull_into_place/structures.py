@@ -401,15 +401,16 @@ def parse_extra_metric(desc, default_order=None):
     are interpreted in the following order:
 
     1. Direction (i.e. '+' or '-', are higher or lower values better?)
-    2. Order (i.e. how to sort a list of filters?)
-    3. Guide (i.e. where should a dashed line be drawn in the GUI?)
-    4. Lower limit (i.e. the default lower limit in the GUI)
-    5. Upper limit (i.e. the default upper limit in the GUI)
+    2. Unit (i.e. how to label the metric?)
+    3. Order (i.e. how to sort a list of filters?)
+    4. Guide (i.e. where should a dashed line be drawn in the GUI?)
+    5. Lower limit (i.e. the default lower limit in the GUI)
+    6. Upper limit (i.e. the default upper limit in the GUI)
 
     If labeled, the data can appear in any order.  The labels corresponding to 
-    the above arguments are abbreviated as follows: 'dir', 'order', 'guide', 
-    'lower', 'upper'.  No unlabeled metadata can appear after any labeled 
-    metadata.
+    the above arguments are abbreviated as follows: 'dir', 'unit', 'order', 
+    'guide', 'lower', 'upper'.  No unlabeled metadata can appear after any 
+    labeled metadata.
     """
     meta = re.search(r'\[\[?(.*?)\]\]?', desc)
 
@@ -422,7 +423,7 @@ def parse_extra_metric(desc, default_order=None):
 
     title = desc[:meta.start()] + desc[meta.end():]
     tokens = meta.group(1).split('|')
-    default_keys = 'dir', 'order', 'guide', 'min', 'max'
+    default_keys = 'dir', 'unit', 'order', 'guide', 'min', 'max'
     default_ok = True
 
     for i, token in enumerate(tokens):
@@ -883,8 +884,9 @@ def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=None, progres
 
 class ScoreMetadata(object):
 
-    def __init__(self, title, dir='-', guide=None, lower=None, upper=None, order=None, name=None):
-        self.title = title
+    def __init__(self, title, dir='-', unit=None, guide=None, lower=None, upper=None, order=None, name=None):
+        self.raw_title = title
+        self.title = '{0} ({1})'.format(title, unit) if unit else title
         self.name = name or name_from_title(title)
         self.order = order
         self.direction = dir
@@ -917,10 +919,12 @@ class ScoreMetadata(object):
 
     def to_dict(self):
         d = {}
-        d['title'] = self.title
+        d['title'] = self.raw_title
         d['name'] = self.name
         d['dir'] = self.direction
 
+        if self.unit:
+            d['unit'] = self.unit
         if self.guide:
             d['guide'] = self.guide
         if self.lower:
