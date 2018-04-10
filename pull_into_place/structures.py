@@ -59,26 +59,26 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
     cache_path = os.path.join(pdb_dir, 'metrics.pkl')
     metadata_path = os.path.join(pdb_dir, 'metrics.yml')
 
-    if use_cache and os.path.exists(cache_path):
+    cached_records = []
+    uncached_paths = pdb_paths
+    metadata = {}
+
+    if use_cache:
         try:
             cached_records = pd.read_pickle(cache_path).to_dict('records')
             cached_paths = set(x['path'] for x in cached_records)
             uncached_paths = [
                     pdb_path for pdb_path in pdb_paths
                     if os.path.basename(pdb_path) not in cached_paths]
+
+            with open(metadata_path) as file:
+                metadata_list = [ScoreMetadata(**x) for x in yaml.load(file)]
+                metadata = {x.name: x for x in metadata_list}
+
         except:
-            print "Couldn't load '{}'".format(cache_path)
             cached_records = []
             uncached_paths = pdb_paths
-    else:
-        cached_records = []
-        uncached_paths = pdb_paths
-
-    metadata = {}
-    if use_cache and os.path.exists(metadata_path):
-        with open(metadata_path) as file:
-            metadata_list = [ScoreMetadata(**x) for x in yaml.load(file)]
-            metadata = {x.name: x for x in metadata_list}
+            metadata = {}
 
     # Calculate score and distance metrics for the uncached paths, then combine
     # the cached and uncached data into a single data frame.
