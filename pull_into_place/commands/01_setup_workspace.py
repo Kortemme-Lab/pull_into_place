@@ -86,7 +86,14 @@ the symlink called 'rosetta' in the workspace directory."""
                     message.append('    ' + path)
             raise ValueError('\n'.join(message))
 
-        os.symlink(rosetta_dir, workspace.rosetta_dir)
+	os.symlink(rosetta_dir, workspace.rosetta_dir)
+
+    @staticmethod
+    def already_installed(workspace):
+        if os.path.exists(workspace.rosetta_dir):
+            return True
+
+        return False
 
 
 class ProjectParams(Installer):
@@ -344,6 +351,8 @@ workspace "my_design" and set its rsync URL to "chef:path/to"."""
 
     @staticmethod
     def install(workspace, rsync_url):
+        if not os.path.exists(workspace.project_params_dir): 
+            scripting.mkdir(workspace.project_params_dir)
         with open(workspace.rsync_url_path, 'w') as file:
             file.write(rsync_url.strip() + '\n')
 

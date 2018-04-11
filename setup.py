@@ -46,6 +46,7 @@ setup(
             'big_jobs/*.py',
             'big_jobs/*.xml',
             'big_jobs/*.wts',
+	    'big_jobs/standard_params/*',
         ],
     },
     install_requires=[
