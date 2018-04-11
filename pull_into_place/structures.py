@@ -885,6 +885,7 @@ def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=None, progres
 class ScoreMetadata(object):
 
     def __init__(self, title, dir='-', unit=None, guide=None, lower=None, upper=None, order=None, name=None):
+        title = title.strip()
         self.raw_title = title
         self.title = '{0} ({1})'.format(title, unit) if unit else title
         self.unit = unit
