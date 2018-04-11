@@ -2,6 +2,7 @@
 # encoding: utf-8
 
 from __future__ import division
+from __future__ import unicode_literals
 
 """\
 This module provides a function that will read a directory of PDB files and
@@ -12,7 +13,7 @@ to depend very closely on the version of pandas used to generate them.  For
 example, caches generated with pandas 0.15 can't be read by pandas 0.14.
 """
 
-import sys, os, re, glob, collections, gzip, re, yaml
+import sys, os, re, glob, collections, gzip, re, yaml, codecs
 import numpy as np, scipy as sp, pandas as pd
 from scipy.spatial.distance import euclidean
 from klab import scripting
@@ -71,8 +72,8 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
                     pdb_path for pdb_path in pdb_paths
                     if os.path.basename(pdb_path) not in cached_paths]
 
-            with open(metadata_path) as file:
-                metadata_list = [ScoreMetadata(**x) for x in yaml.load(file)]
+            with codecs.open(metadata_path, encoding='utf8') as file:
+                metadata_list = [ScoreMetadata(**x) for x in yaml.safe_load(file)]
                 metadata = {x.name: x for x in metadata_list}
 
         except:
@@ -105,8 +106,8 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
     # next time.
 
     all_records.to_pickle(cache_path)
-    with open(metadata_path, 'w') as file:
-        yaml.dump([v.to_dict() for k,v in metadata.items()], file)
+    with codecs.open(metadata_path, 'w', encoding='utf8') as file:
+        yaml.safe_dump([v.to_dict() for k,v in metadata.items()], file)
 
     # Report how many structures had to be cached, in case the caller is
     # interested, and return to loaded data frame.
