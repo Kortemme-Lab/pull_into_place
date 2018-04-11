@@ -85,11 +85,11 @@ the symlink called 'rosetta' in the workspace directory."""
                 if not os.path.exists(path):
                     message.append('    ' + path)
             raise ValueError('\n'.join(message))
+
 	os.symlink(rosetta_dir, workspace.rosetta_dir)
 
     @staticmethod
     def already_installed(workspace):
-        print workspace.rosetta_dir
         if os.path.exists(workspace.rosetta_dir):
             return True
 
