@@ -256,7 +256,9 @@ def read_and_calculate(workspace, pdb_paths):
                 # Ignore the BuriedUnsat filter.  It just reports 911 every 
                 # time, and we extract the actual buried unsat information from 
                 # some other lines it adds to the PDB.
-                if tokens[0] == 'Buried Unsatisfied H-Bonds [-]':
+                if tokens[0] == 'IGNORE':
+                    continue
+                if tokens[0] == 'Buried Unsatisfied H-Bonds [-|#]':
                     continue
 
                 meta = parse_extra_metric(tokens[0], 5)
@@ -1018,7 +1020,7 @@ class Design (object):
 
     def __init__(self, directory):
         self.directory = directory
-        self.structures, _ = load(directory)
+        self.structures, self.metadata = load(directory)
         self.loops = pipeline.load_loops(directory)
         self.resfile = pipeline.load_resfile(directory)
         self.representative = self.rep = self.scores.idxmin()

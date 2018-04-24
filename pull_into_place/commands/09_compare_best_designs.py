@@ -14,6 +14,10 @@ Options:
         Only consider designs where the lowest scoring decoy has a restraint
         satisfaction distance less than the given threshold.
 
+    -x, --reasonable EXPR   [default: restraint_dist < 1.2]
+        Only consider designs where the lowest scoring decoy passes the given 
+        condition, which must be in the format understood by pandas.query().
+
     -u, --structure-threshold LOOP_RMSD
         Limit how different two loops can be before they are placed in
         different clusters by the structural clustering algorithm.
@@ -38,7 +42,7 @@ Options:
 
 from __future__ import division
 
-import os, re, sys, string, itertools, yaml, numpy as np
+import os, re, sys, string, itertools, yaml, numpy as np, pandas as pd
 from klab import docopt, scripting
 from .. import pipeline, structures
 
@@ -374,7 +378,7 @@ class StructureClusterMetric (Metric):
 
                 # Offer to display the cluster in pymol.
 
-                command = ['pymol', '-qx']
+                command = ['pymol', '-qx', '-d', 'as cartoon']
                 for design in cluster_map[cluster]:
                     command.append(design.rep_path)
 
@@ -411,6 +415,22 @@ class RestraintDistMetric (Metric):
         return -self.face_value(design)
 
 
+class LoopRmsdMetric (Metric):
+    """
+    Make a column that shows how well each design satisfies the design goal.
+    """
+    title = u"Loop RMSD (Å)"
+    align = 'center'
+    num_format = '0.00'
+    color = True
+
+    def face_value(self, design):
+        return design['loop_rmsd'][design.rep]
+
+    def score_value(self, design):
+        return -self.face_value(design)
+
+
 class ScoreGapMetric (Metric):
     """
     Make a column that shows the difference in score between the lowest scoring
@@ -430,7 +450,7 @@ class ScoreGapMetric (Metric):
 
         competitor_scores = scores.copy()
         competitor_scores[distances < 2.0] = np.inf
-        competitor = np.argmin(competitor_scores)
+        competitor = competitor_scores.idxmin()
         competitor_score = design.scores[competitor]
 
         design.score_gap = competitor_score - rep_score
@@ -458,79 +478,30 @@ class PercentSubangstromMetric (Metric):
         return design.percent_subangstrom
 
 
-class BuriedUnsatHbondMetric (Metric):
-    """
-    Make a column that shows how many buried unsatisfied H-bonds each design
-    has.  This is something that is not accounted for by the rosetta function,
-    but can do a very good job discriminating reasonable backbones from
-    horrible ones.
-    """
-    title = "# Buried Unsats"
-    align = 'center'
-    num_format = '"+"0;"-"0'
-    color = True
-
-    def load_cell(self, design, verbose=False):
-        design.buried_unsats = \
-                design.structures['buried_unsat_score'][design.rep]
-
-    def face_value(self, design):
-        return design.buried_unsats
-
-    def score_value(self, design):
-        return -self.face_value(design)
-
-
-class DunbrackScoreMetric (Metric):
-    """
-    Make a column that shows the Dunbrack score for each residue that was part
-    of the design goal (i.e. was restrained in the building step).  High
-    Dunbrack scores indicate unlikely sidechain conformations.
-    """
-    title = "Dunbrack (REU)"
-    align = 'center'
-    num_format = '0.00'
-    color = True
-
-    def load_cell(self, design, verbose=False):
-        design.dunbrack_score = \
-                design.structures['dunbrack_score'][design.rep]
-
-    def face_value(self, design):
-        return design.dunbrack_score
-
-    def score_value(self, design):
-        return -self.face_value(design)
-
-
-
-class ExtraFilterHandler (Metric):
+class ExtraMetricHandler (Metric):
     """
     Class that handles filters input by the user. The user should put a "+" or "-"
     at the beginning of each filter name to define whether larger numbers (+) or
     smaller numbers (-) are better. Used to make an excel column for
     extra filters.
     """
+    align = 'center'
+    num_format = '0.000'
+    width = 32
 
-    def __init__(self, filtername):
-        align = 'center'
-        num_format = '0.000'
-        self.filtername = filtername
-        meta = structures.parse_filter(filtername)
-        self.title = meta.name
-        self.direction = meta.direction
-        if self.direction:
-            self.color = True
+    def __init__(self, key, metadata):
+        self.key = key
+        self.meta = metadata
+        self.title = self.meta.title
+        self.direction = self.meta.direction
+        self.color = bool(self.direction)
 
-    def face_value(self,design):
-        return design[self.filtername][design.rep]
+    def face_value(self, design):
+        return design[self.key][design.rep]
 
     def score_value(self,design):
-        if self.direction == '-':
-            scorevalue = -self.face_value(design)
-        else:
-            scorevalue = self.face_value(design)
-        return scorevalue
+        direction = -1 if self.direction == '-' else +1
+        return direction * self.face_value(design)
 
 
 
@@ -550,7 +521,7 @@ def find_validation_workspaces(name, round=None):
 
     return workspaces
 
-def find_reasonable_designs(workspaces, threshold=None, verbose=False):
+def find_reasonable_designs(workspaces, condition=None, verbose=False):
     """
     Return a list of design where the representative model has a restraint
     distance less that the given threshold.  The default threshold (1.2) is
@@ -560,29 +531,34 @@ def find_reasonable_designs(workspaces, threshold=None, verbose=False):
 
     designs = []
 
-    if threshold is None:
-        threshold = 1.2
+    if condition is None:
+        condition = 'restraint_dist < 1.2'
 
     for workspace in workspaces:
         for directory in workspace.output_subdirs:
             if verbose:
                 print '  ' + directory
+
             design = structures.Design(directory)
-            if design.rep_distance < float(threshold):
+            vars = design.structures.iloc[design.rep].to_dict()
+            if pd.eval(condition, local_dict=vars):
                 designs.append(design)
 
     return designs
 
-def discover_custom_metrics(metrics, workspaces):
-    """
-    Look for additional quality metrics in the current working directory or in
-    any of the given workspaces.  Only scripts named 'custom_metrics.py' will
-    be searched.
+def discover_extra_metrics(metrics, designs):
+    extra_metrics = {}
+    for design in designs:
+        extra_metrics.update(design.metadata)
 
-    What will the API of custom_metrics.py be?
-    How will command-line arguments be passed to these metrics?
-    """
-    pass
+    del extra_metrics['total_score']
+    del extra_metrics['restraint_dist']
+    del extra_metrics['loop_rmsd']
+
+    sort_by_order = lambda x: (x[1].order, x[1].title)
+    for key, metadata in sorted(extra_metrics.items(), key=sort_by_order):
+        handler = ExtraMetricHandler(key, metadata)
+        metrics.append(handler)
 
 def calculate_quality_metrics(metrics, designs, verbose=False):
     """
@@ -592,20 +568,6 @@ def calculate_quality_metrics(metrics, designs, verbose=False):
         if metric.progress_update:
             print metric.progress_update
         metric.load(designs, verbose)
-
-def find_pareto_optimal_designs(designs, metrics, verbose=False):
-    """
-    Prune designs that are not on the Pareto front.  In other words, we want to
-    get rid of designs that are worse by every metric to at least one other
-    design.  The idea is that we would never want to use these designs, because
-    we would instead use the one that is better in every way.
-
-    Currently this method is a no-op, because I didn't have the energy to
-    actually implement it.  If you really need this feature, you should be able
-    to write it here and plug it in with no issue.
-    """
-    return designs
-
 
 def report_quality_metrics(designs, metrics, path, clustering=False):
     """
@@ -627,7 +589,7 @@ def report_quality_metrics(designs, metrics, path, clustering=False):
     from matplotlib.cm import ScalarMappable
     from matplotlib.colors import LinearSegmentedColormap
 
-    best_color = np.array([114, 159, 207]) / 255    # Tango light blue
+    best_color = np.array([93, 175, 219]) / 255    # UCSF Blue (70%)
     worst_color = np.array([255, 255, 255]) / 255
     color_table = {
             'red':   [(0.0, worst_color[0], worst_color[0]),
@@ -650,7 +612,6 @@ def report_quality_metrics(designs, metrics, path, clustering=False):
 
     designs = designs[:]
     designs.sort(key=lambda x: x.restraint_dist)
-    designs.sort(key=lambda x: x.buried_unsats)
     designs.sort(key=lambda x: x.sequence_cluster)
 
     for col, metric in enumerate(metrics):
@@ -764,43 +725,28 @@ def annotate_designs(designs):
         with open(annotation_path, 'w') as file:
             file.write('\n'.join(annotation_lines))
 
-def discover_filter_metrics(metrics,workspaces):
-    for workspace in workspaces:
-        filter_list = pipeline.workspace_from_dir(docopt.docopt(__doc__)['<workspace>']).filters_list
-        filters = []
-        with open(filter_list,"r") as file:
-            filters = yaml.load(file)
-        if filters:
-            for record in filters:
-                filterclass = ExtraFilterHandler(record)
-                metrics.append(filterclass)
 
 @scripting.catch_and_print_errors()
 def main():
-
     args = docopt.docopt(__doc__)
     prefix = args['--prefix'] or ''
     workspaces = find_validation_workspaces(
             args['<workspace>'], args['<round>'])
     designs = find_reasonable_designs(
-            workspaces, args['--threshold'], args['--verbose'])
+            workspaces, args['--reasonable'], args['--verbose'])
     metrics = [
             DesignNameMetric(),
             ResfileSequenceMetric(),
             SequenceClusterMetric(args['--subs-matrix']),
             StructureClusterMetric(args['--structure-threshold']),
             RestraintDistMetric(),
+            LoopRmsdMetric(),
             ScoreGapMetric(),
             PercentSubangstromMetric(),
-            BuriedUnsatHbondMetric(),
-            DunbrackScoreMetric(),
     ]
 
-
-    discover_filter_metrics(metrics, workspaces)
-    #discover_custom_metrics(metrics, workspaces)
+    discover_extra_metrics(metrics, designs)
     calculate_quality_metrics(metrics, designs, args['--verbose'])
-    designs = find_pareto_optimal_designs(designs, metrics, args['--verbose'])
     report_quality_metrics(designs, metrics, prefix + 'quality_metrics.xlsx')
     #report_score_vs_rmsd_funnels(designs, prefix + 'score_vs_rmsd.pdf')
     #report_pymol_sessions(designs, prefix + 'pymol_sessions')
