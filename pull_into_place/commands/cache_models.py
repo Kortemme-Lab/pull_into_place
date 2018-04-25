@@ -6,7 +6,7 @@ After being cached, a handful of these metrics are printed to the terminal to
 show that things are working as expected.
 
 Usage:
-    pull_into_place cache_models <directory> [options]
+    pull_into_place cache_models <directories>... [options]
 
 Options:
     -r PATH, --restraints PATH
@@ -25,7 +25,10 @@ from .. import structures
 @scripting.catch_and_print_errors()
 def main():
     args = docopt.docopt(__doc__)
-    print structures.load(
-            args['<directory>'],
-            not args['--recalc'])[0].head()
+    for directory in args['<directories>']:
+        structures.load(
+                directory,
+                use_cache=not args['--recalc'],
+                require_io_dir=False,
+        )
 

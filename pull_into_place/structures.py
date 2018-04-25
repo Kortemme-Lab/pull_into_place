@@ -141,7 +141,29 @@ def read_and_calculate(workspace, pdb_paths):
     num_restraints = len(restraints) + 1
     atom_xyzs = {}
     fragment_size = 0
-    score_table_pattern = re.compile(r'^[A-Z]{3}(?:_[A-Z])?_([1-9]+) ')
+
+    # It's kinda hard to tell which lines are part of the score table.  The 
+    # first column has some pretty heterogeneous strings (examples below) and 
+    # all the other columns are just numbers.  My strategy here is to try to 
+    # make a regular expression that matches all of these examples, with the 
+    # exception of the ligand.  I think the ligand will simply be too 
+    # heterogeneous to match, and the purpose of this is to get dunbrack 
+    # scores, which the ligand doesn't have.
+    #
+    #   MET:NtermProteinFull_1
+    #   ASN_2
+    #   LYS:protein_cutpoint_lower_39
+    #   ASP:protein_cutpoint_upper_40
+    #   ALA:CtermProteinFull_124
+    #   HIS_D_224
+    #   pdb_EQU_250
+
+    score_table_pattern = re.compile(
+            r'^[A-Z]{3}(?:_[A-Z])?'  # Residue name with optional tautomer.
+            r'(?::[A-Za-z_]+)?'      # Optional patch type.
+            r'_([1-9]+) '            # Residue number preceded by underscore.
+    )                                # The terminal space is important to match
+                                     # the full residue number.
 
     for i, path in enumerate(sorted(pdb_paths)):
         record = {'path': os.path.basename(path)}
@@ -149,7 +171,7 @@ def read_and_calculate(workspace, pdb_paths):
         sequence_map = {}
         last_residue_id = None
         dunbrack_index = None
-        dunbrack_scores = []
+        dunbrack_scores = {}
 
         # Update the user on our progress, because this is often slow.
 
@@ -182,7 +204,8 @@ def read_and_calculate(workspace, pdb_paths):
             if line.startswith('pose'):
                 meta = ScoreMetadata(
                         name='total_score',
-                        title='Total Score (REU)',
+                        title='Total Score',
+                        unit='REU',
                         order=1,
                 )
                 record['total_score'] = float(line.split()[1])
@@ -193,17 +216,18 @@ def read_and_calculate(workspace, pdb_paths):
                 dunbrack_index = fields.index('fa_dun')
 
             elif score_table_match:
-                residue_id = score_table_match.group(1)
+                residue_id = int(score_table_match.group(1))
                 for restraint in restraints:
                     if residue_id in restraint.residue_ids:
                         dunbrack_score = float(line.split()[dunbrack_index])
-                        dunbrack_scores.append(dunbrack_score)
+                        dunbrack_scores[residue_id] = dunbrack_score
                         break
 
             elif line.startswith('rmsd'):
                 meta = ScoreMetadata(
                         name='loop_rmsd',
-                        title='Loop RMSD (Å) (Backbone Heavy-Atom)',
+                        title='Loop RMSD (Backbone Heavy-Atom)',
+                        unit='Å',
                         guide=1.0, lower=0.0, upper='95%', order=4,
                 )
                 record[meta.name] = float(line.split()[1])
@@ -239,7 +263,8 @@ def read_and_calculate(workspace, pdb_paths):
             elif line.startswith('time'):
                 meta = ScoreMetadata(
                         name='simulation_time',
-                        title='Simulation Time (sec)',
+                        title='Simulation Time',
+                        unit='sec',
                         order=5,
                 )
                 record[meta.name] = float(line.split()[1])
@@ -316,7 +341,9 @@ def read_and_calculate(workspace, pdb_paths):
                 # Ignore the BuriedUnsat filter.  It just reports 911 every 
                 # time, and we extract the actual buried unsat information from 
                 # some other lines it adds to the PDB.
-                if tokens[0] == 'Buried Unsatisfied H-Bonds [-]':
+                if tokens[0] == 'IGNORE':
+                    continue
+                if tokens[0] == 'Buried Unsatisfied H-Bonds [-|#]':
                     continue
 
                 meta = parse_extra_metric(tokens[0], 5)
@@ -346,18 +373,6 @@ def read_and_calculate(workspace, pdb_paths):
                 atom_xyzs[atom_name, residue_id] = xyz_to_array((
                         line[30:38], line[38:46], line[46:54]))
 
-        # Finish calculating some records that depend on the whole structure.
-
-        record['sequence'] = sequence
-        if dunbrack_scores:
-            meta = ScoreMetadata(
-                    name='dunbrack_score',
-                    title='Dunbrack Score (REU)',
-                    order=5,
-            )
-            record['dunbrack_score'] = np.max(dunbrack_scores)
-            metadata[meta.name] = meta
-
         # Calculate how well each restraint was satisfied.
 
         restraint_values = {}
@@ -370,27 +385,28 @@ def read_and_calculate(workspace, pdb_paths):
 
         for restraint in restraints:
             d = restraint.distance_from_ideal(atom_xyzs)
-            type = restraint.type
+            metric = restraint.metric
             backbone_atoms = set(['N', 'C', 'CA', 'O'])
             backbone_restraint = backbone_atoms.issuperset(restraint.atom_names)
 
-            restraint_values.setdefault(type, []).append(d)
-            restraint_values_by_residue.setdefault(type, {})
+            restraint_values.setdefault(metric, []).append(d)
+            restraint_values_by_residue.setdefault(metric, {})
             for i in restraint.residue_ids:
-                restraint_values_by_residue[type].setdefault(i, []).append(d)
+                restraint_values_by_residue[metric].setdefault(i, []).append(d)
                 is_sidechain_restraint[i] = (not backbone_restraint) \
                         or is_sidechain_restraint.get(i, False)
 
-        for type, values in restraint_values.items():
+        for metric, values in restraint_values.items():
             meta = ScoreMetadata(
-                    name='restraint_{0}'.format(type),
-                    title='Restraint Satisfaction ({0})'.format(restraint_units[type]),
+                    name='restraint_{0}'.format(metric),
+                    title='Restraint Satisfaction',
+                    unit=restraint_units[metric],
                     guide=1.0, lower=0.0, upper='95%', order=2,
             )
             record[meta.name] = np.max(values)
             metadata[meta.name] = meta
 
-        for type, values_by_residue in restraint_values_by_residue.items():
+        for metric, values_by_residue in restraint_values_by_residue.items():
             if len(values_by_residue) <= 1:
                 continue
 
@@ -402,12 +418,28 @@ def read_and_calculate(workspace, pdb_paths):
                 aa = sequence_map[i] if is_sidechain_restraint[i] else 'X'
                 res = '{0}{1}'.format(aa, i)
                 meta = ScoreMetadata(
-                        name='restraint_{0}_{1}'.format(type, res.lower()),
-                        title='Restraint Satisfaction for {0} ({1})'.format(res, restraint_units[type]),
+                        name='restraint_{0}_{1}'.format(metric, res.lower()),
+                        title='Restraint Satisfaction for {0}'.format(res),
+                        unit=restraint_units[metric],
                         guide=1.0, lower=0.0, upper='95%', order=3,
                 )
                 record[meta.name] = np.max(values_by_residue[i])
                 metadata[meta.name] = meta
+
+        # Finish calculating some records that depend on the whole structure.
+
+        record['sequence'] = sequence
+        for i, score in dunbrack_scores.items():
+            aa = sequence_map[i] if is_sidechain_restraint[i] else 'X'
+            res = '{0}{1}'.format(aa, i)
+            meta = ScoreMetadata(
+                    name='dunbrack_score_{0}'.format(res.lower()),
+                    title='Dunbrack Score for {0}'.format(res),
+                    unit='REU',
+                    order=5,
+            )
+            record[meta.name] = score
+            metadata[meta.name] = meta
 
         records.append(record)
 
@@ -432,12 +464,12 @@ def parse_restraints(path):
             if line.startswith('#'): continue
 
             tokens = line.split()
-            type, args = tokens[0], tokens[1:]
+            key, args = tokens[0], tokens[1:]
 
-            if type not in parsers:
-                raise IOError("Cannot parse '{0}' restraints.".format(type))
+            if key not in parsers:
+                raise IOError("Cannot parse '{0}' restraints.".format(key))
 
-            restraint = parsers[type](args)
+            restraint = parsers[key](args)
             restraints.append(restraint)
 
     return restraints
@@ -945,7 +977,7 @@ def find_pareto_front(metrics, metadata, columns, depth=1, epsilon=None, progres
 
 class ScoreMetadata(object):
 
-    def __init__(self, title, dir='-', unit=None, guide=None, lower=None, upper=None, order=None, name=None):
+    def __init__(self, title, dir='-', unit=None, guide=None, lower=None, upper=None, order=None, fmt=None, name=None):
         title = title.strip()
         self.raw_title = title
         self.title = '{0} ({1})'.format(title, unit) if unit else title
@@ -956,6 +988,7 @@ class ScoreMetadata(object):
         self.guide = guide and float(guide)
         self.lower = lower
         self.upper = upper
+        self.format = fmt
 
         def cutoff(limit, x, default):
             if limit is None:
@@ -996,6 +1029,8 @@ class ScoreMetadata(object):
             d['upper'] = self.upper
         if self.order:
             d['order'] = self.order
+        if self.format:
+            d['fmt'] = self.format
 
         return d
 
@@ -1003,7 +1038,7 @@ class ScoreMetadata(object):
 class CoordinateRestraint(object):
 
     def __init__(self, args):
-        self.type = 'dist'
+        self.metric = 'dist'
         self.atom_name = args[0]
         self.atom_names = [args[0]]
         self.residue_id = int(args[1])
@@ -1018,7 +1053,7 @@ class CoordinateRestraint(object):
 class AtomPairRestraint(object):
 
     def __init__(self, args):
-        self.type = 'dist'
+        self.metric = 'dist'
         self.atom_names = [args[0], args[2]]
         self.residue_ids = [int(args[i]) for i in (1,3)]
         self.atom_pair = zip(self.atom_names, self.residue_ids)
@@ -1032,7 +1067,7 @@ class AtomPairRestraint(object):
 class DihedralRestraint(object):
 
     def __init__(self, args):
-        self.type = 'angle'
+        self.metric = 'angle'
         self.atom_names = [args[0], args[2], args[4], args[6]]
         self.residue_ids = [int(args[i]) for i in (1,3,5,7)]
         self.atoms = zip(self.atom_names, self.residue_ids)
@@ -1052,7 +1087,7 @@ class DihedralRestraint(object):
 class AngleRestraint(object):
 
     def __init__(self, args):
-        self.type = 'angle'
+        self.metric = 'angle'
         self.atom_names = [args[0], args[2], args[4], args[6]]
         self.residue_ids = [int(args[i]) for i in (1,3,5)]
         self.atoms = zip(self.atom_names, self.residue_ids)
@@ -1078,7 +1113,7 @@ class Design (object):
 
     def __init__(self, directory):
         self.directory = directory
-        self.structures, _ = load(directory)
+        self.structures, self.metadata = load(directory)
         self.loops = pipeline.load_loops(directory)
         self.resfile = pipeline.load_resfile(directory)
         self.representative = self.rep = self.scores.idxmin()

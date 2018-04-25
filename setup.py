@@ -67,6 +67,7 @@ setup(
             'sklearn',
             'biopython',
             'weblogo',
+            'nonstdlib',
         ],
     },
     entry_points={
