@@ -28,5 +28,7 @@ def main():
     for directory in args['<directories>']:
         structures.load(
                 directory,
-                not args['--recalc'])
+                use_cache=not args['--recalc'],
+                require_io_dir=False,
+        )
 
