@@ -486,7 +486,6 @@ class ExtraMetricHandler (Metric):
     extra filters.
     """
     align = 'center'
-    num_format = '0.000'
     width = 32
 
     def __init__(self, key, metadata):
@@ -495,6 +494,7 @@ class ExtraMetricHandler (Metric):
         self.title = self.meta.title
         self.direction = self.meta.direction
         self.color = bool(self.direction)
+        self.num_format = self.meta.format or '0.000'
 
     def face_value(self, design):
         return design[self.key][design.rep]
