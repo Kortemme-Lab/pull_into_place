@@ -161,7 +161,7 @@ def read_and_calculate(workspace, pdb_paths):
     score_table_pattern = re.compile(
             r'^[A-Z]{3}(?:_[A-Z])?'  # Residue name with optional tautomer.
             r'(?::[A-Za-z_]+)?'      # Optional patch type.
-            r'_([1-9]+) '            # Residue number preceded by underscore.
+            r'_([0-9]+) '            # Residue number preceded by underscore.
     )                                # The terminal space is important to match
                                      # the full residue number.
 
