@@ -270,10 +270,10 @@ def read_and_calculate(workspace, pdb_paths):
                 record[meta.name] = float(line.split()[1])
                 metadata[meta.name] = meta
 
-            elif line.startswith('FragmentScoreFilter'):
+            elif line.startswith('FragmentScoreFilter '):
                 fragment_size = line.split()[2].split('-')[0]
 
-            elif line.startswith('FSF'):
+            elif line.startswith('FSF') or line.startswith('FragmentScoreFilter_metric'):
                 splitline = line.split()
                 if splitline[1] == 'Max':
                     max_res = 0
