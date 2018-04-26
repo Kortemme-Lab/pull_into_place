@@ -140,6 +140,7 @@ def read_and_calculate(workspace, pdb_paths):
     metadata = {}
     num_restraints = len(restraints) + 1
     atom_xyzs = {}
+    fragment_size = 0
 
     # It's kinda hard to tell which lines are part of the score table.  The 
     # first column has some pretty heterogeneous strings (examples below) and 
@@ -267,6 +268,65 @@ def read_and_calculate(workspace, pdb_paths):
                         order=5,
                 )
                 record[meta.name] = float(line.split()[1])
+                metadata[meta.name] = meta
+
+            elif line.startswith('FragmentScoreFilter '):
+                fragment_size = line.split()[2].split('-')[0]
+
+            elif line.startswith('FSF') or line.startswith('FragmentScoreFilter_metric'):
+                splitline = line.split()
+                if splitline[1] == 'Max':
+                    max_res = 0
+                    max_crmsd = 0
+                    if splitline[3] == 'res:':
+                        max_res = splitline[3]
+                        meta = ScoreMetadata(
+                                name='max_fragment_crmsd_position',
+                                title = 'Max {}-Residue Fragment RMSD \
+(C-Alpha) Position'.format(fragment_size),
+                                order=7)
+                    elif splitline[3] == 'score:':
+                        max_crmsd = splitline[3]
+                        meta = ScoreMetadata(
+                                name='max_fragment_crmsd_score',
+                                title = 'Max {}-Residue Fragment RMSD \
+(C-Alpha)'.format(fragment_size),
+                                order=7)
+
+                elif splitline[1] == 'Min':
+                    min_res = 0
+                    min_crmsd = 0
+                    if splitline[3] == 'res:':
+                        min_res = splitline[3]
+                        meta = ScoreMetadata(
+                                name='min_fragment_crmsd_position',
+                                title = 'Min {}-Residue Fragment RMSD \
+(C-Alpha) Position'.format(fragment_size),
+                                order=8)
+                    elif splitline[3] == 'score:':
+                        min_crmsd = splitline[3]
+                        meta = ScoreMetadata(
+                                name='min_fragment_crmsd_score',
+                                title = 'Min {}-Residue Fragment RMSD \
+(C-Alpha)'.format(fragment_size),
+                                order=8)
+
+                elif splitline[1] == 'Avg':
+                    meta = ScoreMetadata(
+                            name='avg_fragment_crmsd',
+                            title='Avg {}-Residue Fragment RMSD \
+(C-Alpha)'.format(fragment_size),
+                            order=9)
+                else:
+                    position = splitline[2]
+                    crmsd = splitline[4]
+                    meta = ScoreMetadata(
+                            name='fragment_crmsd_pos_{}'.format(position),
+                            title='{}-Residue Fragment RMSD at Res {} \
+(C-Alpha)'.format(fragment_size,position),
+                            order=6)
+
+                record[meta.name] = float(splitline[4])
                 metadata[meta.name] = meta
 
             elif line.startswith('EXTRA_SCORE'):
