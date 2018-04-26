@@ -278,14 +278,14 @@ def read_and_calculate(workspace, pdb_paths):
                 if splitline[1] == 'Max':
                     max_res = 0
                     max_crmsd = 0
-                    if splitline[3] == 'res':
+                    if splitline[3] == 'res:':
                         max_res = splitline[3]
                         meta = ScoreMetadata(
                                 name='max_fragment_crmsd_position',
                                 title = 'Max {}-Residue Fragment RMSD \
 (C-Alpha) Position'.format(fragment_size),
                                 order=7)
-                    elif splitline[3] == 'score':
+                    elif splitline[3] == 'score:':
                         max_crmsd = splitline[3]
                         meta = ScoreMetadata(
                                 name='max_fragment_crmsd_score',
@@ -296,14 +296,14 @@ def read_and_calculate(workspace, pdb_paths):
                 elif splitline[1] == 'Min':
                     min_res = 0
                     min_crmsd = 0
-                    if splitline[3] == 'res':
+                    if splitline[3] == 'res:':
                         min_res = splitline[3]
                         meta = ScoreMetadata(
                                 name='min_fragment_crmsd_position',
                                 title = 'Min {}-Residue Fragment RMSD \
 (C-Alpha) Position'.format(fragment_size),
                                 order=8)
-                    elif splitline[3] == 'score':
+                    elif splitline[3] == 'score:':
                         min_crmsd = splitline[3]
                         meta = ScoreMetadata(
                                 name='min_fragment_crmsd_score',
