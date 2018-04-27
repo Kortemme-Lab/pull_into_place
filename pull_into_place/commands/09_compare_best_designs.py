@@ -753,12 +753,15 @@ def annotate_designs(designs, symbol='+'):
     seq_digits = len(str(max_seq_cluster))
     struct_digits = len(str(max_struct_cluster))
 
+    def update_header(pattern, str, header):
+        if re.search(pattern, header):
+            return re.sub(pattern, str, header)
+        else:
+            return header.rstrip() + ' ' + str
+
     for design in designs:
-        annotation = '{} seq{:0{}} struct{:0{}}'.format(
-                symbol,
-                design.sequence_cluster, seq_digits,
-                design.structure_cluster, struct_digits,
-        )
+        seq_str = 'seq{:0{}}'.format(design.sequence_cluster, seq_digits)
+        struct_str = 'struct{:0{}}'.format(design.structure_cluster, struct_digits)
 
         # Find any existing annotations.
 
@@ -766,21 +769,25 @@ def annotate_designs(designs, symbol='+'):
 
         try:
             with open(annotation_path) as file:
-                annotation_lines = file.readlines()
+                annotation_lines = [x.strip() for x in file.readlines()]
         except IOError:
             annotation_lines = []
 
         # If there are existing annotations and the first line starts with the 
         # symbol, assume that the line was previously inserted by this function
-        # and should now be updated with the most recent information.
+        # and should now be updated with the most recent information:
 
         if annotation_lines and annotation_lines[0].startswith(symbol):
-            annotation_lines[0] = annotation
+            header = annotation_lines[0]
+            header = update_header(r'seq\d+', seq_str, header)
+            header = update_header(r'struct\d+', struct_str, header)
+            annotation_lines[0] = header
 
         # Otherwise, insert the annotation above the existing lines.
 
         else:
-            annotation_lines.insert(0, annotation)
+            header = '{} {} {}'.format(symbol, seq_str, struct_str)
+            annotation_lines.insert(0, header)
 
         with open(annotation_path, 'w') as file:
             file.write('\n'.join(annotation_lines))
