@@ -695,6 +695,73 @@ class ValidatedDesigns(BigJobWorkspace, WithFragmentLibs):
         return '_{0:03d}'.format(job_info['task_id'] / len(job_info['inputs']))
 
 
+class AdditionalMetricWorkspace (Workspace):
+
+    def __init__(self, directory):
+        self.directory = os.path.abspath(directory)
+        self._root_dir = os.path.join(root_from_dir(directory),'..')
+
+    @property
+    def focus_dir(self):
+        return self.directory
+
+    @property
+    def focus_name(self):
+        return self.focus_dir.split('/')[-1:][0]
+
+    @property
+    def input_dirs(self):
+        input_dirs = []
+        for path in self.input_names:
+            input_dirs.append(os.path.dirname(path))
+        return sorted(list(set(input_dirs)))
+
+    @property
+    def input_names(self):
+        inputs = []
+        for subdir, dirs, files in os.walk(self.root_directory):
+            for file in files:
+                if file.endswith('.pdb') or file.endswith('.pdb.gz'):
+                    inputs.append(os.path.join(subdir, file))
+        return inputs
+
+    def input_path(self, job_info):
+        return self.input_names[job_info['task_id']]
+
+    @property
+    def output_dirs(self):
+        output_dirs = []
+        for path in self.input_names:
+            dirname = os.path.dirname(path)
+            output_dirs.append(os.path.join(dirname, 'extra_metrics')) 
+        return sorted(list(set(output_dirs)))
+
+    def output_prefix(self, job_info):
+        path = ''
+        for item in \
+        metric_workspace.input_path(job_info).split('/')[:-1]:
+            path = os.path.join(path,item)
+        return os.path.join(path, 'extra_metrics')
+
+    @property
+    def output_suffix(self, job_info):
+        return '_extra_metric'
+
+    def make_output_dirs(self):
+        for output_dir in self.output_dirs:
+            scripting.mkdir(output_dir)
+
+    def set_metrics_script_path(self, path):
+        self.metrics_script_path = path
+
+    @property
+    def final_protocol_path(self):
+        return self.metrics_script_path
+
+    @property
+    def log_dir(self):
+        return os.path.join(self.root_directory, 'logs')
+
 
 def big_job_dir():
     return os.path.join(os.path.dirname(__file__), 'big_jobs')
@@ -740,6 +807,39 @@ def workspace_from_dir(directory, recurse=True):
         workspace_class = pickle.load(file)
 
     return workspace_class.from_directory(directory)
+
+def root_from_dir(directory, recurse=True):
+    """
+    Similar to workspace_from_dir, but this returns the root directory
+    of a workspace rather than a workspace object. 
+    """
+
+    directory = os.path.abspath(directory)
+    pickle_path = os.path.join(directory, 'workspace.pkl')
+
+    # Make sure the given directory contains a 'workspace' file.  This file is
+    # needed to instantiate the right kind of workspace.
+
+    if not os.path.exists(pickle_path):
+        if recurse:
+            parent_dir = os.path.dirname(directory)
+
+            # Keep looking for a workspace as long as we haven't hit the root
+            # of the file system.  If an exception is raised, that means no
+            # workspace was found.  Catch and re-raise the exception so that
+            # the name of the directory reported in the exception is meaningful
+            # to the user.
+
+            try:
+                return root_from_dir(parent_dir, parent_dir != '/')
+            except WorkspaceNotFound:
+                raise WorkspaceNotFound(directory)
+        else:
+            raise WorkspaceNotFound(directory)
+
+    # Return the directory in which the pkl file was found.
+
+    return pickle_path[:-len('workspace.pkl')]
 
 def load_loops(directory, loops_path=None):
     """
