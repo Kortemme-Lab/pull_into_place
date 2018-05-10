@@ -695,7 +695,7 @@ class ValidatedDesigns(BigJobWorkspace, WithFragmentLibs):
         return '_{0:03d}'.format(job_info['task_id'] / len(job_info['inputs']))
 
 
-class AdditionalMetricWorkspace (Workspace):
+class AdditionalMetricWorkspace (BigJobWorkspace):
 
     def __init__(self, directory):
         self.directory = os.path.abspath(directory)
@@ -706,7 +706,8 @@ class AdditionalMetricWorkspace (Workspace):
     def focus_dir(self):
         return self.directory
 
-    def root_dir(self);
+    @property
+    def root_dir(self):
         return self._root_dir
 
     @property
