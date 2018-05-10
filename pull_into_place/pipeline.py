@@ -700,6 +700,7 @@ class AdditionalMetricWorkspace (Workspace):
     def __init__(self, directory):
         self.directory = os.path.abspath(directory)
         self._root_dir = os.path.join(root_from_dir(directory),'..')
+        self.metrics_script_path = self.find_path('metrics.xml')
 
     @property
     def focus_dir(self):
