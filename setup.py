@@ -92,6 +92,7 @@ setup(
             define_command('web_logo', '[analysis]'),
             define_command('push_data'),
             define_command('plot_funnels', '[analysis]'),
+            define_command('run_additional_metrics'),
         ],
     },
 )

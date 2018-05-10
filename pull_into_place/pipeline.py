@@ -783,6 +783,13 @@ class AdditionalMetricWorkspace (Workspace):
         for path in self.all_job_info_paths:
             os.remove(path)
 
+    @property
+    def unclaimed_inputs(self):
+        inputs = set(self.input_names)
+        for params in self.all_job_info:
+            inputs -= set(params['inputs'])
+        return sorted(inputs)
+
 
 def big_job_dir():
     return os.path.join(os.path.dirname(__file__), 'big_jobs')
