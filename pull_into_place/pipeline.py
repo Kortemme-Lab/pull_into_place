@@ -719,7 +719,7 @@ class AdditionalMetricWorkspace (Workspace):
     @property
     def input_names(self):
         inputs = []
-        for subdir, dirs, files in os.walk(self.root_directory):
+        for subdir, dirs, files in os.walk(self.focus_dir):
             for file in files:
                 if file.endswith('.pdb') or file.endswith('.pdb.gz'):
                     inputs.append(os.path.join(subdir, file))
@@ -739,7 +739,7 @@ class AdditionalMetricWorkspace (Workspace):
     def output_prefix(self, job_info):
         path = ''
         for item in \
-        metric_workspace.input_path(job_info).split('/')[:-1]:
+        self.input_path(job_info).split('/')[:-1]:
             path = os.path.join(path,item)
         return os.path.join(path, 'extra_metrics')
 
@@ -758,9 +758,29 @@ class AdditionalMetricWorkspace (Workspace):
     def final_protocol_path(self):
         return self.metrics_script_path
 
-    @property
-    def log_dir(self):
-        return os.path.join(self.root_directory, 'logs')
+    def copy_metric(self):
+        for output_dir in self.output_dirs:
+            for output in glob.iglob(output_dir + "/*.pdb.gz"):
+                basename = \
+                os.path.basename(output)[:-len('_extra_metric')]
+                input_dir = output_dir[:-len('/extra_metrics')]
+                input_file = os.path.join(input_dir, basename + \
+                        '.pdb.gz')
+                for line in reversed(gzip.open(output).readlines()):
+                    if line.startswith("EXTRA_METRIC"):
+                        with gzip.open(outfile,'a') as pdb:
+                            pdb.write(line)
+                            pdb.close()
+                        break
+                pass
+
+    def clear_outputs(self):
+        for output_dir in self.output_dirs:
+            scripting.clear_directory(output_dir)
+        scripting.clear_directory(self.log_dir)
+
+        for path in self.all_job_info_paths:
+            os.remove(path)
 
 
 def big_job_dir():
