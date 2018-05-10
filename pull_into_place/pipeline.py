@@ -706,6 +706,9 @@ class AdditionalMetricWorkspace (Workspace):
     def focus_dir(self):
         return self.directory
 
+    def root_dir(self);
+        return self._root_dir
+
     @property
     def focus_name(self):
         return self.focus_dir.split('/')[-1:][0]
