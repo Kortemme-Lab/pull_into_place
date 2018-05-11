@@ -760,6 +760,10 @@ class AdditionalMetricWorkspace (BigJobWorkspace):
         self.metrics_script_path = path
 
     @property
+    def protocol_path (self):
+        return self.metrics_script_path
+
+    @property
     def final_protocol_path(self):
         return self.metrics_script_path
 
