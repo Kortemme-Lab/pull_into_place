@@ -752,7 +752,6 @@ class AdditionalMetricWorkspace (BigJobWorkspace):
             path = os.path.join(path,item)
         return os.path.join(path, 'extra_metrics')
 
-    @property
     def output_suffix(self, job_info):
         return '_extra_metric'
 
