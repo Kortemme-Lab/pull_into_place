@@ -699,7 +699,7 @@ class AdditionalMetricWorkspace (BigJobWorkspace):
 
     def __init__(self, directory):
         self.directory = os.path.abspath(directory)
-        self._root_dir = os.path.join(root_from_dir(directory),'..')
+        self._root_dir = root_from_dir(directory)
         self.metrics_script_path = self.find_path('metrics.xml')
 
     @staticmethod
@@ -854,6 +854,8 @@ def root_from_dir(directory, recurse=True):
     of a workspace rather than a workspace object. 
     """
 
+    import linecache
+
     directory = os.path.abspath(directory)
     pickle_path = os.path.join(directory, 'workspace.pkl')
 
@@ -879,7 +881,12 @@ def root_from_dir(directory, recurse=True):
 
     # Return the directory in which the pkl file was found.
 
-    return pickle_path[:-len('workspace.pkl')]
+    line = linecache.getline(pickle_path, 2)
+    if line.startswith('Workspace'):
+        return pickle_path[:-len('workspace.pkl')]
+    else:
+        parent_dir = os.path.dirname(directory)
+        return root_from_dir(parent_dir, parent_dir != '/')
 
 def load_loops(directory, loops_path=None):
     """
