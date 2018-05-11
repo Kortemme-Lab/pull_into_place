@@ -746,11 +746,11 @@ class AdditionalMetricWorkspace (BigJobWorkspace):
         return sorted(list(set(output_dirs)))
 
     def output_prefix(self, job_info):
-        path = ''
+        path = '/'
         for item in \
         self.input_path(job_info).split('/')[:-1]:
             path = os.path.join(path,item)
-        return os.path.join(path, 'extra_metrics')
+        return os.path.join(path, 'extra_metrics') + '/'
 
     def output_suffix(self, job_info):
         return '_extra_metric'
@@ -771,6 +771,7 @@ class AdditionalMetricWorkspace (BigJobWorkspace):
         return self.metrics_script_path
 
     def copy_metric(self):
+	import gzip
         for output_dir in self.output_dirs:
             for output in glob.iglob(output_dir + "/*.pdb.gz"):
                 basename = \
