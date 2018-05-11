@@ -53,7 +53,6 @@ def main():
     workspace = pipeline.AdditionalMetricWorkspace(args['<directory>'])
     workspace.check_paths()
     workspace.check_rosetta()
-    workspace.make_dirs()
 
     if args['--mkdir']:
         return
