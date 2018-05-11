@@ -15,7 +15,7 @@ big_jobs.run_rosetta(
         workspace, job_info,
         use_resfile=True,
         use_restraints=True,
-        use_fragments=True,
+        use_fragments=False,
 )
 big_jobs.debrief()
 workspace.copy_metric()
