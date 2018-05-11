@@ -63,7 +63,7 @@ def main():
     # Decide which inputs to use.
 
     inputs = workspace.unclaimed_inputs
-    nstruct = len(inputs) * len(args['--nstruct'])
+    nstruct = len(inputs) 
 
     if not inputs:
         print """\
