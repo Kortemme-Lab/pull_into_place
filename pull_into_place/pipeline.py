@@ -702,6 +702,10 @@ class AdditionalMetricWorkspace (BigJobWorkspace):
         self._root_dir = os.path.join(root_from_dir(directory),'..')
         self.metrics_script_path = self.find_path('metrics.xml')
 
+    @staticmethod
+    def from_directory(directory):
+        return AdditionalMetricWorkspace(directory)
+
     @property
     def focus_dir(self):
         return self.directory
