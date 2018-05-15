@@ -731,7 +731,8 @@ class AdditionalMetricWorkspace (BigJobWorkspace):
         for subdir, dirs, files in os.walk(self.focus_dir):
             for file in files:
                 if file.endswith('.pdb') or file.endswith('.pdb.gz'):
-                    inputs.append(os.path.join(subdir, file))
+                    if not subdir.endswith('extra_metrics'):
+                        inputs.append(os.path.join(subdir, file))
         return inputs
 
     def input_path(self, job_info):
@@ -770,22 +771,14 @@ class AdditionalMetricWorkspace (BigJobWorkspace):
     def final_protocol_path(self):
         return self.metrics_script_path
 
-    def copy_metric(self):
+    def copy_metric(self,job_info):
 	import gzip
-        for output_dir in self.output_dirs:
-            for output in glob.iglob(output_dir + "/*.pdb.gz"):
-                basename = \
-                os.path.basename(output)[:-len('_extra_metric')]
-                input_dir = output_dir[:-len('/extra_metrics')]
-                input_file = os.path.join(input_dir, basename + \
-                        '.pdb.gz')
-                for line in reversed(gzip.open(output).readlines()):
-                    if line.startswith("EXTRA_METRIC"):
-                        with gzip.open(outfile,'a') as pdb:
-                            pdb.write(line)
-                            pdb.close()
-                        break
-                pass
+        print "Copying metrics from ", self.output_path(job_info), " to ", self.input_path(job_info)
+	for line in gzip.open(self.output_path(job_info)).readlines():
+	    if line.startswith("EXTRA_METRIC") or line.startswith("FragmentScoreFilter") or line.startswith("FSF"):
+		pdb = gzip.open(self.input_path(job_info),'a')
+		pdb.write(line)
+		pdb.close()
 
     def clear_outputs(self):
         for output_dir in self.output_dirs:

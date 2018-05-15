@@ -18,4 +18,4 @@ big_jobs.run_rosetta(
         use_fragments=False,
 )
 big_jobs.debrief()
-workspace.copy_metric()
+workspace.copy_metric(job_info)
