@@ -780,6 +780,16 @@ class AdditionalMetricWorkspace (BigJobWorkspace):
 		pdb.write(line)
 		pdb.close()
 
+    @property
+    def completed_jobs(self):
+        return os.path.join(self.focus_dir, "completed_jobs.yaml")
+
+    def record_completed_job(self, output_path):
+        completed_files = yaml.load(open(self.completed_jobs,'r'))
+        completed_files.append(output_path)
+        with open(self.completed_jobs,'w') as file:
+            file.write(yaml.dump(completed_files))
+
     def clear_outputs(self):
         for output_dir in self.output_dirs:
             scripting.clear_directory(output_dir)
@@ -788,12 +798,27 @@ class AdditionalMetricWorkspace (BigJobWorkspace):
         for path in self.all_job_info_paths:
             os.remove(path)
 
+    def clear_output(self, job_info):
+        output = self.output_path(job_info)
+        if os.path.isfile(output):
+            self.record_completed_job(output)
+            os.remove(output)
+
     @property
     def unclaimed_inputs(self):
         inputs = set(self.input_names)
         for params in self.all_job_info:
             inputs -= set(params['inputs'])
         return sorted(inputs)
+
+    @property
+    def unfinished_jobs(self):
+        completed_jobs = yaml.load(open(self.completed_jobs,'r'))
+        unfinished_jobs = []
+        for job in set(self.output_dirs):
+            if job not in completed_jobs:
+                unfinished_jobs.append(job)
+        return unfinished_jobs
 
 
 def big_job_dir():
