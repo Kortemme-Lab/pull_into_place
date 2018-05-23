@@ -837,13 +837,14 @@ def big_job_path(basename):
 
 def create_shallow_trees(workspace):
     from ete2 import Tree
+    from . import structures
     shallow_trees = []
     for folder in workspace.output_subdirs:
         design = structures.Design(folder)
         data = design.structures.to_dict('records')
         parent_paths = {}
         for structure in data:
-            structure['full_path'] = os.path.join(folder,record['path'])
+            structure['full_path'] = os.path.join(folder,structure['path'])
             parent_path = workspace.parent(structure['full_path'])
             if parent_path in parent_paths:
                 parent_paths[parent_path].append(structure)
@@ -860,16 +861,17 @@ def create_shallow_trees(workspace):
 
     return shallow_trees
 
-def combine_trees(list_of_child_trees, list_of_new_trees):
-    # Note - I don't think I need to return anything b/c tree objects
-    # are mutable so should be passed by reference, but if anything
-    # weird happens, it might be good to look here first. 
-    for new_tree in list_of_new_trees:
-        for old_tree in list_of_old_trees:
-            for node in new_tree:
-                if node.name = old_tree.name:
-                    new_tree.add_child(old_tree)
-                    old_tree.delete()
+def combine_trees(list_of_child_trees, list_of_parent_trees):
+    # Take two shallow trees and combine them; attach nodes with
+    # identical names to each other, then delete the (non-annotated)
+    # child node (its children will automatically be attached to the
+    # parent node).  
+    for new_tree in list_of_parent_trees:
+        for node in new_tree:
+            for child_tree in list_of_child_trees:
+                if node.name == child_tree.name:
+                    node.add_child(child_tree)
+                    child_tree.delete()
             
 
 
