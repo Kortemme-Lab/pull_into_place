@@ -641,6 +641,7 @@ class FixbbDesigns(BigJobWorkspace):
     @property
     def protocol_path(self):
         return self.design_script_path
+
     def input_path(self, job_info):
         bb_models = job_info['inputs']
         bb_model = bb_models[job_info['task_id'] % len(bb_models)]
