@@ -1145,6 +1145,7 @@ class Design (object):
     @property
     def rep_distance(self):
         return self.distances[self.rep]
+        
 
 
 class IOError (IOError):

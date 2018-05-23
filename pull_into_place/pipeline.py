@@ -472,6 +472,14 @@ class BigJobWorkspace(Workspace):
         for path in self.all_job_info_paths:
             os.remove(path)
 
+    def parent(self, output_path): 
+        # Function for getting parent from path alone (don't want to
+        # rely on job info)
+        input_model = os.path.basename(output_path).split('_')[0]
+        input_path = os.path.join(self.input_dir,input_model + \
+                '.pdb.gz')
+        return os.path.realpath(input_path)
+
 
 class WithFragmentLibs(object):
     """
@@ -826,6 +834,44 @@ def big_job_dir():
 
 def big_job_path(basename):
     return os.path.join(big_job_dir(), basename)
+
+def create_shallow_trees(workspace):
+    from ete2 import Tree
+    shallow_trees = []
+    for folder in workspace.output_subdirs:
+        design = structures.Design(folder)
+        data = design.structures.to_dict('records')
+        parent_paths = {}
+        for structure in data:
+            structure['full_path'] = os.path.join(folder,record['path'])
+            parent_path = workspace.parent(structure['full_path'])
+            if parent_path in parent_paths:
+                parent_paths[parent_path].append(structure)
+            else:
+                parent_paths[parent_path] = [structure]
+        for path in parent_paths:
+            node = Tree()
+            node.name = path
+            for structure in parent_paths[path]:
+                # Add children and annotate them with records dictionary
+                child = node.add_child(name=structure['full_path'])
+                child.add_features(records=structure)
+            shallow_trees.append(node)
+
+    return shallow_trees
+
+def combine_trees(list_of_child_trees, list_of_new_trees):
+    # Note - I don't think I need to return anything b/c tree objects
+    # are mutable so should be passed by reference, but if anything
+    # weird happens, it might be good to look here first. 
+    for new_tree in list_of_new_trees:
+        for old_tree in list_of_old_trees:
+            for node in new_tree:
+                if node.name = old_tree.name:
+                    new_tree.add_child(old_tree)
+                    old_tree.delete()
+            
+
 
 def workspace_from_dir(directory, recurse=True):
     """
