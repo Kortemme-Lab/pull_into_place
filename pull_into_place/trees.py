@@ -1,6 +1,23 @@
 from . import pipeline, structures
 from ete2 import Tree
-import glob, os
+import glob, os, pickle
+
+def load_tree(bigjobworkspace):
+    """
+    Returns a cached tree if available, otherwise calculates one. 
+    """
+
+    tree_path = bigjobworkspace.tree_path
+    if os.path.exists(tree_path):
+        print "Found cached tree. Loading..."
+        with open(tree_path,'r') as file:
+            tree = pickle.load(file)
+    else:
+        tree = create_full_tree(bigjobworkspace)
+        with open(tree_path,'w') as file:
+            pickle.dump(tree,file)
+
+    return tree
 
 def create_shallow_trees(workspace):
     """
@@ -10,6 +27,7 @@ def create_shallow_trees(workspace):
     """
 
     shallow_trees = []
+
     for folder in workspace.output_subdirs:
         design = structures.Design(folder)
         data = design.structures.to_dict('records')
@@ -56,7 +74,8 @@ def create_full_tree(bigjobworkspace, child_trees = [], recurse = True):
     """
     Creates a tree datastructure going backwards from the given
     workspace. This tree will contain all structures and will be very
-    large - not useful for visualization. 
+    large - not useful for direct visualization, but is meant to be used to
+    create graphs whose axes span different steps in the pipeline.
     child_trees is list of trees from a previous iteration (or an
     empty list).
     """
@@ -73,25 +92,27 @@ def create_full_tree(bigjobworkspace, child_trees = [], recurse = True):
         return create_full_tree(bigjobworkspace.predecessor, parent_trees, recurse)
 
     root = Tree(name=bigjobworkspace.input_pdb_path)
+    root.add_features(records={})
     for tree in child_trees:
         root.add_child(tree)
         tree.delete()
+
     return root
 
-def search_by_records(tree, desired_attributes_dict, exclusive=True):
+def search_by_records(tree, desired_attributes_dict, use_and=True):
     """
     Finds nodes of a given tree that match a dictionary of attributes
     whose key:value pairs represent an attribute of 'records' and the
     desired value. Matches must match all attributes in dictionary by
-    default, but if exlusive is set to False then it's treated as an
+    default, but if use_and is set to False then it's treated as an
     'or' statement. 
     """
     
     matches = []
 
     for node in tree.iter_descendants():
-        match = exclusive
-        if exclusive:
+        match = use_and
+        if use_and:
             for key in desired_attributes_dict:
                 if node.records[key] != desired_attributes_dict[key]:
                     match = False

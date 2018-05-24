@@ -429,6 +429,10 @@ class BigJobWorkspace(Workspace):
         return os.path.join(self.focus_dir, 'logs')
 
     @property
+    def tree_path(self):
+        return os.path.join(self.focus_dir, 'tree.pkl')
+
+    @property
     def rsync_recursive_flag(self):
         return True
 
