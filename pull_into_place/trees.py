@@ -1,6 +1,6 @@
 from . import pipeline, structures
 from ete2 import Tree
-import glob, os, pickle
+import glob, os, pickle, math
 
 def load_tree(bigjobworkspace):
     """
@@ -124,3 +124,83 @@ def search_by_records(tree, desired_attributes_dict, use_and=True):
             matches.append(node)
 
     return matches
+
+def bin_nodes(list_of_nodes, attribute, num_bins, combine_with_leaves=False,
+        discard_nodes_missing_data=True):
+    """
+    Takes a list of nodes and bins them according to attribute (must be
+    a numbered attribute) and num_bins. Returns a dictionary which
+    contains either 1 or 2 dictionaries, depending on whether    
+    combine_with_leaves is True or False; if False, internal nodes and
+    leaves are separated before binning. If True, all nodes are
+    combined. 
+
+    Each category then contains a dictionary whose keys are numbers
+    representing the lower bound of the bin. Those keys each point to a
+    list of nodes. 
+    
+    The returned dictionary thus has the following format:
+
+    binned_nodes = { 'nodes':{-1413:[<nodes>], -1418:[<nodes>], ... },
+    'leaves':{<empty if combine_with_leaves = True, otherwise looks like
+    the 'nodes' diectionary>} }
+
+    Note: This process is painfully slow, so as trees are constructed
+    based off of this binning process, they should be cached for future
+    use. 
+    """
+    from sys import stdout
+
+    data = []
+    for node in list_of_nodes:
+        # We first need to get all the raw data. Unfortunately this
+        # means iterating through the list of nodes twice.
+        data.append(node.records[attribute])
+
+    interval = ( float(max(data)) - float(min(data)) ) / float(num_bins)
+    intervals = []
+    i = min(data)
+    while i <= max(data):
+        intervals.append(i)
+        i += interval
+
+    # Split the nodes into those with children and without children if
+    # combine_with_leaves==False. 
+
+    interesting_nodes = {}
+    interesting_nodes['nodes'] = []
+    if not combine_with_leaves:
+        interesting_nodes['leaves'] = []
+        for node in list_of_nodes:
+            if node.children:
+                interesting_nodes['nodes'].append(node)
+            else:
+                interesting_nodes['leaves'].append(node)
+    else:
+        interesting_nodes['nodes'] = list_of_nodes
+
+    binned_nodes = {}
+
+    num_nodes = len(list_of_nodes)
+    for category in interesting_nodes:
+        binned_nodes[category] = {}
+        for index, node in enumerate(interesting_nodes[category]):
+            stdout.write("\rBinning node {} of {}".format(index,num_nodes))
+            stdout.flush()
+            bin_index = int(math.floor((node.records[attribute] - min(data) ) /\
+                    interval))
+            if bin_index == len(intervals) - 1:
+                # Unfortunately we need to slightly over-weight the
+                # highest category (could also be the lowest category if
+                # we wanted) by making it inclusive on both ends.
+                # Otherwise, the highest value would always be in a
+                # category by itself. 
+                bin_index = bin_index - 1
+            if intervals[bin_index] in binned_nodes[category]:
+                binned_nodes[category][intervals[bin_index]].append(node) 
+            else:
+                binned_nodes[category][intervals[bin_index]] = [node]
+
+    return binned_nodes
+
+
