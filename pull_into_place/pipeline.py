@@ -605,6 +605,13 @@ class RestrainedModels(BigJobWorkspace, WithFragmentLibs):
     def input_paths(self):
         return [self.input_pdb_path]
 
+    def parent(self, output_path):
+        return self.input_pdb_path
+
+    @property
+    def round(self):
+        return 1
+
     def output_prefix(self, job_info):
         return os.path.join(
                 self.output_dir,

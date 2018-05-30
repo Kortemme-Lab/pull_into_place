@@ -2,13 +2,13 @@ from . import pipeline, structures
 from ete2 import Tree
 import glob, os, pickle, math
 
-def load_tree(bigjobworkspace):
+def load_tree(bigjobworkspace, force=False):
     """
     Returns a cached tree if available, otherwise calculates one. 
     """
 
     tree_path = bigjobworkspace.tree_path
-    if os.path.exists(tree_path):
+    if os.path.exists(tree_path) and not force:
         print "Found cached tree. Loading..."
         with open(tree_path,'r') as file:
             tree = pickle.load(file)
@@ -35,11 +35,9 @@ def create_shallow_trees(workspace):
         for structure in data:
             structure['full_path'] = os.path.join(folder,structure['path'])
             structure['workspace_type'] = str(type(workspace)).split('.')[-1].split('\'')[0]
-            try:
-                structure['round'] = workspace.round
-            except:
-                structure['round'] = 0
+            structure['round'] = workspace.round
             parent_path = workspace.parent(structure['full_path'])
+
             if parent_path in parent_paths:
                 parent_paths[parent_path].append(structure)
             else:
@@ -70,6 +68,24 @@ def combine_trees(list_of_child_trees, list_of_parent_trees):
                     node.add_child(child_tree)
                     child_tree.delete()
            
+def tree_from_bin_dict(binned_nodes, attribute):
+
+    for category in binned_nodes:
+        for interval_floor in binned_nodes[category]:
+            representative = Tree()
+            lowest_att = binned_nodes[category][interval_floor][0]
+            for node in binned_nodes[category][interval_floor]:
+                # Need to iterate through once to find
+                # representative node
+                if node.records[attribute] < lowest_att:
+                    representative = node
+                    lowest_att = node.records[attribute]
+            for node in binned_nodes[category][interval_floor]:
+                if node != representative:
+                    for child in node.children:
+                        representative.add_child(child)
+                    node.detach()
+
 def create_full_tree(bigjobworkspace, child_trees = [], recurse = True):
     """
     Creates a tree datastructure going backwards from the given
@@ -86,18 +102,17 @@ def create_full_tree(bigjobworkspace, child_trees = [], recurse = True):
         recurse = True
     except:
         recurse = False
+
     if recurse:
         parent_trees = create_shallow_trees(bigjobworkspace)
         combine_trees(child_trees, parent_trees)
         return create_full_tree(bigjobworkspace.predecessor, parent_trees, recurse)
 
-    root = Tree(name=bigjobworkspace.input_pdb_path)
-    root.add_features(records={})
-    for tree in child_trees:
-        root.add_child(tree)
-        tree.delete()
+    parent_trees = create_shallow_trees(bigjobworkspace)
+    combine_trees(child_trees, parent_trees)
 
-    return root
+
+    return parent_trees[0]
 
 def search_by_records(tree, desired_attributes_dict, use_and=True):
     """
@@ -122,6 +137,9 @@ def search_by_records(tree, desired_attributes_dict, use_and=True):
                     match = True
         if match == True:
             matches.append(node)
+
+    print 'Searched for: ', desired_attributes_dict
+    print 'Found ', len(matches), 'nodes'
 
     return matches
 
@@ -163,6 +181,7 @@ def bin_nodes(list_of_nodes, attribute, num_bins, combine_with_leaves=False,
     while i <= max(data):
         intervals.append(i)
         i += interval
+    intervals.append(i)
 
     # Split the nodes into those with children and without children if
     # combine_with_leaves==False. 
@@ -182,13 +201,23 @@ def bin_nodes(list_of_nodes, attribute, num_bins, combine_with_leaves=False,
     binned_nodes = {}
 
     num_nodes = len(list_of_nodes)
+    data_min = min(data)
+
     for category in interesting_nodes:
         binned_nodes[category] = {}
         for index, node in enumerate(interesting_nodes[category]):
             stdout.write("\rBinning node {} of {}".format(index,num_nodes))
             stdout.flush()
-            bin_index = int(math.floor((node.records[attribute] - min(data) ) /\
-                    interval))
+            bin_index = int(math.floor((node.records[attribute] -\
+                    data_min ) / interval))
+
+            if bin_index == len(intervals):
+                print node.records[attribute]
+                print 'Unrounded bin: ', (float(node.records[attribute]) -
+                        float(data_min)) / float(interval)
+                print 'Interval: ', interval
+                print 'data_min: ', data_min
+
             if bin_index == len(intervals) - 1:
                 # Unfortunately we need to slightly over-weight the
                 # highest category (could also be the lowest category if
@@ -196,6 +225,7 @@ def bin_nodes(list_of_nodes, attribute, num_bins, combine_with_leaves=False,
                 # Otherwise, the highest value would always be in a
                 # category by itself. 
                 bin_index = bin_index - 1
+
             if intervals[bin_index] in binned_nodes[category]:
                 binned_nodes[category][intervals[bin_index]].append(node) 
             else:
