@@ -1,6 +1,17 @@
 from . import pipeline, structures
 from ete2 import Tree
 import glob, os, pickle, math
+from sys import stdout
+
+"""
+This file defines functions needed for tree construction and
+manipulation. 
+(TO DO: Refactor this code into a class so that things like the initial
+workspace, the bin dictionary, intervals dictionary, etc. can be shared
+between functions. This might not work, though, since each bin can have
+different intervals, etc... and we want to make sure the correct
+lists/dictionaries are being used for each function.)
+"""
 
 def load_tree(bigjobworkspace, force=False):
     """
@@ -67,24 +78,6 @@ def combine_trees(list_of_child_trees, list_of_parent_trees):
                 if node.name == child_tree.name:
                     node.add_child(child_tree)
                     child_tree.delete()
-           
-def tree_from_bin_dict(binned_nodes, attribute):
-
-    for category in binned_nodes:
-        for interval_floor in binned_nodes[category]:
-            representative = Tree()
-            lowest_att = binned_nodes[category][interval_floor][0]
-            for node in binned_nodes[category][interval_floor]:
-                # Need to iterate through once to find
-                # representative node
-                if node.records[attribute] < lowest_att:
-                    representative = node
-                    lowest_att = node.records[attribute]
-            for node in binned_nodes[category][interval_floor]:
-                if node != representative:
-                    for child in node.children:
-                        representative.add_child(child)
-                    node.detach()
 
 def create_full_tree(bigjobworkspace, child_trees = [], recurse = True):
     """
@@ -138,10 +131,54 @@ def search_by_records(tree, desired_attributes_dict, use_and=True):
         if match == True:
             matches.append(node)
 
-    print 'Searched for: ', desired_attributes_dict
-    print 'Found ', len(matches), 'nodes'
-
     return matches
+
+def tree_from_bin_dict(binned_nodes, attribute, intervals,
+        direct_children = True):
+    """
+    Using a binned nodes dictionary taken from bin_nodes() function,
+    reshape the tree so that a representative node replaces all other
+    nodes in that bin. 
+    """
+
+
+    # Note that the intervals list is being passed into this function
+    # because otherwise it would be very difficult to find the min and
+    # max intervals for plotting later. We need to attach them to each
+    # node, since different nodes might have different binning rules. 
+
+    for category in binned_nodes:
+        for interval_floor in binned_nodes[category]:
+            representative = Tree()
+            intervals.append(interval_floor)
+            lowest_att = binned_nodes[category][interval_floor][0]
+            for node in binned_nodes[category][interval_floor]:
+                # Need to iterate through once to find
+                # representative node
+                if node.records[attribute] < lowest_att:
+                    representative = node
+                    lowest_att = node.records[attribute]
+            representative.add_features(subnodes = [], bin_attribute =\
+                    attribute, intervals = intervals)
+            if direct_children:
+                num_children = len(representative.children)
+            else:
+                num_children = 0
+                for child in representative.iter_descendants():
+                    num_children += 1
+            for node in binned_nodes[category][interval_floor]:
+                # Second iteration to reshape the tree
+                if node != representative:
+                    if direct_children:
+                        num_children += len(node.children)
+                    else:
+                        for child in node.iter_descendants():
+                            num_children += 1
+                    for child in node.children:
+                        representative.add_child(child)
+                        representative.subnodes.append(child.records)
+                    node.detach()
+            representative.add_features(num_children = num_children)
 
 def bin_nodes(list_of_nodes, attribute, num_bins, combine_with_leaves=False,
         discard_nodes_missing_data=True):
@@ -162,12 +199,7 @@ def bin_nodes(list_of_nodes, attribute, num_bins, combine_with_leaves=False,
     binned_nodes = { 'nodes':{-1413:[<nodes>], -1418:[<nodes>], ... },
     'leaves':{<empty if combine_with_leaves = True, otherwise looks like
     the 'nodes' diectionary>} }
-
-    Note: This process is painfully slow, so as trees are constructed
-    based off of this binning process, they should be cached for future
-    use. 
     """
-    from sys import stdout
 
     data = []
     for node in list_of_nodes:
@@ -210,14 +242,6 @@ def bin_nodes(list_of_nodes, attribute, num_bins, combine_with_leaves=False,
             stdout.flush()
             bin_index = int(math.floor((node.records[attribute] -\
                     data_min ) / interval))
-
-            if bin_index == len(intervals):
-                print node.records[attribute]
-                print 'Unrounded bin: ', (float(node.records[attribute]) -
-                        float(data_min)) / float(interval)
-                print 'Interval: ', interval
-                print 'data_min: ', data_min
-
             if bin_index == len(intervals) - 1:
                 # Unfortunately we need to slightly over-weight the
                 # highest category (could also be the lowest category if
@@ -231,6 +255,66 @@ def bin_nodes(list_of_nodes, attribute, num_bins, combine_with_leaves=False,
             else:
                 binned_nodes[category][intervals[bin_index]] = [node]
 
-    return binned_nodes
+    return binned_nodes, intervals
+
+def construct_binned_tree(tree, rules, user_defaults = {},
+        direct_children=True):
+    """
+    Alter the tree according to binning rules.
+    """
+
+    get_rules = tree.children[0]
+    workspace_type = get_rules.records['workspace_type']
+    round_number = get_rules.records['round']
+
+    for child in tree.children:
+        assert(child.records['workspace_type'] == workspace_type and
+                child.records['round'] == round_number), \
+                        'Something went wrong with constructing the binned tree.'
+
+    default_rules = {'attribute': 'total_score', 'nodes_per_bin': 2000}
+    # User defaults override built-in defaults
+    for key in user_defaults:
+        if user_defaults[key]:
+            default_rules[key] = user_defaults[key]
 
 
+    CURSOR_UP_ONE = '\x1b[1A' 
+    ERASE_LINE = '\x1b[2K'
+    stdout.write(CURSOR_UP_ONE + ERASE_LINE + '\rBinning nodes for ' + workspace_type + ' round ' +\
+            str(round_number) + '\r\n')
+    stdout.flush()
+
+    try:
+        sub_rules = rules[round_number].get(workspace_type, default_rules)
+    except:
+        sub_rules = default_rules
+
+    # Apply default rules when user-defined subrules don't specify
+    for key in default_rules:
+        if key not in sub_rules:
+            sub_rules[key] = default_rules[key]
+
+    attribute = sub_rules.get('attribute','total_score')
+
+    # Figure out how many bins to use.
+    bins = int(math.ceil(float(len(tree.children)) /\
+            float(sub_rules.get('nodes_per_bin'))))
+    if 'bins' in sub_rules:
+        max_bins = sub_rules.get('bins')
+    else:
+        max_bins = user_defaults.get('bins')
+    if max_bins:
+        if bins > int(max_bins):
+            bins = int(max_bins)
+
+
+    binned_nodes, intervals = bin_nodes(tree.children, attribute,\
+            bins)
+    tree_from_bin_dict(binned_nodes, attribute, intervals,
+            direct_children)
+
+    for child in tree.children:
+        if child.children:
+            construct_binned_tree(child, rules,\
+                    user_defaults, direct_children)
