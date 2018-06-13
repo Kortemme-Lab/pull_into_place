@@ -1,8 +1,7 @@
 #!/usr/bin/env python2
 # encoding: utf-8
 
-"""\
-
+"""
 Create a graphic of a tree, each node of which represents a structure,
 and each line representing a child-parent relationship. Since the tree
 datastructure is inherently very large, visualization requires that the

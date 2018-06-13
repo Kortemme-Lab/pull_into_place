@@ -13,6 +13,31 @@ different intervals, etc... and we want to make sure the correct
 lists/dictionaries are being used for each function.)
 """
 
+def cluster_nodes_by_coords(list_of_nodes):
+    """
+    pseudo-code:
+    dist_matrix = np.zeros((len(list_of_nodes),len(list_of_nods)))
+    structures = [node.records for node in list_of_nodes]
+    Note that we can edit the structures in the list and it will edit
+    the node.records dict (it's a list of pointers to the node.records
+    dicts)
+    structure combos = itertools.combinations(enumerate(structures),2)
+    
+    for (i, structure_i), (j_structure_j) in structure_combos:
+        dist_matrix[i,j] = calculate_loop_rmsd(structure_i,structure_j)
+        dist_matrix[j,i] = dist_matrix[i,j]
+
+    dist_vector = sp_dist..squareform(dist_matrix)
+    mean_dist = np.mean(dist_vector)
+    hierarchy = sp_clust.complete(dist_vector)
+    clusters = sp_clust.fcluster(hierarchy, threshold or mean_dist,
+    criterion='distance')
+
+    for cluster, design in zip(clusters, designs):
+        structure.structure_cluster = cluster
+
+    """
+
 def load_tree(bigjobworkspace, force=False):
     """
     Returns a cached tree if available, otherwise calculates one. 

@@ -847,45 +847,6 @@ def big_job_dir():
 def big_job_path(basename):
     return os.path.join(big_job_dir(), basename)
 
-def create_shallow_trees(workspace):
-    from ete2 import Tree
-    from . import structures
-    shallow_trees = []
-    for folder in workspace.output_subdirs:
-        design = structures.Design(folder)
-        data = design.structures.to_dict('records')
-        parent_paths = {}
-        for structure in data:
-            structure['full_path'] = os.path.join(folder,structure['path'])
-            parent_path = workspace.parent(structure['full_path'])
-            if parent_path in parent_paths:
-                parent_paths[parent_path].append(structure)
-            else:
-                parent_paths[parent_path] = [structure]
-        for path in parent_paths:
-            node = Tree()
-            node.name = path
-            for structure in parent_paths[path]:
-                # Add children and annotate them with records dictionary
-                child = node.add_child(name=structure['full_path'])
-                child.add_features(records=structure)
-            shallow_trees.append(node)
-
-    return shallow_trees
-
-def combine_trees(list_of_child_trees, list_of_parent_trees):
-    # Take two shallow trees and combine them; attach nodes with
-    # identical names to each other, then delete the (non-annotated)
-    # child node (its children will automatically be attached to the
-    # parent node).  
-    for new_tree in list_of_parent_trees:
-        for node in new_tree:
-            for child_tree in list_of_child_trees:
-                if node.name == child_tree.name:
-                    node.add_child(child_tree)
-                    child_tree.delete()
-            
-
 
 def workspace_from_dir(directory, recurse=True):
     """
