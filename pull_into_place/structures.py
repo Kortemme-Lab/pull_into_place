@@ -167,6 +167,8 @@ def read_and_calculate(workspace, pdb_paths):
 
     for i, path in enumerate(sorted(pdb_paths)):
         record = {'path': os.path.basename(path)}
+        record['full_path'] = os.path.abspath(path)
+        record['directory'] = os.path.abspath(os.path.dirname(path))
         sequence = ""
         sequence_map = {}
         last_residue_id = None

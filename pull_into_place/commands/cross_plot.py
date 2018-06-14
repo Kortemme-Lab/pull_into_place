@@ -14,10 +14,11 @@ Options:
 
 """
 
-from pull_into_place import trees, pipeline
+from pull_into_place import trees, pipeline, structures
 from klab import docopt
 import show_my_designs as smd
-import yaml, os
+import numpy as np
+import yaml, os, gtk, collections
 
 """
 Psuedo-code for figuring out parent/child relationships
@@ -49,21 +50,18 @@ def main():
 
     ws = child_workspace
     tree_levels = 0
-    while ws != parent_workspace:
+    while ws.focus_dir != parent_workspace.focus_dir:
         ws = ws.predecessor
         tree_levels += 1
 
 class CrossDesign(smd.Design):
 
-    def __init__(self, parent_directory, child_directory,
+    def __init__(self, child_directory,
             tree, tree_levels, use_cache=True):
-        self.directory = child_directory
-        self.parent_directory = parent_directory
-        self.cache_path = os.path.join(directory, 'models.pkl')
-        self.parent_cache_path = os.path.join(parent_directory,
-        'models.pkl')
-        self.notes_path = os.path.join(directory, 'notes.txt')
-        self.rep_path = os.path.join(directory, 'representative.txt')
+        self.directory = os.path.abspath(child_directory)
+        self.cache_path = os.path.join(child_directory, 'models.pkl')
+        self.notes_path = os.path.join(child_directory, 'cross_notes.txt')
+        self.rep_path = os.path.join(child_directory, 'representative.txt')
         self._models = None
         self._metrics = {}
         self._notes = ""
@@ -72,8 +70,28 @@ class CrossDesign(smd.Design):
         self.tree = tree
         self.tree_levels = tree_levels
 
-        self._load_models(use_cache,tree,tree_levels)
+        self._load_models(use_cache)
         self._load_annotations()
+        self._load_metrics()
+
+    def get_parent_models(self):
+        # Need to make sure we only search_by_records once; relatively expensive
+        nodes = trees.search_by_records(self.tree,{'directory':self.directory})
+       
+        for i in range(0,len(self._models)):
+            # Looping through nodes also somewhat expensive, but I don't see
+            # another way of doing this right now.
+            for node in nodes:
+                if node.records['full_path'] == self._models.loc[i,'full_path']:
+                    parent = self.go_to_parent_node(node)
+                    for metric in parent.records:
+                        self._models.loc[i,'parent_' + metric] = \
+                                parent.records[metric]
+        
+    def go_to_parent_node(self, node):
+        for i in range(0, self.tree_levels):
+            node = node.up
+        return node
 
     def _load_models(self, use_cache): #
         self._models, self._metrics = structures.load(
@@ -82,36 +100,10 @@ class CrossDesign(smd.Design):
                 require_io_dir=False,
         )
 
-    def _load_parent_model(self, use_cache):
-        """
-        Load a variety of score and distance metrics for the parent
-        structure.
-         
-        Note: May want to load the entire parent directory, just so I
-        can use structures.load(). Then, use another variable set in
-        __init__ to get the info for the parent STRUCTURE. 
+        self.get_parent_models()
 
-        Note 2: read_and_calculate(workspace, [parent_directory]) will
-        also work.
-        """
 
-        # Make sure that the given path exists.
-        if not os.path.exists(self.parent_directory):
-            raise IOError("'{}' doe snot exist".format(self.directory))
-        
-        if use_cache and os.path.exists(self.parent_cache_path):
-            cached_records = pd.read_pickle(self.cache_path).to_dict('records')
-            cached_paths = set(
-                    record['path'] for record in cached_records
-                    if 'path' in record)
-            uncached_paths = [
-                    pdb_path for pdb_path in pdb_paths
-                    if os.path.basename(pdb_path) not in cached_paths]
-
-        else:
-            cached_records = []
-            uncached_paths = pdb_paths
-class CrossPlotSMD(ShowMyDesigns):
+class CrossPlotSMD(smd.ShowMyDesigns):
     # Changes to make it a swarm plot
 
     def plot_models(self, axes, designs, **kwargs):
@@ -154,6 +146,10 @@ class CrossPlotSMD(ShowMyDesigns):
             action = self.filter_pane.get_action()
             keep, drop = self.filter_pane.get_masks(design)
 
+            sns.set_style("whitegrid")
+            sns.swarmplot(x=x_metric, y=y_metric,
+                    data=design._models, ax=axes)
+            """
             x = design.get_metric(x_metric)
             y = design.get_metric(y_metric)
 
@@ -182,6 +178,54 @@ class CrossPlotSMD(ShowMyDesigns):
 
             lines.paths = design.paths
             lines.design = design
+            """
 
         # Pick the axis limits based on the range of every design.  This is done
         # so you can scroll though every design without the axes changing size.
+
+        if self.is_legend_visible:
+            axes.legend(loc='upper right')
+
+        if self.is_model_count_visible:
+            axes.annotate(
+                    ', '.join(str(len(x)) for x in designs),
+                    xy=(0, 1), xycoords='axes fraction',
+                    xytext=(8, -8), textcoords='offset points',
+                    verticalalignment='top',
+            )
+
+def show_my_designs(directories, tree, tree_levels, use_cache=True, launch_gui=True,
+        fork_gui=True ):
+    try:
+        try:
+            designs = load_designs(directories, tree, tree_levels, use_cache=use_cache)
+        except IOError as error:
+            if str(error):
+                print "Error:", str(error)
+                sys.exit()
+            else:
+                raise
+
+        if designs and launch_gui:
+            # If the user wants to run in a background process, try to fork.
+            # But for some reason fork() doesn't seem to work on Macs, so just
+            # run the GUI in the main process if anything goes wrong.
+            try:
+                if fork_gui and os.fork():
+                    sys.exit()
+            except Exception:
+                pass
+
+            gui = CrossPlotSMD(designs)
+            gtk.main()
+
+    except KeyboardInterrupt:
+        print
+
+def load_designs(directories, tree, tree_levels, use_cache=True):
+    designs = collections.OrderedDict()
+
+    for directory in directories:
+        designs[directory] = CrossDesign(directory, tree, tree_levels,use_cache)
+
+    return designs

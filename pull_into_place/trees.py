@@ -69,7 +69,6 @@ def create_shallow_trees(workspace):
         data = design.structures.to_dict('records')
         parent_paths = {}
         for structure in data:
-            structure['full_path'] = os.path.join(folder,structure['path'])
             structure['workspace_type'] = str(type(workspace)).split('.')[-1].split('\'')[0]
             structure['round'] = workspace.round
             parent_path = workspace.parent(structure['full_path'])
@@ -147,7 +146,10 @@ def search_by_records(tree, desired_attributes_dict, use_and=True):
         match = use_and
         if use_and:
             for key in desired_attributes_dict:
-                if node.records[key] != desired_attributes_dict[key]:
+                if key in node.records:
+                    if node.records[key] != desired_attributes_dict[key]:
+                        match = False
+                else:
                     match = False
         else:
             for key in desired_attributes_dict:
