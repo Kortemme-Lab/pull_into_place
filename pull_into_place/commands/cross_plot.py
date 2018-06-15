@@ -508,6 +508,36 @@ class SwarmPlotter(sns.categorical._SwarmPlotter):
 
         return out_data, label
 
+    @property
+    def point_colors(self):
+        """Return a color for each scatter point based on group and hue."""
+        colors = []
+        for i, group_data in enumerate(self.plot_data):
+
+            group_y_data = np.array([y for y in group_data[self.y]])
+
+            # Initialize the array for this group level
+            group_colors = np.empty((group_y_data.size, 3))
+            print 'group colors',group_colors
+
+            if self.plot_hues is None:
+
+                # Use the same color for all points at this level
+                group_color = self.colors[i]
+                group_colors[:] = group_color
+
+            else:
+
+                # Color the points based on  the hue level
+                for j, level in enumerate(self.hue_names):
+                    hue_color = self.colors[j]
+                    if group_data.size:
+                        group_colors[self.plot_hues[i] == level] = hue_color
+
+            colors.append(group_colors)
+
+        return colors
+
 def show_my_designs(directories, tree, tree_levels, use_cache=True, launch_gui=True,
         fork_gui=True ):
     try:
