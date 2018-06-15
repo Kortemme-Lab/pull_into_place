@@ -288,9 +288,9 @@ class CrossPlotSMD(smd.ShowMyDesigns):
         # Figure out which model was clicked.
 
         index, design = self.selected_model
-        print design['path']
-        path = os.path.join(design['directory'].to_string(),
-                design['path'].to_string())
+        pd.set_option("display.max_colwidth",1000)
+        path = os.path.join(design.iloc[index]['directory'],
+                design.iloc[index]['path'])
         #is_rep = (design['representative'] == index)
         self.selected_model = None
 
@@ -361,14 +361,15 @@ class SwarmPlotter(sns.categorical._SwarmPlotter):
         """Initialize the plotter."""
         self.design = design
         self.data = data
+        self.x = x
+        self.y = y
+        self.hue = hue
         self.establish_variables(x, y, hue, data, orient, order, hue_order)
         self.establish_colors(color, palette, 1)
 
         # Set object attributes
         self.dodge = dodge
         self.width = 5
-        self.x = x
-        self.y = y
 
     def draw_swarmplot(self, ax, kws):
         """Plot the data."""
@@ -395,6 +396,8 @@ class SwarmPlotter(sns.categorical._SwarmPlotter):
         # Plot each swarm
         for i, group_data in enumerate(self.plot_data):
 
+            group_y_data = np.array([hue for hue in group_data[self.y]])
+
             if self.plot_hues is None or not self.dodge:
 
                 width = self.width
@@ -402,12 +405,15 @@ class SwarmPlotter(sns.categorical._SwarmPlotter):
                 if self.hue_names is None:
                     hue_mask = np.ones(group_data.size, np.bool)
                 else:
-                    hue_mask = np.array([h in self.hue_names
-                                         for h in self.plot_hues[i]], np.bool)
+                    hue_mask = np.zeros(len(self.plot_hues[i]), np.bool)
+                    np_index = 0
+                    for h in self.plot_hues[i].itertuples():
+                        hue_mask[np_index] = getattr(h, self.hue) in \
+                                self.hue_names
                     # Broken on older numpys
                     # hue_mask = np.in1d(self.plot_hues[i], self.hue_names)
 
-                swarm_data = group_data[hue_mask]
+                swarm_data = group_y_data[hue_mask]
 
                 # Sort the points for the beeswarm algorithm
                 sorter = np.argsort(swarm_data)
@@ -486,35 +492,16 @@ class SwarmPlotter(sns.categorical._SwarmPlotter):
             vals = pd.Series(vals)
 
         # Group the val data
-        grouped_vals = vals.groupby(grouper)
-        # Also group design data
-        grouped_designs = self.design._models.groupby(grouper)
-        grouped_paths = self.design.paths.groupby(grouper)
+        grouped_vals = self.design._models.groupby(self.x)
 
         out_data = []
-        out_designs = []
-        out_paths = []
         for g in order:
             try:
-                g_vals = np.asarray(grouped_vals.get_group(g))
+                g_vals = pd.DataFrame(grouped_vals.get_group(g))
             except KeyError:
                 g_vals = np.array([])
-            try:
-                g_designs = pd.DataFrame(grouped_designs.get_group(g))
-            except:
-                g_designs = np.array([])
-            try:
-                g_paths = pd.DataFrame(grouped_paths.get_group(g))
-            except:
-                g_paths = np.array([])
 
             out_data.append(g_vals)
-            out_designs.append(g_designs)
-            out_paths.append(g_paths)
-
-
-        self.paths = out_paths
-        self.designs = out_designs
 
         # Get the vals axis label
         label = vals.name
