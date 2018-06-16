@@ -289,8 +289,8 @@ class CrossPlotSMD(smd.ShowMyDesigns):
 
         index, design = self.selected_model
         pd.set_option("display.max_colwidth",1000)
-        path = os.path.join(design.iloc[index]['directory'],
-                design.iloc[index]['path'])
+        path = os.path.join(design[index]['directory'],
+                design[index]['path'])
         #is_rep = (design['representative'] == index)
         self.selected_model = None
 
@@ -301,7 +301,7 @@ class CrossPlotSMD(smd.ShowMyDesigns):
         # drop-down menu.  If selected, the script will be called with sh as
         # the interpreter and the path to the model as the singular argument.
 
-        directory = os.path.abspath(design['directory'].to_string())
+        directory = os.path.abspath(design[index]['directory'])
         sho_scripts = []
 
         while directory != os.path.abspath('/'):
@@ -405,7 +405,7 @@ class SwarmPlotter(sns.categorical._SwarmPlotter):
                 if self.hue_names is None:
                     hue_mask = np.ones(group_data.size, np.bool)
                 else:
-                    hue_mask = np.zeros(len(self.plot_hues[i]), np.bool)
+                    hue_mask = np.ones(len(self.plot_hues[i]), np.bool)
                     np_index = 0
                     for h in self.plot_hues[i].itertuples():
                         hue_mask[np_index] = getattr(h, self.hue) in \
@@ -429,13 +429,16 @@ class SwarmPlotter(sns.categorical._SwarmPlotter):
                 if self.orient == "v":
                     points = ax.scatter(cat_pos, swarm_data, s=s,
                             picker=True,**kws)
-                    points.paths = self.paths[i]
-                    points.design = self.designs[i]
+                    points.paths = group_data['path'][sorter]
+                    designs = []
+                    for index in sorter:
+                        designs.append(group_data.iloc[index])
+                    points.design = designs
                 else:
                     points = ax.scatter(swarm_data, cat_pos, s=s,
                             picker=True,**kws)
-                    points.paths = self.paths[i]
-                    points.design = self.designs[i]
+                    #points.paths = self.paths[i]
+                    #points.design = self.designs[i]
 
                 centers.append(self.group_names[i])
                 swarms.append(points)
@@ -446,7 +449,7 @@ class SwarmPlotter(sns.categorical._SwarmPlotter):
 
                 for j, hue_level in enumerate(self.hue_names):
                     hue_mask = self.plot_hues[i] == hue_level
-                    swarm_data = group_data[hue_mask]
+                    swarm_data = group_y_data[hue_mask]
 
                     # Sort the points for the beeswarm algorithm
                     sorter = np.argsort(swarm_data)
@@ -518,7 +521,6 @@ class SwarmPlotter(sns.categorical._SwarmPlotter):
 
             # Initialize the array for this group level
             group_colors = np.empty((group_y_data.size, 3))
-            print 'group colors',group_colors
 
             if self.plot_hues is None:
 
@@ -532,7 +534,7 @@ class SwarmPlotter(sns.categorical._SwarmPlotter):
                 for j, level in enumerate(self.hue_names):
                     hue_color = self.colors[j]
                     if group_data.size:
-                        group_colors[self.plot_hues[i] == level] = hue_color
+                        group_colors[np.array(self.plot_hues[i][self.hue]) == level] = hue_color
 
             colors.append(group_colors)
 
