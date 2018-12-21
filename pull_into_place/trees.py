@@ -69,6 +69,8 @@ def create_shallow_trees(workspace):
         data = design.structures.to_dict('records')
         parent_paths = {}
         for structure in data:
+            if not structure['full_path']:
+                structure['full_path'] = os.path.abspath(structure['path'])
             structure['workspace_type'] = str(type(workspace)).split('.')[-1].split('\'')[0]
             structure['round'] = workspace.round
             parent_path = workspace.parent(structure['full_path'])

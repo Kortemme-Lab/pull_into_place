@@ -40,7 +40,6 @@ from .. import pipeline, big_jobs
 @scripting.catch_and_print_errors()
 def main():
     args = docopt.docopt(__doc__)
-    cluster.require_qsub()
 
     # Setup the workspace.
 
@@ -54,6 +53,7 @@ def main():
     if args['--clear'] or args['--test-run']:
         workspace.clear_outputs()
 
+    cluster.require_qsub()
     # Submit the model building job.
 
     big_jobs.submit(

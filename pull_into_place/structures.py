@@ -20,7 +20,8 @@ from klab import scripting
 from pprint import pprint
 from . import pipeline
 
-def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
+def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True,
+        require_workspace=True):
     """
     Return a variety of score and distance metrics for the structures found in
     the given directory.  As much information as possible will be cached.  Note
@@ -44,13 +45,14 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
     # The given directory must also be a workspace, so that the restraint file
     # can be found and used to calculate the "restraint_dist" metric later on.
 
-    try:
-        workspace = pipeline.workspace_from_dir(pdb_dir)
-    except pipeline.WorkspaceNotFound:
-        raise IOError("'{}' is not a workspace".format(pdb_dir))
-    if require_io_dir and not any(
-            os.path.samefile(pdb_dir, x) for x in workspace.io_dirs):
-        raise IOError("'{}' is not an input or output directory".format(pdb_dir))
+    if require_workspace:
+        try:
+            workspace = pipeline.workspace_from_dir(pdb_dir)
+        except pipeline.WorkspaceNotFound:
+            raise IOError("'{}' is not a workspace".format(pdb_dir))
+        if require_io_dir and not any(
+                os.path.samefile(pdb_dir, x) for x in workspace.io_dirs):
+            raise IOError("'{}' is not an input or output directory".format(pdb_dir))
 
     # Find all the structures in the given directory, then decide which have
     # already been cached and which haven't.
@@ -84,8 +86,12 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
     # Calculate score and distance metrics for the uncached paths, then combine
     # the cached and uncached data into a single data frame.
 
-    uncached_records, uncached_metadata = \
-            read_and_calculate(workspace, uncached_paths)
+    if require_workspace:
+        uncached_records, uncached_metadata = \
+                read_and_calculate(workspace, uncached_paths)
+    else:
+        uncached_records, uncached_metadata = \
+                read_and_calculate(None, uncached_paths)
 
     all_records = pd.DataFrame(cached_records + uncached_records)
     metadata.update(uncached_metadata)
@@ -94,8 +100,8 @@ def load(pdb_dir, use_cache=True, job_report=None, require_io_dir=True):
 
     expected_metrics = [
             'total_score',
-            'restraint_dist',
-            'sequence',
+            #'restraint_dist',
+            #'sequence',
     ]
     for metric in expected_metrics:
         if metric not in all_records:
@@ -130,7 +136,10 @@ def read_and_calculate(workspace, pdb_paths):
     # For example, the validation runs don't use restraints but the restraint
     # distance is a very important metric for deciding which designs worked.
 
-    restraints = parse_restraints(workspace.restraints_path)
+    if workspace:
+        restraints = parse_restraints(workspace.restraints_path)
+    else:
+        restraints = []
 
     # Calculate score and distance metrics for each structure.
 
@@ -141,6 +150,8 @@ def read_and_calculate(workspace, pdb_paths):
     num_restraints = len(restraints) + 1
     atom_xyzs = {}
     fragment_size = 0
+    offset = 0
+    offset_found = False
 
     # It's kinda hard to tell which lines are part of the score table.  The 
     # first column has some pretty heterogeneous strings (examples below) and 
@@ -319,6 +330,12 @@ def read_and_calculate(workspace, pdb_paths):
                             title='Avg {}-Residue Fragment RMSD \
 (C-Alpha)'.format(fragment_size),
                             order=9)
+                elif splitline[1] == 'Avg_all':
+                    meta = ScoreMetadata(
+                            name='avg_fragment_crmsd_all',
+                            title = 'Average of all {}-Residue fragment \
+RMSDs (C-Alpha)'.format(fragment_size),
+                            order = 9)
                 else:
                     position = splitline[2]
                     crmsd = splitline[4]
@@ -339,6 +356,7 @@ def read_and_calculate(workspace, pdb_paths):
 
             elif line.startswith('EXTRA_METRIC'):
                 tokens = line[len('EXTRA_METRIC '):].rsplit(None, 1)
+                print tokens[0]
 
                 # Ignore the BuriedUnsat filter.  It just reports 911 every 
                 # time, and we extract the actual buried unsat information from 
@@ -355,6 +373,11 @@ def read_and_calculate(workspace, pdb_paths):
             elif (line.startswith('ATOM') or line.startswith('HETATM')):
                 atom_name = line[12:16].strip()
                 residue_id = int(line[22:26].strip())
+                if not offset_found:
+                    offset = residue_id
+
+                offset_found = True
+                
                 residue_name = line[17:20].strip()
 
                 # Keep track of this model's sequence.
@@ -385,6 +408,7 @@ def read_and_calculate(workspace, pdb_paths):
                 'angle': '°',
         }
 
+        """
         for restraint in restraints:
             d = restraint.distance_from_ideal(atom_xyzs)
             metric = restraint.metric
@@ -429,8 +453,9 @@ def read_and_calculate(workspace, pdb_paths):
                 metadata[meta.name] = meta
 
         # Finish calculating some records that depend on the whole structure.
-
+        """ 
         record['sequence'] = sequence
+        """
         for i, score in dunbrack_scores.items():
             aa = sequence_map[i] if is_sidechain_restraint[i] else 'X'
             res = '{0}{1}'.format(aa, i)
@@ -442,7 +467,8 @@ def read_and_calculate(workspace, pdb_paths):
             )
             record[meta.name] = score
             metadata[meta.name] = meta
-
+        """
+        record['offset'] = offset
         records.append(record)
 
     if pdb_paths:
@@ -1115,7 +1141,7 @@ class Design (object):
 
     def __init__(self, directory):
         self.directory = directory
-        self.structures, self.metadata = load(directory)
+        self.structures, self.metadata = load(directory,require_io_dir=False)
         self.loops = pipeline.load_loops(directory)
         self.resfile = pipeline.load_resfile(directory)
         self.representative = self.rep = self.scores.idxmin()
@@ -1134,7 +1160,7 @@ class Design (object):
     @property
     def resfile_sequence(self):
         resis = sorted(int(i) for i in self.resfile.designable)
-        return ''.join(self['sequence'][self.rep][i-1] for i in resis)
+        return ''.join(self['sequence'][self.rep][i-self['offset'][self.rep]] for i in resis)
 
     @property
     def rep_path(self):

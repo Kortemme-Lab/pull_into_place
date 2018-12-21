@@ -139,7 +139,7 @@ problematic ligands) and relaxed in the rosetta score function."""
         if pdb_path.endswith('.pdb.gz'):
             shutil.copyfile(pdb_path, workspace.input_pdb_path)
         elif pdb_path.endswith('.pdb'):
-            gzip(pdb_path, workspace,input_pdb_path)
+            gzip(pdb_path, workspace.input_pdb_path)
         else:
             raise ValueError("'{0}' is not a PDB file.".format(pdb_path))
 

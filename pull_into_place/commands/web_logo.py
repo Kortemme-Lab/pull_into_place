@@ -37,13 +37,14 @@ def main():
     directory = args['<directory>']
 
     if directory:
-        models, filters = structures.load(directory)
+        models, filters = structures.load(directory,
+                require_workspace=False)
         resfile = pipeline.load_resfile(directory)
         resis = sorted(int(i) for i in resfile.designable)
         print resis
         title = directory
         sequences = [
-                ''.join(models['sequence'][i][j-1] for j in resis)
+                ''.join(models['sequence'][i][j-39] for j in resis)
                 for i in models.index
         ]
 

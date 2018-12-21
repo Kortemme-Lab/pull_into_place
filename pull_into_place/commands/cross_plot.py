@@ -6,11 +6,14 @@ Plot one structures from one step against an average of child designs in
 a later step. 
 
 Usage:
-    pull_into_place cross_plot <directory1> <directory2> [options]
+    pull_into_place cross_plot <directory1> <directory2>... [options]
 
 Options:
     --force, -f
         Force PIP to recalculate the tree.
+
+    -F, --no-fork
+        Do not fork into a background process
 
 """
 
@@ -23,20 +26,6 @@ import pandas as pd
 import yaml, os, gtk, collections,sys
 from show_my_designs.gui import try_to_run_command
 
-"""
-Psuedo-code for figuring out parent/child relationships
-
-def nuclear_familyi(num_levels):
-    for child in child_directory:
-        parent = child
-        for i in range(0, num_levels):
-            parent = parent.up
-        dict[parent].append(child)
-
-for parent in dict:
-    design = CrossDesign(parent, children)
-"""
-
 
 def main():
     
@@ -48,7 +37,7 @@ def main():
     force = args['--force']
 
     parent_workspace = pipeline.workspace_from_dir(parent_directory)
-    child_workspace = pipeline.workspace_from_dir(child_directory)
+    child_workspace = pipeline.workspace_from_dir(child_directory[0])
     tree = trees.load_tree(child_workspace,force)
 
     ws = child_workspace
@@ -56,6 +45,10 @@ def main():
     while ws.focus_dir != parent_workspace.focus_dir:
         ws = ws.predecessor
         tree_levels += 1
+
+    show_my_designs(child_directory, tree, tree_levels,
+            fork_gui = not args['--no-fork'], use_cache = not
+            args['--force'])
 
 class CrossDesign(smd.Design):
 
@@ -82,6 +75,8 @@ class CrossDesign(smd.Design):
         nodes = trees.search_by_records(self.tree,{'directory':self.directory})
 
         from sys import stdout
+
+        print 'Setting up ',self.directory
        
         for i in range(0,len(self._models)):
             stdout.write("\rFinding parent metrics for model {} of \
@@ -107,7 +102,8 @@ class CrossDesign(smd.Design):
                                 pd.concat([self._models,parent_df])
                         self.add_parent_metrics(parent_index, parent)
                         self._models.loc[parent_index, 'is_parent'] = True
-                        
+
+        print        
         
     def go_to_parent_node(self, node):
         for i in range(0, self.tree_levels):

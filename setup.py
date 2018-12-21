@@ -68,6 +68,7 @@ setup(
             'biopython',
             'weblogo',
             'nonstdlib',
+            'seaborn',
         ],
     },
     entry_points={
@@ -94,6 +95,7 @@ setup(
             define_command('plot_funnels', '[analysis]'),
             define_command('run_additional_metrics'),
             define_command('tree_plot'),
+            define_command('cross_plot'),
         ],
     },
 )
