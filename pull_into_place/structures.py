@@ -208,7 +208,7 @@ def read_and_calculate(workspace, pdb_paths):
                         unit='REU',
                         order=1,
                 )
-                record['total_score'] = float(line.split()[1])
+                record['total_score'] = float(line.split()[-1])
                 metadata[meta.name] = meta
 
             elif line.startswith('label'):
